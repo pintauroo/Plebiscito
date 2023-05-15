@@ -37,9 +37,9 @@ class node:
         self.q.join()
 
     def utility_function(self):
-        return (config.a*self.updated_gpu)+((1-config.a)*self.updated_bw[self.item['user']][self.id]) # GPU vs BW
-        return (config.a*self.updated_gpu)+((1-config.a)*self.updated_cpu) #GPU vs CPU
-        return (config.a*self.updated_bw[self.item['user']][self.id])+((1-config.a)*self.updated_cpu) #BW vs CPU
+        return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw[self.item['user']][self.id]/config.tot_bw)) # GPU vs BW
+        return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #GPU vs CPU
+        return (config.a*(self.updated_bw[self.item['user']][self.id]/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
 
     def forward_to_neighbohors(self):
         for i in range(config.num_edges):
