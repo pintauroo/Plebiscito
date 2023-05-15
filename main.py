@@ -92,5 +92,5 @@ u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, jo
 logging.info('Tot messages: '+str(c.counter))
 print('Tot messages: '+str(c.counter))
 
-print(c.t.b)
-print(c.t.call_func())
+# print(c.t.b)
+# print(c.t.call_func())

@@ -1,7 +1,8 @@
 #!/bin/bash
 max_rep=30
 max_bids=50
-max_edges=9
+num_edges=9
+req_number=100
 timeout=100  # Set a timeout of 300 seconds (5 minutes)
 
 
@@ -18,7 +19,8 @@ do
     for b in `seq 0 $max_rep`
     do
         # Start the Python process and get its PID
-        python3 main.py "$max_edges" "$i" > "./res/$i/$b" &        pid=$!
+        python3 main.py "$req_number" "$i" "$num_edges" > "./res/$i/$b" &        
+        pid=$!
 
         # Wait for the process to complete or time out
         start_time=$(date +%s)

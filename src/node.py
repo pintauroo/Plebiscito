@@ -19,6 +19,8 @@ class node:
         self.updated_gpu = self.initial_gpu
         self.initial_cpu = float(config.node_cpu)
         self.updated_cpu = self.initial_cpu
+        self.initial_bw = config.t.b
+        self.updated_bw = self.initial_bw
         
         self.q = queue.Queue()
         self.user_requests = []
@@ -35,9 +37,10 @@ class node:
         self.q.join()
 
     def utility_function(self):
-        # return (config.a*self.updated_gpu)+((1-config.a)*config.t.b[self.item['user']][self.id]) # GPU vs BW
+        return (config.a*self.updated_gpu)+((1-config.a)*self.updated_bw[self.item['user']][self.id]) # GPU vs BW
         return (config.a*self.updated_gpu)+((1-config.a)*self.updated_cpu) #GPU vs CPU
-   
+        return (config.a*self.updated_bw[self.item['user']][self.id])+((1-config.a)*self.updated_cpu) #BW vs CPU
+
     def forward_to_neighbohors(self):
         for i in range(config.num_edges):
             if config.t.to()[i][self.id] and self.id != i:
@@ -89,6 +92,7 @@ class node:
             if id == self.id:
                 self.updated_gpu+=self.bids[self.item['job_id']]['NN_gpu'][i]
                 self.updated_cpu+=self.bids[self.item['job_id']]['NN_cpu'][i]
+                self.updated_bw[self.item['user']][self.id] += self.item['NN_data_size'][i]
                 self.bids[self.item['job_id']]['auction_id'][i]=float('-inf')
                 self.bids[self.item['job_id']]['x'][i]=0
                 self.bids[self.item['job_id']]['bid'][i]=float('-inf')
@@ -128,10 +132,10 @@ class node:
             self.sequence = True
             self.layers = 0
             NN_len = len(self.item['NN_gpu'])
-            avail_bw =self.item['NN_data_size'][0]
-            output_size = config.t.b[self.item['user']][self.id]
+            required_bw =self.item['NN_data_size'][0]
+            avail_bw = self.updated_bw[self.item['user']][self.id]
 
-            if avail_bw<=output_size: # TODO node id needed
+            if required_bw<=avail_bw: # TODO node id needed
                 for i in range(0, NN_len):
                     if  self.sequence==True and \
                         self.item['NN_gpu'][i]<=self.updated_gpu and \
@@ -157,9 +161,9 @@ class node:
             if self.bids[self.item['job_id']]['auction_id'].count(self.id)<config.min_layer_number:
                 self.unbid()
             else:
-                config.t.b[self.item['user']][self.id] -= self.item['NN_data_size'][0] # TODO else update bandwidth 
+                self.updated_bw[self.item['user']][self.id] -= self.item['NN_data_size'][0] # TODO else update bandwidth 
 
-            self.forward_to_neighbohors()
+                self.forward_to_neighbohors()
         else:
             self.print_node_state('Value not in dict (first_msg)', type='error')
      
@@ -169,44 +173,51 @@ class node:
     def rebid(self):
         
         self.print_node_state('REBID')
+
         if self.item['job_id'] in self.bids:
-            logging.log(TRACE, 'rebida')
+
             self.sequence=True
             self.layers = 0
             NN_len = len(self.item['NN_gpu'])
-            if self.item['NN_data_size'][0]<=config.t.b[self.item['user']][self.id]: # TODO node id needed
-                logging.log(TRACE, 'rebidB')
-                for i in range(0, NN_len):
+            avail_bw = self.updated_bw[self.item['user']][self.id]
 
-                    if self.bids[self.item['job_id']]['auction_id'][i] == float('-inf'):
-                        logging.log(TRACE, "RIF1: " + str(self.id) + ", avail_gpu:" + str(self.updated_gpu) + ", avail_cpu:" + str(self.updated_cpu) + ", BIDDING on: " + str(i) +", NN_len:" +  str(NN_len) +  ", Layer_resources" + str(self.item['NN_gpu'][i]))
-                        if  self.sequence==True and\
-                            self.item['NN_gpu'][i] <= self.updated_gpu and \
-                            self.item['NN_cpu'][i] <= self.updated_cpu and \
-                            self.layers<config.max_layer_number:
-                                logging.log(TRACE, "RIF2 NODEID: " + str(self.id) + ", avail_gpu:" + str(self.updated_gpu) + ", avail_cpu:" + str(self.updated_cpu) + ", BIDDING on: " + str(i) +", NN_len:" +  str(NN_len) +  ", Layer_resources" + str(self.item['NN_gpu'][i]))
-                                self.bids[self.item['job_id']]['bid'][i] = self.utility_function()
-                                self.bids[self.item['job_id']]['bid_gpu'][i] = self.updated_gpu
-                                self.bids[self.item['job_id']]['bid_cpu'][i] = self.updated_cpu
-                                self.bids[self.item['job_id']]['bid_bw'][i] = self.updated_gpu # TODO update with BW
-                                self.updated_gpu = self.updated_gpu-self.item['NN_gpu'][i]
-                                self.updated_cpu = self.updated_cpu-self.item['NN_cpu'][i]
-                                self.bids[self.item['job_id']]['x'][i]=(1)
-                                self.bids[self.item['job_id']]['auction_id'][i]=(self.id)
-                                self.bids[self.item['job_id']]['timestamp'][i] = datetime.now()
-                                self.layers+=1
-                        else:
-                            self.sequence = False
-                            self.bids[self.item['job_id']]['x'][i]=(float('-inf'))
-                            self.bids[self.item['job_id']]['bid'][i]=(float('-inf'))
-                            self.bids[self.item['job_id']]['auction_id'][i]=(float('-inf'))
-                            self.bids[self.item['job_id']]['timestamp'][i] = (datetime.now() - timedelta(days=1))
+
+
+
+            for i in range(0, NN_len):
+                if self.bids[self.item['job_id']]['auction_id'][i] == float('-inf'):
+                    logging.log(TRACE, "RIF1: " + str(self.id) + ", avail_gpu:" + str(self.updated_gpu) + ", avail_cpu:" + str(self.updated_cpu) + ", BIDDING on: " + str(i) +", NN_len:" +  str(NN_len) +  ", Layer_resources" + str(self.item['NN_gpu'][i]))
+                    required_bw = self.item['NN_data_size'][i]
+                    
+                    if  self.sequence==True and\
+                        self.item['NN_gpu'][i] <= self.updated_gpu and \
+                        self.item['NN_cpu'][i] <= self.updated_cpu and \
+                        self.item['NN_data_size'][i] <= avail_bw and \
+                        self.layers<config.max_layer_number:
+                            
+                            logging.log(TRACE, "RIF2 NODEID: " + str(self.id) + ", avail_gpu:" + str(self.updated_gpu) + ", avail_cpu:" + str(self.updated_cpu) + ", BIDDING on: " + str(i) +", NN_len:" +  str(NN_len) +  ", Layer_resources" + str(self.item['NN_gpu'][i]))
+                            self.bids[self.item['job_id']]['bid'][i] = self.utility_function()
+                            self.bids[self.item['job_id']]['bid_gpu'][i] = self.updated_gpu
+                            self.bids[self.item['job_id']]['bid_cpu'][i] = self.updated_cpu
+                            self.bids[self.item['job_id']]['bid_bw'][i] = self.updated_bw[self.item['user']][self.id] # TODO update with BW
+                            self.updated_gpu = self.updated_gpu-self.item['NN_gpu'][i]
+                            self.updated_cpu = self.updated_cpu-self.item['NN_cpu'][i]
+                            self.bids[self.item['job_id']]['x'][i]=(1)
+                            self.bids[self.item['job_id']]['auction_id'][i]=(self.id)
+                            self.bids[self.item['job_id']]['timestamp'][i] = datetime.now()
+                            self.layers+=1
+                    else:
+                        self.sequence = False
+                        self.bids[self.item['job_id']]['x'][i]=(float('-inf'))
+                        self.bids[self.item['job_id']]['bid'][i]=(float('-inf'))
+                        self.bids[self.item['job_id']]['auction_id'][i]=(float('-inf'))
+                        self.bids[self.item['job_id']]['timestamp'][i] = (datetime.now() - timedelta(days=1))
 
 
             if self.bids[self.item['job_id']]['auction_id'].count(self.id)<config.min_layer_number:
                 self.unbid()
             else:
-                config.t.b[self.item['user']][self.id] -= self.item['NN_data_size'][self.bids[self.item['job_id']]['auction_id'].index(self.id)] # TODO else update bandwidth 
+                self.updated_bw[self.item['user']][self.id] -= self.item['NN_data_size'][self.bids[self.item['job_id']]['auction_id'].index(self.id)] # TODO else update bandwidth 
 
                 self.forward_to_neighbohors()
         else:
@@ -250,6 +261,7 @@ class node:
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
                                 self.updated_gpu = self.updated_gpu +  self.item['NN_gpu'][index]
                                 self.updated_cpu = self.updated_cpu +  self.item['NN_cpu'][index]
+                                self.updated_bw[self.item['user']][self.id] = self.updated_bw[self.item['user']][self.id] + self.item['NN_data_size'][index]
                                 index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                         elif (y_kj<y_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #3')
@@ -354,6 +366,7 @@ class node:
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
                                 self.updated_gpu = self.updated_gpu +  self.item['NN_gpu'][index]
                                 self.updated_cpu = self.updated_cpu +  self.item['NN_cpu'][index]
+                                self.updated_bw[self.item['user']][self.id] = self.updated_bw[self.item['user']][self.id] + self.item['NN_data_size'][index]
                                 index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                         elif (y_kj<y_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#19')

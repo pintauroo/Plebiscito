@@ -11,8 +11,8 @@ from src.topology import topo
 
 counter = 0 #Messages counter
 req_number = int(sys.argv[1]) #Total number of requests
-a=float(sys.argv[2]) #Multiplicative factor
-num_edges=9 #Nodes number 
+a = float(sys.argv[2]) #Multiplicative factor
+num_edges = int(sys.argv[3]) #Nodes number 
 
 #NN model
 layer_number = 6 
@@ -20,13 +20,13 @@ min_layer_number = 1 #Min number of layers per node
 max_layer_number = layer_number/2 #Max number of layers per node
 
 
-dataset='/home/andrea/Documents/Projects/bidding/df_dataset.csv'
+dataset='./df_dataset.csv'
 
 #Data analisys
 job_list_instance = JobList(dataset, num_jobs_limit=req_number)
 job_list_instance.select_jobs()
 
-print(job_list_instance.job_list[0])
+# print(job_list_instance.job_list[0])
 
 # calculate total bw, cpu, and gpu needed
 tot_gpu = 0 
