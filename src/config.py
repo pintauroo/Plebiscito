@@ -6,138 +6,97 @@ from src.node import node
 import numpy as np
 import datetime
 import sys
+from src.dataset import JobList
+from src.topology import topo
+
+counter = 0 #Messages counter
+req_number = int(sys.argv[1]) #Total number of requests
+a=float(sys.argv[2]) #Multiplicative factor
+num_edges=9 #Nodes number 
+
+#NN model
+layer_number = 6 
+min_layer_number = 1 #Min number of layers per node
+max_layer_number = layer_number/2 #Max number of layers per node
 
 
+dataset='/home/andrea/Documents/Projects/bidding/df_dataset.csv'
+
+#Data analisys
+job_list_instance = JobList(dataset, num_jobs_limit=req_number)
+job_list_instance.select_jobs()
+
+print(job_list_instance.job_list[0])
+
+# calculate total bw, cpu, and gpu needed
+tot_gpu = 0 
+tot_cpu = 0 
+tot_bw = 0 
+for d in job_list_instance.job_list:
+    tot_gpu += d["num_gpu"] 
+    tot_cpu += d["num_cpu"] 
+    tot_bw += float(d['read_count'])
+
+print('cpu: ' +str(tot_cpu))
+print('gpu: ' +str(tot_gpu))
+print('bw: ' +str(tot_bw))
+
+node_gpu=float(tot_gpu/num_edges)
+node_cpu=float(tot_cpu/num_edges)
+node_bw=float(tot_bw/num_edges)
+
+num_clients=len(set(d["user"] for d in job_list_instance.job_list))
 
 
-num_clients=int(sys.argv[2])
-num_edges=int(sys.argv[1])
-bid_requests=2
+#Build Topolgy
+t = topo(func_name='complete_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
 
-#NN Resources
-layer_number = 6
-cost = 10
-max_cost = 70
-min_cost = 10
-
-#Network Model Resources
-max_bandwidth = 1000
-min_bandwidth = 1000
-b = np.random.uniform(min_bandwidth, max_bandwidth, size=(num_clients, num_edges))
-
-#Edge Server Resources
-node_max_res=20
+nodes = [node(row) for row in range(num_edges)]
 
 
-#Links between edge servers
-proba_0 = 0
-m=np.random.choice([0, 1], size=(num_edges,num_edges),  p=[proba_0, 1-proba_0])
-np.fill_diagonal(m, 0)
-
-# m = [[0, 1, 0, 0, 0, 0],
-#      [1, 0, 1, 0, 0, 0],
-#      [0, 1, 0, 1, 0, 0],
-#      [0, 0, 1, 0, 1, 0],
-#      [0, 0, 0, 1, 0, 1],
-#      [0, 0, 0, 0, 1, 0]]
-
-# m = [[0, 1, 1, 1, 1, 1],
-#      [1, 0, 1, 1, 1, 1],
-#      [1, 1, 0, 1, 1, 1],
-#      [1, 1, 1, 0, 1, 1],
-#      [1, 1, 1, 1, 0, 1],
-#      [1, 1, 1, 1, 1, 0]]
-
-# m = [[0, 1, 0, ],
-#      [1, 0, 1, ],
-#      [0, 1, 0, ]]
-
-
-# print(m)
-
-# nodes = [[node(str(row)+str(col)) for row in range(max_nodes)] for col in range(max_nodes)]
-nodes = [node(row) for row in range(num_edges)] 
-
-
-counter =0
-# NN= [50, 45, 40, 30, 25, 20, 15, 10, 5, 3]
-# NN = np.random.randint(low=min_cost, high=max_cost, size=layer_number)
-# NN=sorted(NN)
-# NN=NN[::-1]
-# next_NN = NN
-
-min_layer_number = 2
-max_layer_number = layer_number/2
-# max_layer_number = layer_number
-
-
-#Multiplicative factor
-a=0.8
-
-
-# data['bid'].append({
-#         "keya":0,
-#         "keyb":"0",
-#         "keyc":"a",
-#     })
-
-NN_resources = np.ones(layer_number) * cost
-NN_data_size = np.ones(layer_number) * cost
-# NN_resources = np.random.randint(low=min_cost, high=max_cost, size=layer_number)
-# NN_data_size = np.random.randint(low=min_cost, high=max_cost, size=layer_number)
-
-def message_data(req_id, id_node):
+def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time, gpu_type, num_inst, size, bandwidth):
     
+    gpu = int(num_gpu / layer_number)
+    cpu = int(num_cpu / layer_number)
+    bw = int(float(bandwidth) / layer_number)
 
-    # NN=sorted(NN)
-    # NN=NN[::-1]
-
+    NN_gpu = np.ones(layer_number) * gpu
+    NN_cpu = np.ones(layer_number) * cpu
+    NN_data_size = np.ones(layer_number) * bw
     
     data = {
-        "req_id": int(),
-        "client_id": int(),
+        "job_id": int(),
+        "user": int(),
+        "num_gpu": int(),
+        "num_cpu": int(),
+        "duration": int(),
+        "job_name": int(),
+        "submit_time": int(),
+        "gpu_type": int(),
+        "num_inst": int(),
+        "size": int(),
         "edge_id":int(),
-        "NN_resources": NN_resources,
+        "NN_gpu": NN_gpu,
+        "NN_cpu": NN_cpu,
         "NN_data_size": NN_data_size
         }
 
 
     data['edge_id']=None
-    data['req_id']=req_id
-    data['client_id']=id_node
-    # data['timestamp'].append(timestamp) #datetime.datetime.now()
+    data['job_id']=job_id
+    data['user']=user
+    data['num_gpu']=num_gpu
+    data['num_cpu']=num_cpu
+    data['duration']=duration
+    data['job_name']=job_name
+    data['submit_time']=submit_time
+    data['gpu_type']=gpu_type
+    data['num_inst']=num_inst
+    data['size']=size
+    data['job_id']=job_id
 
     return data
 
-
-
-def message_data_test(req_id, id_node):
-    
-    NN = np.random.randint(low=min_cost, high=max_cost, size=layer_number)
-    # NN=sorted(NN)
-    # NN=NN[::-1]
-    data = {
-        "req_id": int(),
-        "client_id": int(),
-        "auction_id": list(),
-        "bid": list(),
-        "x": list(),
-        "timestamp": list(),
-        "NN_resources": NN
-    }
-
-
-    for _ in range(0, len(NN)):
-        data['x'].append(float('-inf'))
-        data['bid'].append(float('-inf'))
-        data['auction_id'].append(float('-inf'))
-        data['timestamp'].append(datetime.datetime.now())
-
-    data['req_id']=req_id
-    data['client_id']=id_node
-    # data['timestamp'].append(timestamp) #datetime.datetime.now()
-
-    return data
 
 
 """

@@ -1,108 +1,96 @@
 import threading
 import datetime
 import src.config as c
+import src.utils as u
 import time
 import random
 import sys
+
+
+
 
 import time
 
 import logging
 TRACE = 5
+DEBUG = logging.DEBUG
+INFO = logging.INFO
+
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
-
-# # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-# console_handler = logging.StreamHandler()
-# file_handler = logging.FileHandler('debug.log')
-# logging.getLogger('').addHandler(console_handler)
-# logging.getLogger('').addHandler(file_handler)
-
-# Log a message
-# logging.debug('This is a debug message')
-# logging.info('This is an info message')
-# logging.warning('This is a warning message')
-# logging.error('This is an error message')
-# logging.critical('This is a critical message')
+logging.basicConfig(filename='debug.log', level=INFO, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))
 logging.debug('Edges number: ' + str(c.num_edges))
-logging.debug('Requests number: ' + str(c.bid_requests))
+logging.debug('Requests number: ' + str(c.req_number))
 
+
+#Generate threads for each node
 for i in range(c.num_edges):
     c.nodes.append(threading.Thread(target=c.nodes[i].work, daemon=True).start())
 
 start_time = time.time()
 
+job_ids=[]
 
-# if sys.argv[1]:
-#     c.bid_requests = int(sys.argv[1])
-# else:
-# c.bid_requests = int(sys.argv[1])
-data={}
-req_id=0
-for j in range(c.num_clients):
-    for i in range(c.bid_requests):
-        
-        # for k in range(c.num_edges):
+print(len(c.job_list_instance.job_list))
+print('request_number: ' +str(c.req_number))
 
-            c.nodes[0].append_data(c.message_data(req_id, j))
-    req_id+=1
-
-        # data[j] = c.message_data(i, j) #j is client request, i is request index
-        # print(data[j]['req_id'])
-    # time.sleep(0.5)
-    # for i in range(100):
-    # for i in range(c.num_edges):
-    #     # if random.randint(0, 1000) > 500 and j%c.num_edges:
-    #         # if random.randint(0, 1000) > 500 :
-    #     c.nodes[i].append_data(data)
-        # time.sleep(0.5)
-
-# print('data')
-# print(data)
-
-# for j in range(c.num_edges):
-#         # if random.randint(0, 1000) > 500 and j%c.num_edges:
-#             # if random.randint(0, 1000) > 500 :
-#     # for j in range(c.bid_requests):
-#     for i in range(c.bid_requests):
-#         print(data[i]['req_id'])
-
-#         c.nodes[j].append_data(data[i])
-        
-# c.nodes[1].append_data(c.message_data(0, 999, datetime.datetime.now()))
-# time.sleep(1)
-
-# c.nodes[1].append_data(c.message_data(1, 999, datetime.datetime.now()))
-
+for i in range(0, c.req_number):
+    job=c.job_list_instance.job_list[i]
+    job_ids.append(job['job_id'])
+    for j in range(c.num_edges):
+        c.nodes[j].append_data(
+            c.message_data
+            (
+                job['job_id'],
+                job['user'],
+                job['num_gpu'],
+                job['num_cpu'],
+                job['duration'],
+                job['job_name'],
+                job['submit_time'],
+                job['gpu_type'],
+                job['num_inst'],
+                job['size'],
+                job['read_count']
+            )
+        )
 
 
 # Block until all tasks are done.
 for i in range(c.num_edges):
-    # print("process-end" + str(c.nodes[i].getID()))
     c.nodes[i].join_queue()
 
+
+
+#Calculate stats
+exec_time = time.time() - start_time
 logging.info("Run time: %s" % (time.time() - start_time))
 print("Run time: %s" % (time.time() - start_time))
 
 
+time.sleep(1) # Wait time nexessary to wait all threads to finish 
 
-    
-
-for j in range(req_id):
+for j in job_ids:
     print('\n')
     logging.info("RESULTS req:" +str(j))
     for i in range(c.num_edges):
-        logging.info(c.nodes[i].bids[j]['auction_id'])
+        if j not in c.nodes[i].bids:
+            print(str(c.nodes[i].id) + ' ' +str(j))
         print(c.nodes[i].bids[j]['auction_id'])
+        # print(c.nodes[i].initial_resources)
+        # print(c.nodes[i].updated_resources)
 
-#         # print(c.nodes[i].bids)
-#         # print('id: ' + str(i)+ "avl res: "+ str(c.nodes[i].updated_resources))
+        # print(c.nodes[i].bids)
+        # print('id: ' + str(i)+ "avl res: "+ str(c.nodes[i].updated_resources))
         
-#         # print(vars(c.nodes[i].bids))
-#         # print(c.nodes[i].__dict__)
+        # print(vars(c.nodes[i].bids))
+        # print(c.nodes[i].__dict__)
+
+u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, job_ids, c.a)
 
 logging.info('Tot messages: '+str(c.counter))
 print('Tot messages: '+str(c.counter))
+
+print(c.t.b)
+print(c.t.call_func())
