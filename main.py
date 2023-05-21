@@ -76,8 +76,11 @@ for j in job_ids:
     logging.info("RESULTS req:" +str(j))
     for i in range(c.num_edges):
         if j not in c.nodes[i].bids:
+            print('???????')
             print(str(c.nodes[i].id) + ' ' +str(j))
+        print('ktm')
         print(c.nodes[i].bids[j]['auction_id'])
+        print(c.nodes[i].bids[j]['x'])
         # print(c.nodes[i].initial_resources)
         # print(c.nodes[i].updated_resources)
 

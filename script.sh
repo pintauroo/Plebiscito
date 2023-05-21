@@ -1,10 +1,12 @@
 #!/bin/bash
-max_rep=30
+max_rep=200
 max_bids=50
 num_edges=9
 req_number=100
 timeout=100  # Set a timeout of 300 seconds (5 minutes)
 
+# strings=("alpha_GPU_CPU")
+strings=("alpha_BW_CPU" "alpha_GPU_BW" "alpha_GPU_CPU")
 
 rm -rf "res"
 mkdir -p "res"
@@ -12,31 +14,34 @@ mkdir -p "res"
 
 # for i in $(seq 100 100 1000)
 # for i in $(seq 1 1 1)
-for i in $(seq 0 0.1 1); # vary alpha
-do
-    rm -rf "res/""$i"
-    mkdir -p ./"res"/"$i"/
-    for b in `seq 0 $max_rep`
+for filename in "${strings[@]}"
     do
-        # Start the Python process and get its PID
-        python3 main.py "$req_number" "$i" "$num_edges" > "./res/$i/$b" &        
-        pid=$!
+    for i in $(seq 0 0.25 1)
+    do
+        rm -rf "res/""$i"
+        mkdir -p ./"res"/"$i"/
+        for b in `seq 0 $max_rep`
+        do
+            # Start the Python process and get its PID
+            python3 main.py "$req_number" "$i" "$num_edges" "$filename"> "./res/$i/$b" &        
+            pid=$!
 
-        # Wait for the process to complete or time out
-        start_time=$(date +%s)
-        while ps -p $pid > /dev/null && [ $(( $(date +%s) - $start_time )) -lt $timeout ]; do sleep 1; done
+            # Wait for the process to complete or time out
+            start_time=$(date +%s)
+            while ps -p $pid > /dev/null && [ $(( $(date +%s) - $start_time )) -lt $timeout ]; do sleep 1; done
 
-        # Check if the process has completed or timed out
-        if ps -p $pid > /dev/null; then
-            # The process has timed out, kill it
-            kill $pid
-            echo "Process $pid has timed out and been killed"
-        fi
+            # Check if the process has completed or timed out
+            if ps -p $pid > /dev/null; then
+                # The process has timed out, kill it
+                kill $pid
+                echo "Process $pid has timed out and been killed"
+            fi
 
-        # Move debug log to result directory
-        mv debug.log ./"res"/"$i"/debug_"$b".log
+            # Move debug log to result directory
+            mv debug.log ./"res"/"$i"/debug_"$b".log
 
-        # Print the iteration number
-        echo "$i"
+            # Print the iteration number
+            echo "$i"
+        done
     done
 done

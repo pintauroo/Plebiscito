@@ -13,6 +13,7 @@ counter = 0 #Messages counter
 req_number = int(sys.argv[1]) #Total number of requests
 a = float(sys.argv[2]) #Multiplicative factor
 num_edges = int(sys.argv[3]) #Nodes number 
+filename = str(sys.argv[4])
 
 #NN model
 layer_number = 6 

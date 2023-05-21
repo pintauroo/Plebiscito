@@ -7,6 +7,7 @@ import src.config as config
 from datetime import datetime, timedelta
 import copy
 import logging
+import math 
 
 TRACE = 5
 
@@ -37,9 +38,19 @@ class node:
         self.q.join()
 
     def utility_function(self):
-        return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw[self.item['user']][self.id]/config.tot_bw)) # GPU vs BW
-        return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #GPU vs CPU
-        return (config.a*(self.updated_bw[self.item['user']][self.id]/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
+        def f(x, alpha, beta):
+            return math.exp(-(alpha/2)*(x-beta)**2)
+        
+        if config.filename == 'stefano':
+            return f(self.item['NN_cpu'][0]/self.item['NN_gpu'][0], config.a, self.initial_cpu/self.initial_gpu)
+        elif config.filename == 'alpha_BW_CPU':
+            # return (config.a*(self.updated_bw[self.item['user']][self.id]/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
+            return (config.a*(self.updated_bw/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
+        elif config.filename == 'alpha_GPU_CPU':
+            return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #GPU vs CPU
+        elif config.filename == 'alpha_GPU_BW':
+            return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw/config.tot_bw)) # GPU vs BW
+            # return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw[self.item['user']][self.id]/config.tot_bw)) # GPU vs BW
 
     def forward_to_neighbohors(self):
         for i in range(config.num_edges):
@@ -68,6 +79,7 @@ class node:
                     " from_edge:" + str(self.item['edge_id']) +
                     " available GPU:" + str(self.updated_gpu) +
                     " available CPU:" + str(self.updated_cpu) +
+                    " available BW:" + str(self.updated_bw) +
                     (("\n"+str(self.bids[self.item['job_id']]['auction_id']) if bid else "") +
                     ("\n"+str(self.item['auction_id']) if bid else "\n"))
                     )
@@ -92,7 +104,8 @@ class node:
             if id == self.id:
                 self.updated_gpu+=self.bids[self.item['job_id']]['NN_gpu'][i]
                 self.updated_cpu+=self.bids[self.item['job_id']]['NN_cpu'][i]
-                self.updated_bw[self.item['user']][self.id] += self.item['NN_data_size'][i]
+                self.updated_bw += self.item['NN_data_size'][i]
+                # self.updated_bw[self.item['user']][self.id] += self.item['NN_data_size'][i]
                 self.bids[self.item['job_id']]['auction_id'][i]=float('-inf')
                 self.bids[self.item['job_id']]['x'][i]=0
                 self.bids[self.item['job_id']]['bid'][i]=float('-inf')
@@ -133,7 +146,7 @@ class node:
             self.layers = 0
             NN_len = len(self.item['NN_gpu'])
             required_bw =self.item['NN_data_size'][0]
-            avail_bw = self.updated_bw[self.item['user']][self.id]
+            avail_bw = self.updated_bw
 
             if required_bw<=avail_bw: # TODO node id needed
                 for i in range(0, NN_len):
@@ -144,7 +157,7 @@ class node:
                             self.bids[self.item['job_id']]['bid'][i] = self.utility_function()
                             self.bids[self.item['job_id']]['bid_gpu'][i] = self.updated_gpu
                             self.bids[self.item['job_id']]['bid_cpu'][i] = self.updated_cpu
-                            self.bids[self.item['job_id']]['bid_bw'][i] = self.updated_gpu # TODO update with BW
+                            self.bids[self.item['job_id']]['bid_bw'][i] = self.updated_bw # TODO update with BW
                             self.updated_gpu = self.updated_gpu-self.item['NN_gpu'][i]
                             self.updated_cpu = self.updated_cpu-self.item['NN_cpu'][i]
                             self.bids[self.item['job_id']]['x'][i] = 1
@@ -161,8 +174,10 @@ class node:
             if self.bids[self.item['job_id']]['auction_id'].count(self.id)<config.min_layer_number:
                 self.unbid()
             else:
-                self.updated_bw[self.item['user']][self.id] -= self.item['NN_data_size'][0] # TODO else update bandwidth 
-
+                first_index = self.bids[self.item['job_id']]['auction_id'].index(self.id)
+                # last_index = len(self.bids[self.item['job_id']]['auction_id']) - self.bids[self.item['job_id']]['auction_id'][::-1].index(self.id) - 1
+                self.updated_bw -= self.item['NN_data_size'][first_index]  
+                
                 self.forward_to_neighbohors()
         else:
             self.print_node_state('Value not in dict (first_msg)', type='error')
@@ -179,7 +194,8 @@ class node:
             self.sequence=True
             self.layers = 0
             NN_len = len(self.item['NN_gpu'])
-            avail_bw = self.updated_bw[self.item['user']][self.id]
+            # avail_bw = self.updated_bw[self.item['user']][self.id]
+            avail_bw = self.updated_bw
 
 
 
@@ -199,7 +215,7 @@ class node:
                             self.bids[self.item['job_id']]['bid'][i] = self.utility_function()
                             self.bids[self.item['job_id']]['bid_gpu'][i] = self.updated_gpu
                             self.bids[self.item['job_id']]['bid_cpu'][i] = self.updated_cpu
-                            self.bids[self.item['job_id']]['bid_bw'][i] = self.updated_bw[self.item['user']][self.id] # TODO update with BW
+                            self.bids[self.item['job_id']]['bid_bw'][i] = self.updated_bw # TODO update with BW
                             self.updated_gpu = self.updated_gpu-self.item['NN_gpu'][i]
                             self.updated_cpu = self.updated_cpu-self.item['NN_cpu'][i]
                             self.bids[self.item['job_id']]['x'][i]=(1)
@@ -217,8 +233,10 @@ class node:
             if self.bids[self.item['job_id']]['auction_id'].count(self.id)<config.min_layer_number:
                 self.unbid()
             else:
-                self.updated_bw[self.item['user']][self.id] -= self.item['NN_data_size'][self.bids[self.item['job_id']]['auction_id'].index(self.id)] # TODO else update bandwidth 
-
+                first_index = self.bids[self.item['job_id']]['auction_id'].index(self.id)
+                # last_index = len(self.bids[self.item['job_id']]['auction_id']) - self.bids[self.item['job_id']]['auction_id'][::-1].index(self.id) - 1
+                self.updated_bw -= self.item['NN_data_size'][first_index]  
+                
                 self.forward_to_neighbohors()
         else:
             self.print_node_state('Value not in dict (rebid)', type='error')
@@ -261,7 +279,8 @@ class node:
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
                                 self.updated_gpu = self.updated_gpu +  self.item['NN_gpu'][index]
                                 self.updated_cpu = self.updated_cpu +  self.item['NN_cpu'][index]
-                                self.updated_bw[self.item['user']][self.id] = self.updated_bw[self.item['user']][self.id] + self.item['NN_data_size'][index]
+                                # self.updated_bw[self.item['user']][self.id] = self.updated_bw[self.item['user']][self.id] + self.item['NN_data_size'][index]
+                                self.updated_bw = self.updated_bw + self.item['NN_data_size'][index]
                                 index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                         elif (y_kj<y_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #3')
@@ -366,7 +385,8 @@ class node:
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
                                 self.updated_gpu = self.updated_gpu +  self.item['NN_gpu'][index]
                                 self.updated_cpu = self.updated_cpu +  self.item['NN_cpu'][index]
-                                self.updated_bw[self.item['user']][self.id] = self.updated_bw[self.item['user']][self.id] + self.item['NN_data_size'][index]
+                                # self.updated_bw[self.item['user']][self.id] = self.updated_bw[self.item['user']][self.id] + self.item['NN_data_size'][index]
+                                self.updated_bw = self.updated_bw + self.item['NN_data_size'][index]
                                 index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                         elif (y_kj<y_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#19')

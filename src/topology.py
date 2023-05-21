@@ -9,14 +9,12 @@ import numpy as np
 
 class topo:
     def __init__(self, func_name, max_bandwidth, min_bandwidth, num_clients, num_edges):
-        self.nax_bandwidth = max_bandwidth
-        self.nin_bandwidth = min_bandwidth
         self.n = num_edges #asjacency matrix
 
         self.to = getattr(self, func_name)
-        
-        self.b = np.random.uniform(min_bandwidth, max_bandwidth, size=(num_clients, num_edges)) #bandwidth matrix
-
+        print(self.to)
+        self.b = max_bandwidth
+        # self.b = np.random.uniform(min_bandwidth, max_bandwidth, size=(num_clients, num_edges)) #bandwidth matrix
 
 
     def call_func(self):
