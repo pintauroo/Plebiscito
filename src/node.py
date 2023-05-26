@@ -132,6 +132,8 @@ class node:
         avail_bw = self.updated_bw
         tmp_bid = self.bids[self.item['job_id']]
         first = True
+        gpu_=0
+        cpu_=0
 
         if self.item['job_id'] in self.bids:
 
@@ -142,7 +144,7 @@ class node:
                         NN_data_size = self.item['NN_data_size'][i]
                         first = False
                     
-                    if  sequence==True and\
+                    if  sequence==True and \
                         self.item['NN_gpu'][i] <= self.updated_gpu and \
                         self.item['NN_cpu'][i] <= self.updated_cpu and \
                         NN_data_size <= avail_bw and \
@@ -153,8 +155,9 @@ class node:
                             tmp_bid['bid_gpu'][i] = self.updated_gpu
                             tmp_bid['bid_cpu'][i] = self.updated_cpu
                             tmp_bid['bid_bw'][i] = self.updated_bw
-                            self.updated_gpu -= self.item['NN_gpu'][i]
-                            self.updated_cpu -= self.item['NN_cpu'][i]
+                            
+                            gpu_ += self.item['NN_gpu'][i]
+                            cpu_ += self.item['NN_cpu'][i]
                             tmp_bid['x'][i]=(1)
                             tmp_bid['auction_id'][i]=(self.id)
                             tmp_bid['timestamp'][i] = datetime.now()
@@ -166,14 +169,18 @@ class node:
                         tmp_bid['auction_id'][i]=(float('-inf'))
                         tmp_bid['timestamp'][i] = (datetime.now() - timedelta(days=1))
 
-            if self.integrity_check(tmp_bid['auction_id']) and self.id in tmp_bid['auction_id'] and tmp_bid['auction_id'].count(self.id)>=config.min_layer_number:
+            if self.integrity_check(tmp_bid['auction_id']) and \
+                self.id in tmp_bid['auction_id'] and \
+                tmp_bid['auction_id'].count(self.id)>=config.min_layer_number:
 
                 first_index = tmp_bid['auction_id'].index(self.id)
 
                 self.updated_bw -= self.item['NN_data_size'][first_index]  
+                self.updated_gpu -= gpu_
+                self.updated_cpu -= cpu_
 
                 self.bids[self.item['job_id']] = tmp_bid
-                
+
                 self.forward_to_neighbohors()
         else:
             self.print_node_state('Value not in dict (first_msg)', type='error')
@@ -448,6 +455,8 @@ class node:
         elif self.item['job_id'] in self.bids:
             if self.integrity_check(self.item['auction_id']):
                 self.update_bid()
+            else:
+                print(str(self.item) + '\n' + str(self.bids[self.item['job_id']]))
         else:
             self.print_node_state('Value not in dict (new_msg)', type='error')
      
@@ -464,6 +473,7 @@ class node:
             else:
                 if curr_count < config.min_layer_number or curr_count > config.max_layer_number:
                     self.print_node_state('DISCARD BROKEN MSG' + str(bid))
+                    print(bid)
                     return False
                 
                 curr_val = bid[i]

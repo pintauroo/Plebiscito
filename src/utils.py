@@ -35,14 +35,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
 
     for job in c.job_list_instance.job_list:
         count += 1
-        # print(j)
         flag = True
-        # j=job_ids[job_id_]
-
-        # Get job with id
-        # if j in c.job_dict:
-        #     job = c.job_dict[j]
-
         j = job['job_id']
         # Check correctness of all bids
         equal_values = True 
@@ -72,7 +65,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     flag = False
                     # break
         else:
-            print('BROKEN')
+            print(c.nodes[i].bids[j])
             first = True
 
             for index, node in enumerate(nodes[i].bids[j]['auction_id']):

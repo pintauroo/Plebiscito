@@ -1,9 +1,9 @@
 #!/bin/bash
 max_rep=100
 max_bids=50
-num_edges=100
+num_edges=10
 req_number=100
-timeout=100  # Set a timeout of 300 seconds (5 minutes)
+timeout=200  # Set a timeout of 300 seconds (5 minutes)
 
 # strings=("stefano")
 strings=("alpha_BW_CPU" "alpha_GPU_BW" "alpha_GPU_CPU" "stefano")

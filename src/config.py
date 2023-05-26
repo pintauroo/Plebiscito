@@ -28,7 +28,7 @@ job_list_instance = JobList(dataset, num_jobs_limit=req_number)
 job_list_instance.select_jobs()
 job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find jobs by id
 
-print('jobnumber = ' + str(len(job_dict)))
+print('jobs number = ' + str(len(job_dict)))
 
 # print(job_list_instance.job_list[0])
 
@@ -47,10 +47,12 @@ print('bw: ' +str(tot_bw))
 cpu_gpu_ratio = tot_cpu / tot_gpu
 print('cpu_gpu_ratio: ' +str(cpu_gpu_ratio))
 
-node_gpu=float(tot_gpu/num_edges)
-node_cpu=float(tot_cpu/num_edges) 
-node_bw=float(tot_bw/num_edges)
-
+# node_gpu=float(tot_gpu/num_edges)
+# node_cpu=float(tot_cpu/num_edges) 
+# node_bw=float(tot_bw/num_edges)
+node_gpu = 1000000000
+node_cpu = 1000000000
+node_bw = 1000000000
 num_clients=len(set(d["user"] for d in job_list_instance.job_list))
 
 
