@@ -1,12 +1,12 @@
 #!/bin/bash
-max_rep=200
+max_rep=100
 max_bids=50
-num_edges=9
+num_edges=100
 req_number=100
 timeout=100  # Set a timeout of 300 seconds (5 minutes)
 
-# strings=("alpha_GPU_CPU")
-strings=("alpha_BW_CPU" "alpha_GPU_BW" "alpha_GPU_CPU")
+# strings=("stefano")
+strings=("alpha_BW_CPU" "alpha_GPU_BW" "alpha_GPU_CPU" "stefano")
 
 rm -rf "res"
 mkdir -p "res"
@@ -17,6 +17,7 @@ mkdir -p "res"
 for filename in "${strings[@]}"
     do
     for i in $(seq 0 0.25 1)
+    # for i in $(seq 1 1 10)
     do
         rm -rf "res/""$i"
         mkdir -p ./"res"/"$i"/
