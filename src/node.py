@@ -27,9 +27,7 @@ class node:
         self.user_requests = []
         self.item={}
         self.bids= {}
-        self.tmp_item = {}
-        self.layers = 0
-        self.sequence=True
+
 
     def append_data(self, d):
         self.q.put(d)
@@ -44,13 +42,11 @@ class node:
         if config.filename == 'stefano':
             return f(self.item['NN_cpu'][0]/self.item['NN_gpu'][0], config.a, self.initial_cpu/self.initial_gpu)
         elif config.filename == 'alpha_BW_CPU':
-            # return (config.a*(self.updated_bw[self.item['user']][self.id]/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
             return (config.a*(self.updated_bw/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
         elif config.filename == 'alpha_GPU_CPU':
             return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #GPU vs CPU
         elif config.filename == 'alpha_GPU_BW':
             return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw/config.tot_bw)) # GPU vs BW
-            # return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw[self.item['user']][self.id]/config.tot_bw)) # GPU vs BW
 
     def forward_to_neighbohors(self):
         for i in range(config.num_edges):
@@ -99,16 +95,6 @@ class node:
         self.bids[self.item['job_id']]['timestamp'][index]=datetime.now() - timedelta(days=1)
         return index + 1
 
-    def unbid(self):
-        for i, id in enumerate(self.bids[self.item['job_id']]['auction_id']):
-            if id == self.id:
-                self.updated_gpu+=self.bids[self.item['job_id']]['NN_gpu'][i]
-                self.updated_cpu+=self.bids[self.item['job_id']]['NN_cpu'][i]
-                self.updated_bw += self.item['NN_data_size'][i]
-                # self.updated_bw[self.item['user']][self.id] += self.item['NN_data_size'][i]
-                self.bids[self.item['job_id']]['auction_id'][i]=float('-inf')
-                self.bids[self.item['job_id']]['x'][i]=0
-                self.bids[self.item['job_id']]['bid'][i]=float('-inf')
 
     def init_null(self):
         self.print_node_state('INITNULL')
@@ -138,115 +124,74 @@ class node:
             self.bids[self.item['job_id']]['auction_id'].append(float('-inf'))
             self.bids[self.item['job_id']]['timestamp'].append(datetime.now() - timedelta(days=1))
 
+    def bid(self):
 
-    def first_msg(self):
-        
+        sequence = True
+        layers = 0
+        NN_len = len(self.item['NN_gpu'])
+        avail_bw = self.updated_bw
+        tmp_bid = self.bids[self.item['job_id']]
+        first = True
+
         if self.item['job_id'] in self.bids:
-            self.sequence = True
-            self.layers = 0
-            NN_len = len(self.item['NN_gpu'])
-            required_bw =self.item['NN_data_size'][0]
-            avail_bw = self.updated_bw
 
-            if required_bw<=avail_bw: # TODO node id needed
-                for i in range(0, NN_len):
-                    if  self.sequence==True and \
-                        self.item['NN_gpu'][i]<=self.updated_gpu and \
-                        self.item['NN_cpu'][i]<=self.updated_cpu and \
-                        self.layers<config.max_layer_number:
-                            self.bids[self.item['job_id']]['bid'][i] = self.utility_function()
-                            self.bids[self.item['job_id']]['bid_gpu'][i] = self.updated_gpu
-                            self.bids[self.item['job_id']]['bid_cpu'][i] = self.updated_cpu
-                            self.bids[self.item['job_id']]['bid_bw'][i] = self.updated_bw # TODO update with BW
-                            self.updated_gpu = self.updated_gpu-self.item['NN_gpu'][i]
-                            self.updated_cpu = self.updated_cpu-self.item['NN_cpu'][i]
-                            self.bids[self.item['job_id']]['x'][i] = 1
-                            self.bids[self.item['job_id']]['auction_id'][i] = self.id
-                            self.bids[self.item['job_id']]['timestamp'][i] = datetime.now()
-                            self.layers+=1
+            for i in range(0, NN_len):
+                if tmp_bid['auction_id'][i] == float('-inf'):
+
+                    if first:
+                        NN_data_size = self.item['NN_data_size'][i]
+                        first = False
+                    
+                    if  sequence==True and\
+                        self.item['NN_gpu'][i] <= self.updated_gpu and \
+                        self.item['NN_cpu'][i] <= self.updated_cpu and \
+                        NN_data_size <= avail_bw and \
+                        layers<config.max_layer_number:
+                            
+                            logging.log(TRACE, "RIF2 NODEID: " + str(self.id) + ", avail_gpu:" + str(self.updated_gpu) + ", avail_cpu:" + str(self.updated_cpu) + ", BIDDING on: " + str(i) +", NN_len:" +  str(NN_len) +  ", Layer_resources" + str(self.item['NN_gpu'][i]))
+                            tmp_bid['bid'][i] = self.utility_function()
+                            tmp_bid['bid_gpu'][i] = self.updated_gpu
+                            tmp_bid['bid_cpu'][i] = self.updated_cpu
+                            tmp_bid['bid_bw'][i] = self.updated_bw
+                            self.updated_gpu -= self.item['NN_gpu'][i]
+                            self.updated_cpu -= self.item['NN_cpu'][i]
+                            tmp_bid['x'][i]=(1)
+                            tmp_bid['auction_id'][i]=(self.id)
+                            tmp_bid['timestamp'][i] = datetime.now()
+                            layers+=1
                     else:
-                        self.sequence = False
-                        self.bids[self.item['job_id']]['x'][i]  = float('-inf')
-                        self.bids[self.item['job_id']]['bid'][i] = float('-inf')
-                        self.bids[self.item['job_id']]['auction_id'][i] = float('-inf')
-                        self.bids[self.item['job_id']]['timestamp'][i] = datetime.now() - timedelta(days=1)
+                        sequence = False
+                        tmp_bid['x'][i]=(float('-inf'))
+                        tmp_bid['bid'][i]=(float('-inf'))
+                        tmp_bid['auction_id'][i]=(float('-inf'))
+                        tmp_bid['timestamp'][i] = (datetime.now() - timedelta(days=1))
 
-            if self.bids[self.item['job_id']]['auction_id'].count(self.id)<config.min_layer_number:
-                self.unbid()
-            else:
-                first_index = self.bids[self.item['job_id']]['auction_id'].index(self.id)
-                # last_index = len(self.bids[self.item['job_id']]['auction_id']) - self.bids[self.item['job_id']]['auction_id'][::-1].index(self.id) - 1
+            if self.integrity_check(tmp_bid['auction_id']) and self.id in tmp_bid['auction_id'] and tmp_bid['auction_id'].count(self.id)>=config.min_layer_number:
+
+                first_index = tmp_bid['auction_id'].index(self.id)
+
                 self.updated_bw -= self.item['NN_data_size'][first_index]  
+
+                self.bids[self.item['job_id']] = tmp_bid
                 
                 self.forward_to_neighbohors()
         else:
             self.print_node_state('Value not in dict (first_msg)', type='error')
-     
+
+
+    def lost_bid(self, index, z_kj):
+        first_time = True
+
+        while index<config.layer_number and self.item['auction_id'][index] == z_kj:
+            self.updated_gpu +=  self.item['NN_gpu'][index]
+            self.updated_cpu +=  self.item['NN_cpu'][index]
+            if first_time:
+                # print(str(self.id) + ' ' + str(self.initial_bw) + ' ' + str(self.updated_bw) + str(self.item['NN_data_size'][index]))
+                self.updated_bw += self.item['NN_data_size'][index]
+                first_time = False
+            index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+        return index
     
-
-                        
-    def rebid(self):
-        
-        self.print_node_state('REBID')
-
-        if self.item['job_id'] in self.bids:
-
-            self.sequence=True
-            self.layers = 0
-            NN_len = len(self.item['NN_gpu'])
-            # avail_bw = self.updated_bw[self.item['user']][self.id]
-            avail_bw = self.updated_bw
-
-
-
-
-            for i in range(0, NN_len):
-                if self.bids[self.item['job_id']]['auction_id'][i] == float('-inf'):
-                    logging.log(TRACE, "RIF1: " + str(self.id) + ", avail_gpu:" + str(self.updated_gpu) + ", avail_cpu:" + str(self.updated_cpu) + ", BIDDING on: " + str(i) +", NN_len:" +  str(NN_len) +  ", Layer_resources" + str(self.item['NN_gpu'][i]))
-                    required_bw = self.item['NN_data_size'][i]
-                    
-                    if  self.sequence==True and\
-                        self.item['NN_gpu'][i] <= self.updated_gpu and \
-                        self.item['NN_cpu'][i] <= self.updated_cpu and \
-                        self.item['NN_data_size'][i] <= avail_bw and \
-                        self.layers<config.max_layer_number:
-                            
-                            logging.log(TRACE, "RIF2 NODEID: " + str(self.id) + ", avail_gpu:" + str(self.updated_gpu) + ", avail_cpu:" + str(self.updated_cpu) + ", BIDDING on: " + str(i) +", NN_len:" +  str(NN_len) +  ", Layer_resources" + str(self.item['NN_gpu'][i]))
-                            self.bids[self.item['job_id']]['bid'][i] = self.utility_function()
-                            self.bids[self.item['job_id']]['bid_gpu'][i] = self.updated_gpu
-                            self.bids[self.item['job_id']]['bid_cpu'][i] = self.updated_cpu
-                            self.bids[self.item['job_id']]['bid_bw'][i] = self.updated_bw # TODO update with BW
-                            self.updated_gpu = self.updated_gpu-self.item['NN_gpu'][i]
-                            self.updated_cpu = self.updated_cpu-self.item['NN_cpu'][i]
-                            self.bids[self.item['job_id']]['x'][i]=(1)
-                            self.bids[self.item['job_id']]['auction_id'][i]=(self.id)
-                            self.bids[self.item['job_id']]['timestamp'][i] = datetime.now()
-                            self.layers+=1
-                    else:
-                        self.sequence = False
-                        self.bids[self.item['job_id']]['x'][i]=(float('-inf'))
-                        self.bids[self.item['job_id']]['bid'][i]=(float('-inf'))
-                        self.bids[self.item['job_id']]['auction_id'][i]=(float('-inf'))
-                        self.bids[self.item['job_id']]['timestamp'][i] = (datetime.now() - timedelta(days=1))
-
-
-            if self.bids[self.item['job_id']]['auction_id'].count(self.id)<config.min_layer_number:
-                self.unbid()
-            else:
-                first_index = self.bids[self.item['job_id']]['auction_id'].index(self.id)
-                # last_index = len(self.bids[self.item['job_id']]['auction_id']) - self.bids[self.item['job_id']]['auction_id'][::-1].index(self.id) - 1
-                self.updated_bw -= self.item['NN_data_size'][first_index]  
-                
-                self.forward_to_neighbohors()
-        else:
-            self.print_node_state('Value not in dict (rebid)', type='error')
-
-     
-
-
-
-
-
     def deconfliction(self):
         rebroadcast = False
         k = self.item['edge_id'] # sender
@@ -275,13 +220,7 @@ class node:
                         if (y_kj>y_ij) or (y_kj==y_ij and z_kj<z_ij):
                             rebroadcast = True
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #1-#2')
-
-                            while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                self.updated_gpu = self.updated_gpu +  self.item['NN_gpu'][index]
-                                self.updated_cpu = self.updated_cpu +  self.item['NN_cpu'][index]
-                                # self.updated_bw[self.item['user']][self.id] = self.updated_bw[self.item['user']][self.id] + self.item['NN_data_size'][index]
-                                self.updated_bw = self.updated_bw + self.item['NN_data_size'][index]
-                                index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+                            index = self.lost_bid(index, z_kj)
                         elif (y_kj<y_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #3')
                             rebroadcast = True
@@ -382,12 +321,7 @@ class node:
                         if (y_kj>y_ij) or (y_kj==y_ij and z_kj<z_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#17')
                             rebroadcast = True
-                            while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                self.updated_gpu = self.updated_gpu +  self.item['NN_gpu'][index]
-                                self.updated_cpu = self.updated_cpu +  self.item['NN_cpu'][index]
-                                # self.updated_bw[self.item['user']][self.id] = self.updated_bw[self.item['user']][self.id] + self.item['NN_data_size'][index]
-                                self.updated_bw = self.updated_bw + self.item['NN_data_size'][index]
-                                index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+                            index = index = self.lost_bid(index, z_kj)
                         elif (y_kj<y_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#19')
                             rebroadcast = True
@@ -468,10 +402,6 @@ class node:
             else:
                 self.print_node_state('Value not in dict (deconfliction)', type='error')
 
-                # logging.error("Value not in dict (deconfliction) - user:"+ str(self.id) + " " + str(self.item['job_id'])+"job_id: "  + str(self.item['job_id']) + " node: " + str(self.id) + " from " + str(self.item['user']))
-        
-        # print("End deconfliction - user:"+ str(self.id) + " job_id: "  + str(self.item['job_id'])  + " from " + str(self.item['user']))
-
         return rebroadcast
                 
 
@@ -483,20 +413,24 @@ class node:
 
         if self.item['job_id'] in self.bids:
         
-            #check consensus
-            if self.bids[self.item['job_id']]['auction_id']==self.item['auction_id'] and self.bids[self.item['job_id']]['bid'] == self.item['bid'] and self.bids[self.item['job_id']]['timestamp'] == self.item['timestamp']:
-                if self.id not in self.bids[self.item['job_id']]['auction_id'] and float('-inf') in self.bids[self.item['job_id']]['auction_id']:
-                    self.rebid()
-                else:
-                    self.print_node_state('Consensus -')
-                    pass
-                
+            # Consensus check
+            if  self.bids[self.item['job_id']]['auction_id']==self.item['auction_id'] and \
+                self.bids[self.item['job_id']]['bid'] == self.item['bid'] and \
+                self.bids[self.item['job_id']]['timestamp'] == self.item['timestamp']:
+                    
+                    if  self.id not in self.bids[self.item['job_id']]['auction_id'] and \
+                        float('-inf') in self.bids[self.item['job_id']]['auction_id']:
+                            self.bid()
+                    else:
+                            self.print_node_state('Consensus -')
+                            pass
+                    
             else:
                 self.print_node_state('BEFORE', True)
                 rebroadcast = self.deconfliction()
 
                 if self.id not in self.bids[self.item['job_id']]['auction_id'] and float('-inf') in self.bids[self.item['job_id']]['auction_id']:
-                    self.rebid()
+                    self.bid()
                     
                 elif rebroadcast: 
                     self.forward_to_neighbohors()
@@ -558,7 +492,7 @@ class node:
                 elif self.item['edge_id'] is None and self.item['user'] not in self.user_requests:
                     self.print_node_state('IF2 q:' + str(self.q.qsize())) # brand new request from client
                     self.user_requests.append(self.item['user'])
-                    self.first_msg()
+                    self.bid()
 
 
                 elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
@@ -568,7 +502,7 @@ class node:
 
                 elif self.item['edge_id'] is None and self.item['user'] in self.user_requests:
                     self.print_node_state('IF4 q:' + str(self.q.qsize())) # client after edge request
-                    self.rebid()
+                    self.bid()
 
                 
 

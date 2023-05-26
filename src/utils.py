@@ -8,19 +8,16 @@ import src.config as c
 
 
 def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
+
+    if len(job_ids) != len(set(job_ids)):
+        raise ValueError("Duplicate job IDs found!")
+    
     stats = {}
     stats['nodes'] = {}
     stats['tot_utility'] = 0
     
-    field_names = ['n_nodes', 'n_req', 'n_msg', 'exec_time', 'tot_utility', 'jaini', 'tot_gpu', 'tot_cpu', 'tot_bw']
-    dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'n_msg' : msg_count, 'exec_time': time, 'tot_gpu': c.tot_gpu, 'tot_cpu': c.tot_cpu, 'tot_bw': c.tot_bw}
-
-
-    # ---------------------------------------------------------
-    # alpha utility factor
-    # ---------------------------------------------------------
-    field_names.append('alpha')
-    dictionary['alpha'] = alpha
+    field_names = ['n_nodes', 'n_req', 'n_msg', 'exec_time', 'alpha', 'tot_utility', 'jaini', 'tot_bw']
+    dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'n_msg' : msg_count, 'exec_time': time, 'alpha': alpha, 'tot_bw': c.tot_bw}
 
     # ---------------------------------------------------------
     # calculate assigned jobs
@@ -28,33 +25,92 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
 
     count_assigned = 0
     count_unassigned = 0
+    assigned_sum_cpu = 0
+    assigned_sum_gpu = 0
+    unassigned_sum_cpu = 0
+    unassigned_sum_gpu = 0
 
-    for j in job_ids:
+    count = 0 
+    uncount = 0 
 
+    for job in c.job_list_instance.job_list:
+        count += 1
+        # print(j)
         flag = True
-        for i in range(c.num_edges):
-            if float('-inf') in c.nodes[i].bids[j]['x'] and not all(x == 1 for x in c.nodes[i].bids[j]['x']): # and np.all(c.nodes[i].bids[j]['x'] == c.nodes[i].bids[j]['x'][0]):
-                print('BUKKIIII')
-                print(c.nodes[i].bids[j]['x'])
-                flag = False
-                continue
+        # j=job_ids[job_id_]
+
+        # Get job with id
+        # if j in c.job_dict:
+        #     job = c.job_dict[j]
+
+        j = job['job_id']
+        # Check correctness of all bids
+        equal_values = True 
+        for i in range(1, c.num_edges):
+            if nodes[i].bids[j]['x'] != nodes[i-1].bids[j]['x']:
+                uncount += 1
+                # print('ROTTO' + str(nodes[i].bids[j]['auction_id']))
+                equal_values = False
+                break
+        
+        if equal_values:
+
+                if float('-inf') in nodes[i].bids[j]['x'] and not all(x == 1 for x in nodes[i].bids[j]['x']): #check if there is a not assigned value
+                    print(c.nodes[i].bids[j]['x'])
+
+                    
+                    first = True
+                    for index, node in enumerate(nodes[i].bids[j]['auction_id']):
+                    
+                        
+                        if node != float('-inf'):
+                            nodes[node].updated_cpu += float(job['num_cpu']) / float(c.layer_number)
+                            nodes[node].updated_gpu += float(job['num_gpu']) / float(c.layer_number)
+                            if first:
+                                nodes[node].updated_bw += float(job['read_count']) / float(c.layer_number)
+                                first=False
+                    flag = False
+                    # break
+        else:
+            print('BROKEN')
+            first = True
+
+            for index, node in enumerate(nodes[i].bids[j]['auction_id']):
+                    
+                        
+                if node != float('-inf'):
+                    nodes[node].updated_cpu += float(job['num_cpu']) / float(c.layer_number)
+                    nodes[node].updated_gpu += float(job['num_gpu']) / float(c.layer_number)
+                    if first:
+                        nodes[node].updated_bw += float(job['read_count']) / float(c.layer_number)
+                        first=False
+
+            flag = False
+            continue
+                    
 
         if flag:
             count_assigned += 1
+            assigned_sum_cpu += float(job['num_cpu'])
+            assigned_sum_gpu += float(job['num_gpu'])
         else:
             count_unassigned += 1
+            unassigned_sum_cpu += float(job['num_cpu'])
+            unassigned_sum_gpu += float(job['num_gpu'])
+            
     print('ASSIGNED unassigned jobs')
     print(count_assigned)
     print(count_unassigned)
     field_names.append('count_assigned')
     field_names.append('count_unassigned')
-    dictionary['count_assigned'] = count_assigned
-    dictionary['count_unassigned'] = count_unassigned
+    dictionary['count_assigned'] = round(count_assigned,2)
+    dictionary['count_unassigned'] = round(count_unassigned,2)
 
-    field_names.append('tot_used_gpu')
-    tot_used_gpu = 0
-    field_names.append('tot_used_cpu')
+
+    tot_used_bw = 0
     tot_used_cpu = 0
+    tot_used_gpu = 0
+
     # ---------------------------------------------------------
     # calculate node utility, assigned jobs and leftover res
     # ---------------------------------------------------------
@@ -83,21 +139,23 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
 
         stats['nodes'][nodes[i].id]['utility'] = 0
         stats['nodes'][nodes[i].id]['assigned_count'] = 0
-        dictionary['node_'+str(i)+'_initial_gpu'] = nodes[i].initial_gpu
-        dictionary['node_'+str(i)+'_updated_gpu'] = nodes[i].updated_gpu
-        dictionary['node_'+str(i)+'_leftover_gpu'] = nodes[i].initial_gpu - nodes[i].updated_gpu
+        dictionary['node_'+str(i)+'_initial_gpu'] = round(nodes[i].initial_gpu,2)
+        dictionary['node_'+str(i)+'_updated_gpu'] = round(nodes[i].updated_gpu,2)
+        dictionary['node_'+str(i)+'_leftover_gpu'] = round(nodes[i].initial_gpu - nodes[i].updated_gpu,2)
 
         tot_used_gpu += dictionary['node_'+str(i)+'_leftover_gpu']
 
-        dictionary['node_'+str(i)+'_initial_cpu'] = nodes[i].initial_cpu
-        dictionary['node_'+str(i)+'_updated_cpu'] = nodes[i].updated_cpu
-        dictionary['node_'+str(i)+'_leftover_cpu'] = nodes[i].initial_cpu - nodes[i].updated_cpu
+        dictionary['node_'+str(i)+'_initial_cpu'] = round(nodes[i].initial_cpu,2)
+        dictionary['node_'+str(i)+'_updated_cpu'] = round(nodes[i].updated_cpu,2)
+        dictionary['node_'+str(i)+'_leftover_cpu'] = round(nodes[i].initial_cpu - nodes[i].updated_cpu,2)
 
         tot_used_cpu += dictionary['node_'+str(i)+'_leftover_cpu']
 
-        dictionary['node_'+str(i)+'_initial_bw'] = nodes[i].initial_bw
-        dictionary['node_'+str(i)+'_updated_bw'] = nodes[i].updated_bw
-        dictionary['node_'+str(i)+'_leftover_bw'] = nodes[i].initial_bw - nodes[i].updated_bw
+        dictionary['node_'+str(i)+'_initial_bw'] = round(nodes[i].initial_bw,2)
+        dictionary['node_'+str(i)+'_updated_bw'] = round(nodes[i].updated_bw,2)
+        dictionary['node_'+str(i)+'_leftover_bw'] = round(nodes[i].initial_bw - nodes[i].updated_bw,2)
+
+        tot_used_bw += dictionary['node_'+str(i)+'_leftover_bw']
 
         for j, job_id in enumerate(nodes[i].bids):
 
@@ -112,20 +170,49 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     stats['nodes'][nodes[i].id]['utility'] += nodes[i].bids[job_id]['bid'][k]
 
         print(str(nodes[i].id) + ' utility: ' + str(stats['nodes'][nodes[i].id]['utility']))
-        dictionary['node_'+str(i)+'_utility'] = stats['nodes'][nodes[i].id]['utility']
+        dictionary['node_'+str(i)+'_utility'] = round(stats['nodes'][nodes[i].id]['utility'],2)
         stats["tot_utility"] += stats['nodes'][nodes[i].id]['utility']
 
     for i in stats['nodes']:
 
         print('node: '+ str(i) + ' assigned jobs count: ' + str(stats['nodes'][i]['assigned_count']))
-        dictionary['node_'+str(i)+'_jobs'] = stats['nodes'][i]['assigned_count']
+        dictionary['node_'+str(i)+'_jobs'] = round(stats['nodes'][i]['assigned_count'],2)
 
-    dictionary['tot_used_gpu']=tot_used_gpu
-    dictionary['tot_used_cpu']=tot_used_cpu
-    print('FPUCPU')
-    print( c.tot_cpu-tot_used_cpu)
-    print( c.tot_gpu-tot_used_gpu)
-    dictionary['tot_utility'] = stats["tot_utility"]
+
+
+    #GPU metrics
+    field_names.append('tot_gpu')
+    field_names.append('assigned_sum_gpu')
+    field_names.append('unassigned_sum_gpu')
+    field_names.append('tot_used_gpu')
+
+
+    dictionary['tot_gpu'] = round(c.tot_gpu,2)
+    dictionary['assigned_sum_gpu'] = round(assigned_sum_gpu,2)
+    dictionary['unassigned_sum_gpu'] = round(unassigned_sum_gpu,2)
+    dictionary['tot_used_gpu']=round(tot_used_gpu,2)
+
+
+    #CPU metrics
+    field_names.append('tot_cpu')
+    field_names.append('assigned_sum_cpu')
+    field_names.append('unassigned_sum_cpu')
+    field_names.append('tot_used_cpu')
+
+    dictionary['tot_cpu'] = round(c.tot_cpu,2)
+    dictionary['assigned_sum_cpu'] = round(assigned_sum_cpu,2)
+    dictionary['unassigned_sum_cpu'] = round(unassigned_sum_cpu,2)
+    dictionary['tot_used_cpu']=round(tot_used_cpu,2)
+
+
+    #BW metrics
+    field_names.append('tot_used_bw')
+    dictionary['tot_used_bw']=round(tot_used_bw,2)
+    
+    # print('FPUCPU')
+    # print( c.tot_cpu-tot_used_cpu)
+    # print( c.tot_gpu-tot_used_gpu)
+    dictionary['tot_utility'] = round(stats["tot_utility"],2)
     print(stats["tot_utility"])
 
 
@@ -134,8 +221,11 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     # ---------------------------------------------------------
     dictionary['jaini'] = jaini_index(dictionary, num_edges)
 
+    print('jobids = ' + str(len(job_ids)))
 
+    print('count= ' +str(count) + ' uncount =  ' +str(uncount))
 
+    
 
 
     write_data(field_names, dictionary)

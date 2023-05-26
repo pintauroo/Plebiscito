@@ -35,8 +35,7 @@ job_ids=[]
 print(len(c.job_list_instance.job_list))
 print('request_number: ' +str(c.req_number))
 
-for i in range(0, c.req_number):
-    job=c.job_list_instance.job_list[i]
+for job in c.job_list_instance.job_list:
     job_ids.append(job['job_id'])
     for j in range(c.num_edges):
         c.nodes[j].append_data(
@@ -71,24 +70,34 @@ print("Run time: %s" % (time.time() - start_time))
 
 time.sleep(1) # Wait time nexessary to wait all threads to finish 
 
-for j in job_ids:
-    print('\n')
-    logging.info("RESULTS req:" +str(j))
-    for i in range(c.num_edges):
-        if j not in c.nodes[i].bids:
-            print('???????')
-            print(str(c.nodes[i].id) + ' ' +str(j))
-        print('ktm')
-        print(c.nodes[i].bids[j]['auction_id'])
-        print(c.nodes[i].bids[j]['x'])
-        # print(c.nodes[i].initial_resources)
-        # print(c.nodes[i].updated_resources)
+# for j in job_ids:
+#     print('\n')
+#     logging.info("RESULTS req:" +str(j))
+#     for i in range(c.num_edges):
+#         if j not in c.nodes[i].bids:
+#             print('???????')
+#             print(str(c.nodes[i].id) + ' ' +str(j))
+#         # print('ktm')
+#         print(c.nodes[i].bids[j]['auction_id'])
+        # print(c.nodes[i].bids[j]['x'])
+        # print(c.nodes[i].initial_cpu)
+        # print(c.nodes[i].updated_cpu)
+        # print(c.nodes[i].initial_gpu)
+        # print(c.nodes[i].updated_gpu)
+        # print(c.nodes[i].initial_bw)
+        # print(c.nodes[i].updated_bw)
 
         # print(c.nodes[i].bids)
         # print('id: ' + str(i)+ "avl res: "+ str(c.nodes[i].updated_resources))
         
         # print(vars(c.nodes[i].bids))
         # print(c.nodes[i].__dict__)
+
+
+# for i in range(c.num_edges):
+#     print(c.nodes[i].initial_bw)
+#     print(c.nodes[i].updated_bw)
+
 
 u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, job_ids, c.a)
 

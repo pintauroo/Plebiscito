@@ -10,6 +10,7 @@ import numpy as np
 from scipy.stats import norm
 from scipy.stats import cumfreq
 from matplotlib.lines import Line2D
+import itertools
 import matplotlib.ticker as ticker
 
 def calculate_ci_alpha(df):
@@ -605,86 +606,64 @@ def plot_gpu_cpu_res(df):
 
 # Main function to run the script
 def main():
-
-    # Read the data from the CSV file
-    filename_ = 'alpha_BW_CPU'
-    filename = '/home/andrea/Documents/Projects/decomposition_framework/alpha_BW_CPU.csv'
-    df = pd.read_csv(filename)
-    plot_cdf(df, filename_)
-
-    req = df['alpha'].unique()
-
-    cdf_df = pd.DataFrame()
-
-    # Define the global fontsize variable
-    global_fontsize = 20
-
-    # Set the fontsize for x-axis and y-axis labels
-    plt.rc('xtick', labelsize=global_fontsize)
-    plt.rc('ytick', labelsize=global_fontsize)
-
-    # Create a figure with the desired size
-    fig = plt.figure(figsize=(10, 4))
-    plt.subplots_adjust(left=0.15, bottom=0.2)  # Adjust the left margin of the figure
-
-    # Define the line styles and colors for each curve
+    
+    # Define line styles and colors
     line_styles = ['dotted', 'dashed', 'dashdot', 'dotted', 'dashdot']
     colors = ['blue', 'green', 'red', 'purple', 'orange']
+    color_cycle = itertools.cycle(colors)
 
-    for label in ['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']:
+    # Read the data from the CSV file
+    filenames = ['alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU']
+    fig, axes = plt.subplots(len(filenames), len(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']), figsize=(20, 10))
 
-        plt.figure().clear()
-        plt.close()
-        plt.cla()
-        plt.clf()
+    for file_index, filename_ in enumerate(filenames):
+        print('ktm')
+        filename = '/home/andrea/Documents/Projects/decomposition_framework/'+str(filename_)+'.csv'
+        resources = filename_.split("_")
+        df = pd.read_csv(filename)
+        req = df['alpha'].unique()
+        cdf_df = pd.DataFrame()
 
-        for i in range(len(req)):
-            df_selected = df[df['alpha'] == req[i]]
-            column_values = df_selected[label]
-            sorted_values = np.sort(column_values)
-            cdf = np.arange(1, len(sorted_values) + 1) / len(sorted_values)
+        for label_index, label in enumerate(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_used_bw']):
+            ax = axes[file_index, label_index]
 
-            # Create a new DataFrame with the CDF values and corresponding column values
-            cdf_df_ = pd.DataFrame({'CDF': cdf, 'Column Values': sorted_values})
+            for i in range(len(req)):
+                df_selected = df[df['alpha'] == req[i]]
+                if 'tot' in label:
+                    column_values = df_selected[label] / df_selected[label.replace("_used", "")]
+                else:
+                    column_values = df_selected[label]
 
-            lbl = None
-            if req[i] == 0:
-                lbl = '\u03B1=' + str(req[i]) + ' (CPU)'
-            elif req[i] == 1:
-                lbl = '\u03B1=' + str(req[i]) + ' (BW)'
-            else:
-                lbl = '\u03B1=' + str(req[i])
+                sorted_values = np.sort(column_values)
+                cdf = np.arange(1, len(sorted_values) + 1) / len(sorted_values)
 
-            # Plotting code with different line styles and colors
-            plt.plot(cdf_df_['Column Values'], cdf_df_['CDF'], linestyle=line_styles[i % len(line_styles)],
-                    color=colors[i % len(colors)], label=lbl)
+                # Create a new DataFrame with the CDF values and corresponding column values
+                cdf_df_ = pd.DataFrame({'CDF': cdf, 'Column Values': sorted_values})
 
-            plt.xlabel(label, fontsize=global_fontsize)
-            plt.ylabel('CDF', fontsize=global_fontsize)
-            plt.grid(True)
+                lbl = None
+                if req[i] == 0:
+                    lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[2])
+                elif req[i] == 1:
+                    lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[1])
+                else:
+                    lbl = '\u03B1=' + str(req[i])
 
-            # Move the legend outside the plot box
-            plt.legend(fontsize=global_fontsize-2, bbox_to_anchor=(0.45, 1.22), columnspacing=0.12,
-                    loc='upper center', ncol=len(req))
+                # Get the next color from the color cycle
+                color = next(color_cycle)
 
-            plt.xticks(fontsize=global_fontsize)
-            plt.yticks(fontsize=global_fontsize)
+                # Plotting code with different line styles and colors
+                ax.plot(cdf_df_['Column Values'], cdf_df_['CDF'], linestyle=line_styles[i % len(line_styles)],
+                        color=color, label=lbl)
 
-            # Set the x-axis ticker to use scientific notation (multiples of 10e-3)
-            plt.gca().xaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
-            plt.gca().xaxis.set_minor_formatter(ticker.NullFormatter())
+                ax.set_xlabel(label)
+                ax.set_ylabel('CDF')
+                ax.grid(True)
+                ax.legend(fontsize=10, loc='upper right')
 
-            # Adjust the font size of the x-axis labels and the exponent
-            plt.xticks(fontsize=global_fontsize)
+        plt.tight_layout()
 
-            # Force the exponent label to be a single indicator for the power of 10
-            plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
-
-
-            cdf_df = pd.concat([cdf_df, cdf_df_])
-
-        # Save the figure with the desired size
-        fig.savefig(str(filename_) + '_' + str(label) + '.pdf', dpi=900)
+    # Save the figure with the desired size
+    fig.savefig('plots_combined.pdf', dpi=900)
     # print(df['alpha'])
     # plot_cdf(pd.read_csv(filename))
 
