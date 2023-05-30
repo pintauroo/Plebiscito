@@ -27,7 +27,7 @@ filename = str(sys.argv[4])
 #NN model
 layer_number = 6 
 min_layer_number = 2 #Min number of layers per node
-max_layer_number = layer_number/2 #Max number of layers per node
+max_layer_number = layer_number/min_layer_number #Max number of layers per node
 
 
 dataset='./df_dataset.csv'
