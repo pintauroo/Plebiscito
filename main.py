@@ -1,12 +1,10 @@
-import threading
+from multiprocessing import Process, Event, Manager, JoinableQueue
 import datetime
 import src.config as c
 import src.utils as u
 import time
 import random
 import sys
-#import yappi
-
 
 
 import time
@@ -25,18 +23,34 @@ logging.debug('Edges number: ' + str(c.num_edges))
 logging.debug('Requests number: ' + str(c.req_number))
 
 nodes_thread = []
-event_list = []
+events = []
+use_queue = []
+manager = Manager()
+return_val = []
+queues = []
 
-#yappi.set_clock_type("cpu") # Use set_clock_type("wall") for wall time
-#yappi.start()
+
+for i in range(c.num_edges):
+     q = JoinableQueue()
+     e = Event() 
+     queues.append(q)
+     use_queue.append(e)
+     e.set()
 
 #Generate threads for each node
 for i in range(c.num_edges):
-    event = threading.Event()
-    t = threading.Thread(target=c.nodes[i].work, args=(event,), daemon=True)
-    nodes_thread.append(t)
-    event_list.append(event)
-    t.start()
+    e = Event() 
+    return_dict = manager.dict()
+    
+    c.nodes[i].set_queues(queues, use_queue)
+    
+    p = Process(target=c.nodes[i].work, args=(e, return_dict), daemon=True)
+    nodes_thread.append(p)
+    return_val.append(return_dict)
+    events.append(e)
+    
+    p.start()
+    
 
 start_time = time.time()
 
@@ -47,9 +61,8 @@ for index, job in c.df_jobs.iterrows():
 
     # time.sleep(0.11)
     job_ids.append(job['job_id'])
-    for j in range(c.num_edges):
-        c.nodes[j].append_data(
-            c.message_data
+    for q in queues:
+        q.put(c.message_data
             (
                 job['job_id'],
                 job['user'],
@@ -64,28 +77,39 @@ for index, job in c.df_jobs.iterrows():
                 job['read_count']
             )
         )
-        
-# set the event to notify the thread that there won't be any more job requests
-for e in event_list:
+    time.sleep(0.1)
+    
+# wait for processes 
+
+
+for e in events:
     e.set()
     
 # Block until all tasks are done.
-for t in nodes_thread:
-    t.join()
-    
-#yappi.get_func_stats().print_all()
+for nt in nodes_thread:
+   nt.join()
 
 #Calculate stats
 exec_time = time.time() - start_time
 
 
 time.sleep(1) # Wait time nexessary to wait all threads to finish 
-for _, job in c.df_jobs.iterrows():
-    j=job['job_id']
-    logging.info('\n'+str(j) + ' tot_gpu: ' + str(job['num_gpu']) + ' tot_cpu: ' + str(job['num_cpu']) + ' tot_bw: ' + str(job['read_count']) )
+
+for v in return_val: 
+    c.nodes[v["id"]].bids = v["bids"]
+    c.counter += v["counter"]
+    c.nodes[v["id"]].updated_cpu = v["updated_cpu"]
+    c.nodes[v["id"]].updated_gpu = v["updated_gpu"]
+    c.nodes[v["id"]].updated_bw = v["updated_bw"]
+
+for j in job_ids:
+    #print('\n')
+    #print(j)
+    logging.info("RESULTS req:" +str(j))
     for i in range(c.num_edges):
         if j not in c.nodes[i].bids:
             print('???????')
+            print(c.nodes[i].bids)
             print(str(c.nodes[i].id) + ' ' +str(j))
         # print('ktm')
         logging.info(

@@ -3,6 +3,8 @@ This module impelments the behavior of a node
 '''
 
 import queue
+import sys
+import time
 import src.config as config
 from datetime import datetime, timedelta
 import copy
@@ -24,7 +26,8 @@ class node:
         self.initial_bw = config.t.b
         self.updated_bw = self.initial_bw
         
-        self.q = queue.Queue()
+        self.counter = 0
+        
         self.user_requests = []
         self.item={}
         self.bids= {}
@@ -36,6 +39,10 @@ class node:
 
     def join_queue(self):
         self.q.join()
+        
+    def set_queues(self, q, use_queue):
+        self.q = q
+        self.use_queue = use_queue
 
     def utility_function(self):
         def f(x, alpha, beta):
@@ -178,10 +185,14 @@ class node:
         gpu_=0
         cpu_=0
         first_index = None
-        job_id_counter = self.bids[self.item['job_id']]['count']
+        layers = 0
 
-        if self.item['job_id'] in self.bids and job_id_counter<config.max_layer_number:
-
+        if self.item['job_id'] in self.bids:
+            
+            for i in range(0, NN_len):
+                if tmp_bid['auction_id'][i] == self.id:
+                    layers = layers + 1
+                    
             for i in range(0, NN_len):
                 if tmp_bid['auction_id'][i] == float('-inf') and not tmp_layer_bid_already[i]:
 
@@ -246,7 +257,7 @@ class node:
 
     def lost_bid(self, index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw):
         first_time = True
-
+        
         while index<config.layer_number and self.item['auction_id'][index] == z_kj:
             tmp_gpu +=  self.item['NN_gpu'][index]
             tmp_cpu +=  self.item['NN_cpu'][index]
@@ -651,11 +662,12 @@ class node:
         
         return True
 
-    def work(self, event):
+    def work(self, event, ret_val):
+        retry = 0
         while True:
             try: 
-                self.item = self.q.get(timeout=2)
-                config.counter += 1
+                self.item = self.q[self.id].get(timeout=2)
+                self.counter += 1
 
                 if self.item['job_id'] not in self.bids:
                     self.init_null()
@@ -683,12 +695,28 @@ class node:
                         self.print_node_state('IF4 q:' + str(self.q.qsize())) # client after edge request
                     self.bid()
 
-                self.q.task_done()
+                self.q[self.id].task_done()
             except:
                 # the exception is raised if the timeout in the queue.get() expires.
                 # the break statement must be executed only if the event has been set 
                 # by the main thread (i.e., no more task will be submitted)
+                if retry < 2:
+                    self.use_queue[self.id].clear()
+                    if self.q[self.id].qsize() != 0:
+                        retry = 0
+                        self.use_queue[self.id].set()
+                    else:
+                        retry +=1
+                
                 if event.is_set():
+                    ret_val["id"] = self.id
+                    ret_val["bids"] = copy.deepcopy(self.bids)
+                    ret_val["counter"] = self.counter
+                    ret_val["updated_cpu"] = self.updated_cpu
+                    ret_val["updated_gpu"] = self.updated_gpu
+                    ret_val["updated_bw"] = self.updated_bw
+                    # Event has occurred, handle it in your desired way
+                    print(f"Node {self.id}: received end processing signal", flush=True)
                     break
 
                 
