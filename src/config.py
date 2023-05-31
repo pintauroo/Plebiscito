@@ -47,12 +47,14 @@ print('bw: ' +str(tot_bw))
 cpu_gpu_ratio = tot_cpu / tot_gpu
 print('cpu_gpu_ratio: ' +str(cpu_gpu_ratio))
 
-# node_gpu=float(tot_gpu/num_edges)
-# node_cpu=float(tot_cpu/num_edges) 
-# node_bw=float(tot_bw/num_edges)
+node_gpu=float(tot_gpu/num_edges)
+node_cpu=float(tot_cpu/num_edges) 
+node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
+
 node_gpu = 1000000000
-node_cpu = 1000000000
-node_bw = 1000000000
+# node_cpu = 1000000000
+# node_bw = 1000000000
+
 num_clients=len(set(d["user"] for d in job_list_instance.job_list))
 
 
@@ -66,7 +68,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time
     
     gpu = round(num_gpu / layer_number, 2)
     cpu = round(num_cpu / layer_number, 2)
-    bw = round(float(bandwidth) / layer_number, 2)
+    bw = round(float(bandwidth) / (num_edges*layer_number/min_layer_number), 2)
 
     NN_gpu = np.ones(layer_number) * gpu
     NN_cpu = np.ones(layer_number) * cpu

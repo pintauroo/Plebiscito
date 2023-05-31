@@ -80,12 +80,12 @@ class node:
                     ("\n"+str(self.item['auction_id']) if bid else "\n"))
                     )
     
-    def update_local_val(self, index, id, bid, timestamp):
-        self.bids[self.item['job_id']]['job_id'] = self.item['job_id']
-        self.bids[self.item['job_id']]['auction_id'][index] = id
-        self.bids[self.item['job_id']]['x'][index] = 1
-        self.bids[self.item['job_id']]['bid'][index]= bid
-        self.bids[self.item['job_id']]['timestamp'][index]=timestamp
+    def update_local_val(self, tmp, index, id, bid, timestamp):
+        tmp['job_id'] = self.item['job_id']
+        tmp['auction_id'][index] = id
+        tmp['x'][index] = 1
+        tmp['bid'][index] = bid
+        tmp['timestamp'][index] = timestamp
         return index + 1
     
     def reset(self, index):
@@ -127,13 +127,13 @@ class node:
     def bid(self):
 
         sequence = True
-        layers = 0
         NN_len = len(self.item['NN_gpu'])
         avail_bw = self.updated_bw
-        tmp_bid = self.bids[self.item['job_id']]
+        tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])
         first = True
         gpu_=0
         cpu_=0
+        first_index = None
 
         if self.item['job_id'] in self.bids:
 
@@ -142,13 +142,14 @@ class node:
 
                     if first:
                         NN_data_size = self.item['NN_data_size'][i]
+                        first_index = i
                         first = False
                     
                     if  sequence==True and \
-                        self.item['NN_gpu'][i] <= self.updated_gpu and \
-                        self.item['NN_cpu'][i] <= self.updated_cpu and \
+                        self.item['NN_gpu'][i] <= self.updated_gpu - gpu_ and \
+                        self.item['NN_cpu'][i] <= self.updated_cpu - cpu_ and \
                         NN_data_size <= avail_bw and \
-                        layers<config.max_layer_number:
+                        tmp_bid['auction_id'].count(self.id)<config.max_layer_number:
                             
                             logging.log(TRACE, "RIF2 NODEID: " + str(self.id) + ", avail_gpu:" + str(self.updated_gpu) + ", avail_cpu:" + str(self.updated_cpu) + ", BIDDING on: " + str(i) +", NN_len:" +  str(NN_len) +  ", Layer_resources" + str(self.item['NN_gpu'][i]))
                             tmp_bid['bid'][i] = self.utility_function()
@@ -158,10 +159,10 @@ class node:
                             
                             gpu_ += self.item['NN_gpu'][i]
                             cpu_ += self.item['NN_cpu'][i]
+
                             tmp_bid['x'][i]=(1)
                             tmp_bid['auction_id'][i]=(self.id)
                             tmp_bid['timestamp'][i] = datetime.now()
-                            layers+=1
                     else:
                         sequence = False
                         tmp_bid['x'][i]=(float('-inf'))
@@ -169,9 +170,16 @@ class node:
                         tmp_bid['auction_id'][i]=(float('-inf'))
                         tmp_bid['timestamp'][i] = (datetime.now() - timedelta(days=1))
 
-            if self.integrity_check(tmp_bid['auction_id']) and \
-                self.id in tmp_bid['auction_id'] and \
-                tmp_bid['auction_id'].count(self.id)>=config.min_layer_number:
+
+            if self.id in tmp_bid['auction_id'] and \
+                self.updated_cpu - cpu_ >= 0 and \
+                self.updated_gpu - gpu_ >= 0 and \
+                (first_index is None or self.updated_bw - self.item['NN_data_size'][first_index] >= 0) and \
+                tmp_bid['auction_id'].count(self.id)>=config.min_layer_number and \
+                tmp_bid['auction_id'].count(self.id)<=config.max_layer_number and \
+                self.integrity_check(tmp_bid['auction_id'], 'bid'):
+                # print(tmp_bid['auction_id'])
+                
 
                 first_index = tmp_bid['auction_id'].index(self.id)
 
@@ -186,32 +194,37 @@ class node:
             self.print_node_state('Value not in dict (first_msg)', type='error')
 
 
-    def lost_bid(self, index, z_kj):
+    def lost_bid(self, index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw):
         first_time = True
 
         while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-            self.updated_gpu +=  self.item['NN_gpu'][index]
-            self.updated_cpu +=  self.item['NN_cpu'][index]
+            tmp_gpu +=  self.item['NN_gpu'][index]
+            tmp_cpu +=  self.item['NN_cpu'][index]
             if first_time:
-                # print(str(self.id) + ' ' + str(self.initial_bw) + ' ' + str(self.updated_bw) + str(self.item['NN_data_size'][index]))
-                self.updated_bw += self.item['NN_data_size'][index]
+                tmp_bw += self.item['NN_data_size'][index]
                 first_time = False
-            index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
-        return index
+            index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+        return index, tmp_gpu, tmp_cpu, tmp_bw
     
     def deconfliction(self):
         rebroadcast = False
         k = self.item['edge_id'] # sender
         i = self.id # receiver
-        index=0
+        
+        tmp_local = copy.deepcopy(self.bids[self.item['job_id']])
+        tmp_gpu = 0 
+        tmp_cpu = 0 
+        tmp_bw = 0
+        index = 0
+
         while index < config.layer_number:
             if self.item['job_id'] in self.bids:
                 z_kj = self.item['auction_id'][index]
-                z_ij = self.bids[self.item['job_id']]['auction_id'][index]
+                z_ij = tmp_local['auction_id'][index]
                 y_kj = self.item['bid'][index]
-                y_ij = self.bids[self.item['job_id']]['bid'][index]
+                y_ij = tmp_local['bid'][index]
                 t_kj = self.item['timestamp'][index]
-                t_ij = self.bids[self.item['job_id']]['timestamp'][index]
+                t_ij = tmp_local['timestamp'][index]
 
                 logging.log(TRACE,' edge_id(i):' + str(i) +
                               ' sender(k):' + str(k) +
@@ -227,12 +240,12 @@ class node:
                         if (y_kj>y_ij) or (y_kj==y_ij and z_kj<z_ij):
                             rebroadcast = True
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #1-#2')
-                            index = self.lost_bid(index, z_kj)
+                            index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
                         elif (y_kj<y_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #3')
                             rebroadcast = True
-                            while index<config.layer_number and self.bids[self.item['job_id']]['auction_id'][index]  == z_ij:
-                                index = self.update_local_val(index, z_ij, self.bids[self.item['job_id']]['bid'][index], datetime.now())
+                            while index<config.layer_number and tmp_local['auction_id'][index]  == z_ij:
+                                index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], datetime.now())
 
                         else:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #3else')
@@ -241,7 +254,7 @@ class node:
                     elif  z_ij==k:
                         if  t_kj>t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#4')
-                            index = self.update_local_val(index, k, self.item['bid'][index], t_kj)
+                            index = self.update_local_val(tmp_local, index, k, self.item['bid'][index], t_kj)
 
                         else:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #4else')
@@ -249,14 +262,14 @@ class node:
                     
                     elif  z_ij == float('-inf'):
                         logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #12')
-                        index = self.update_local_val(index, z_kj, self.item['bid'][index], t_kj)
+                        index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], t_kj)
                         rebroadcast = True
 
                     elif z_ij!=i and z_ij!=k:
                         if y_kj>y_ij and t_kj>=t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #7')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                             rebroadcast = True
                         elif y_kj<y_ij and t_kj>t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #8')
@@ -273,7 +286,7 @@ class node:
                         elif y_kj>y_ij and t_kj<t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #11')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                             rebroadcast = True  
                         else:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #11else')
@@ -328,12 +341,12 @@ class node:
                         if (y_kj>y_ij) or (y_kj==y_ij and z_kj<z_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#17')
                             rebroadcast = True
-                            index = index = self.lost_bid(index, z_kj)
+                            index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
                         elif (y_kj<y_ij):
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#19')
                             rebroadcast = True
-                            while index<config.layer_number and self.bids[self.item['job_id']]['auction_id'][index]  == z_ij:
-                                index = self.update_local_val(index, z_ij, self.bids[self.item['job_id']]['bid'][index], datetime.now())
+                            while index<config.layer_number and tmp_local['auction_id'][index]  == z_ij:
+                                index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], datetime.now())
                         else:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #19else')
 
@@ -344,7 +357,7 @@ class node:
                         if t_kj>t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#20')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                             rebroadcast = True
                         elif t_kj<t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#21')
@@ -359,13 +372,13 @@ class node:
                         if t_kj>t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#22')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                         else:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  ' #22else')
                             index+=1
                     elif  z_ij == float('-inf'):
                         logging.log(TRACE, 'edge_id:'+str(self.id) +  '#30')
-                        index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+                        index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                         rebroadcast = True
 
 
@@ -373,7 +386,7 @@ class node:
                         if y_kj>y_ij and t_kj>=t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#25')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])                   
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])                   
                             rebroadcast = True
                         elif y_kj<y_ij and t_kj<=t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#26')
@@ -382,7 +395,7 @@ class node:
                         elif y_kj==y_ij and z_kj<z_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#27')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])                   
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])                   
                             rebroadcast = True
                         elif y_kj==y_ij :
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#27')
@@ -390,7 +403,7 @@ class node:
                         elif y_kj<y_ij and t_kj>t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#28')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                index = self.update_local_val(index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                             rebroadcast = True
                         elif y_kj>y_ij and t_kj<t_ij:
                             logging.log(TRACE, 'edge_id:'+str(self.id) +  '#29')
@@ -409,8 +422,16 @@ class node:
             else:
                 self.print_node_state('Value not in dict (deconfliction)', type='error')
 
-        return rebroadcast
-                
+        if self.integrity_check(tmp_local['auction_id'], 'deconfliction'):
+            self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
+            # print(tmp_local['auction_id'])
+            self.updated_gpu += tmp_gpu
+            self.updated_cpu += tmp_cpu
+            self.updated_bw += tmp_bw
+
+            return rebroadcast
+        else:
+            return False            
 
 
 
@@ -446,42 +467,35 @@ class node:
         else:
             self.print_node_state('Value not in dict (update_bid)', type='error')
 
-
-
     def new_msg(self):
         if str(self.id) == str(self.item['edge_id']):
             self.print_node_state('This was not supposed to be received', type='error')
 
         elif self.item['job_id'] in self.bids:
-            if self.integrity_check(self.item['auction_id']):
+            if self.integrity_check(self.item['auction_id'], 'new msg'):
                 self.update_bid()
             else:
                 print(str(self.item) + '\n' + str(self.bids[self.item['job_id']]))
         else:
             self.print_node_state('Value not in dict (new_msg)', type='error')
-     
-                     
 
-
-    def integrity_check(self, bid):
+    def integrity_check(self, bid, msg):
         curr_val = bid[0]
         curr_count = 1
         for i in range(1, len(bid)):
-            
-            if bid[i] == curr_val:
-                curr_count += 1
-            else:
-                if curr_count < config.min_layer_number or curr_count > config.max_layer_number:
-                    self.print_node_state('DISCARD BROKEN MSG' + str(bid))
-                    print(bid)
-                    return False
-                
-                curr_val = bid[i]
-                curr_count = 1
+            if curr_val != float('-inf'):
+                if bid[i] == curr_val:
+                    curr_count += 1
+                else:
+                    if curr_count < config.min_layer_number or curr_count > config.max_layer_number:
+                        self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
+                        # print(bid)
+                        return False
+                    
+                    curr_val = bid[i]
+                    curr_count = 1
         
         return True
-
-
 
     def work(self):
         while True:

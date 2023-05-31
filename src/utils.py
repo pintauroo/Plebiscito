@@ -49,7 +49,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         if equal_values:
 
                 if float('-inf') in nodes[i].bids[j]['x'] and not all(x == 1 for x in nodes[i].bids[j]['x']): #check if there is a not assigned value
-                    print(c.nodes[i].bids[j]['x'])
+                    # print(c.nodes[i].bids[j]['x'])
 
                     
                     first = True
