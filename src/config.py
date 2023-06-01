@@ -59,7 +59,7 @@ num_clients=len(set(d["user"] for d in job_list_instance.job_list))
 
 
 #Build Topolgy
-t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
+t = topo(func_name='complete_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
 
 nodes = [node(row) for row in range(num_edges)]
 

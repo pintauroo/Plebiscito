@@ -501,13 +501,11 @@ class node:
         
         return True
 
-    def work(self):
+    def work(self, event):
         while True:
-            if(self.q.empty() == False):
-
+            try: 
+                self.item = self.q.get(timeout=2)
                 config.counter += 1
-                self.item=None
-                self.item = copy.deepcopy(self.q.get())
 
                 if self.item['job_id'] not in self.bids:
                     self.init_null()
@@ -522,7 +520,6 @@ class node:
                     self.user_requests.append(self.item['user'])
                     self.bid()
 
-
                 elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
                     #self.print_node_state('IF3 q:' + str(self.q.qsize())) # edge anticipated client request
                     self.user_requests.append(self.item['user'])
@@ -532,12 +529,15 @@ class node:
                     #self.print_node_state('IF4 q:' + str(self.q.qsize())) # client after edge request
                     self.bid()
 
-                
-
-
-
-      
                 self.q.task_done()
+            except:
+                # the exception is raised if the timeout in the queue.get() expires.
+                # the break statement must be executed only if the event has been set 
+                # by the main thread (i.e., no more task will be submitted)
+                if event.is_set():
+                    break
+
+                
 
                 # print(str(self.q.qsize()) +" polpetta - user:"+ str(self.id) + " job_id: "  + str(self.item['job_id'])  + " from " + str(self.item['user']))
 

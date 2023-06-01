@@ -5,7 +5,7 @@ import src.utils as u
 import time
 import random
 import sys
-
+#import yappi
 
 
 
@@ -24,10 +24,18 @@ logging.debug('Edges number: ' + str(c.num_edges))
 logging.debug('Requests number: ' + str(c.req_number))
 
 nodes_thread = []
+event_list = []
+
+#yappi.set_clock_type("cpu") # Use set_clock_type("wall") for wall time
+#yappi.start()
 
 #Generate threads for each node
 for i in range(c.num_edges):
-    nodes_thread.append(threading.Thread(target=c.nodes[i].work, daemon=True).start())
+    event = threading.Event()
+    t = threading.Thread(target=c.nodes[i].work, args=(event,), daemon=True)
+    nodes_thread.append(t)
+    event_list.append(event)
+    t.start()
 
 start_time = time.time()
 
@@ -55,10 +63,16 @@ for job in c.job_list_instance.job_list:
                 job['read_count']
             )
         )
-
+        
+# set the event to notify the thread that there won't be any more job requests
+for e in event_list:
+    e.set()
+    
 # Block until all tasks are done.
-for i in range(len(c.nodes)):
-    c.nodes[i].join_queue()
+for t in nodes_thread:
+    t.join()
+    
+#yappi.get_func_stats().print_all()
 
 #Calculate stats
 exec_time = time.time() - start_time
