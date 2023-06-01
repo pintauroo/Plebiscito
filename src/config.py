@@ -51,15 +51,15 @@ node_gpu=float(tot_gpu/num_edges)
 node_cpu=float(tot_cpu/num_edges) 
 node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
-node_gpu = 1000000000
-# node_cpu = 1000000000
-# node_bw = 1000000000
+node_gpu = 100000
+node_cpu = 100000
+node_bw = 100000
 
 num_clients=len(set(d["user"] for d in job_list_instance.job_list))
 
 
 #Build Topolgy
-t = topo(func_name='complete_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
+t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
 
 nodes = [node(row) for row in range(num_edges)]
 

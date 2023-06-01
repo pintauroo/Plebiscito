@@ -17,7 +17,7 @@ DEBUG = logging.DEBUG
 INFO = logging.INFO
 
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=INFO, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
+logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))
 logging.debug('Edges number: ' + str(c.num_edges))
@@ -32,7 +32,7 @@ for i in range(c.num_edges):
 start_time = time.time()
 
 job_ids=[]
-
+print('ktm')
 print(len(c.job_list_instance.job_list))
 print('request_number: ' +str(c.req_number))
 
@@ -68,16 +68,16 @@ print("Run time: %s" % (time.time() - start_time))
 
 time.sleep(1) # Wait time nexessary to wait all threads to finish 
 
-for j in job_ids:
-    print('\n')
-    print(j)
-    logging.info("RESULTS req:" +str(j))
-    for i in range(c.num_edges):
-        if j not in c.nodes[i].bids:
-            print('???????')
-            print(str(c.nodes[i].id) + ' ' +str(j))
-        # print('ktm')
-        print(c.nodes[i].bids[j]['auction_id'])
+# for j in job_ids:
+#     print('\n')
+#     print(j)
+#     logging.info("RESULTS req:" +str(j))
+#     for i in range(c.num_edges):
+#         if j not in c.nodes[i].bids:
+#             print('???????')
+#             print(str(c.nodes[i].id) + ' ' +str(j))
+#         # print('ktm')
+#         print(c.nodes[i].bids[j]['auction_id'])
         # print(c.nodes[i].bids[j]['x'])
         # print(c.nodes[i].initial_cpu)
         # print(c.nodes[i].updated_cpu)
