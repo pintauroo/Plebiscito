@@ -30,27 +30,39 @@ def compute_occurrency_per_node_type():
     
     return node_of_type
 
-def compute_available_resource_per_node():
+def compute_available_resource_per_node(match_cpu=True):
+    if match_cpu:
+        print("Matching CPU demand of tasks")
+    else:
+        print("Matching GPU demand of tasks")
+        
     cpu_per_type = []
     gpu_per_type = []
-    occurrences = [0.32, 0.32, 0.30, 0.06]
-    cpu_gpu_ratio = [0.32, 0.12, 0.48, 0.0]
+    occurrences_cpu = [0.32, 0.32, 0.30, 0.06]
+    occurrences_gpu = [0.2367, 0.6158, 0.1474, 0]
+    cpu_gpu_ratio = [0.32, 0.12, 0.48, 0.0001]
     sum_cpu = 0
     sum_gpu = 0
     
     for i in range(4):
-        cpu_per_type.append(tot_cpu*occurrences[i])
-        sum_cpu += tot_cpu*occurrences[i]
-        gpu_per_type.append(tot_gpu*occurrences[i]*cpu_gpu_ratio[i])
-        sum_gpu += tot_gpu*occurrences[i]*cpu_gpu_ratio[i]
-    
+        if match_cpu:
+            cpu_per_type.append(tot_cpu*occurrences_cpu[i])
+            sum_cpu += tot_cpu*occurrences_cpu[i]
+            gpu_per_type.append(tot_gpu*occurrences_cpu[i]*cpu_gpu_ratio[i])
+            sum_gpu += tot_gpu*occurrences_cpu[i]*cpu_gpu_ratio[i]
+        else:
+            gpu_per_type.append(tot_gpu*occurrences_gpu[i])
+            sum_gpu += tot_gpu*occurrences_gpu[i]
+            cpu_per_type.append(tot_cpu*occurrences_gpu[i]*(1/cpu_gpu_ratio[i]))
+            sum_cpu += tot_cpu*occurrences_gpu[i]*(1/cpu_gpu_ratio[i])
+            
     print(f"CPU for each node type {cpu_per_type}. Tot: {sum_cpu}")
     print(f"GPU for each node type {gpu_per_type}. Tot: {sum_gpu}")
     return cpu_per_type, gpu_per_type 
     
-def amount_of_resource_per_node(): 
+def amount_of_resource_per_node(match_cpu=True): 
     node_per_type = compute_occurrency_per_node_type()
-    cpu_per_type, gpu_per_type = compute_available_resource_per_node()
+    cpu_per_type, gpu_per_type = compute_available_resource_per_node(match_cpu)
         
     ret = {}
     count = 0
@@ -73,4 +85,4 @@ def amount_of_resource_per_node():
     print(f"Generating infrastructure with {sum_gpu} GPUs. The request amount of GPU for all tasks is {tot_gpu}")
     return ret
     
-amount_of_resource_per_node()
+print(amount_of_resource_per_node(False))
