@@ -9,6 +9,15 @@ import sys
 from src.dataset import JobList
 from src.topology import topo
 
+# Alibaba datacenter servers
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------
+#type   |cap_cpu    |cap_gpu    |count      |tot_cpu    |tot_gpu    |cpu/gpu_ratio	|relative_occurrence    |relative_occurrence_cpu    |relative_occurrence_gpu
+#0	    |64	        |2	        |798        |51072	    |1596	    |32.0	        |42.066421	            |32.618026	                |23.672501
+#1	    |96	        |8	        |519	    |49824	    |4152	    |12.0	        |27.358988	            |31.820969	                |61.584100
+#2	    |96	        |2          |497	    |47712	    |994	    |48.0	        |26.199262	            |30.472103	                |14.743400
+#3	    |96	        |0	        |83	        |7968	    |0	        |inf	        |4.375329	            |5.088903	                |0.000000
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 counter = 0 #Messages counter
 req_number = int(sys.argv[1]) #Total number of requests
 a = float(sys.argv[2]) #Multiplicative factor
