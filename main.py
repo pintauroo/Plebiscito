@@ -5,14 +5,32 @@ import src.utils as u
 import time
 import random
 import sys
-
-
 import time
-
 import logging
+import signal
+import os
+
 TRACE = 5
 DEBUG = logging.DEBUG
 INFO = logging.INFO
+
+def sigterm_handler(signum, frame):
+    # Perform cleanup actions here
+    # ...    
+    if os.getpid() == main_pid:
+        print("SIGINT received. Performing cleanup...")
+        for t in nodes_thread:
+            t.terminate()
+            t.join()    
+            
+        # ...
+        print("All processes have been gracefully teminated.")
+        sys.exit(0)  # Exit gracefully
+
+
+# Register the SIGTERM signal handler
+signal.signal(signal.SIGINT, sigterm_handler)
+main_pid = os.getpid()
 
 logging.addLevelName(TRACE, "TRACE")
 logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
@@ -24,6 +42,7 @@ logging.debug('Requests number: ' + str(c.req_number))
 
 nodes_thread = []
 events = []
+start_event = []
 use_queue = []
 manager = Manager()
 return_val = []
@@ -33,24 +52,32 @@ queues = []
 for i in range(c.num_edges):
      q = JoinableQueue()
      e = Event() 
+     
      queues.append(q)
      use_queue.append(e)
+     
      e.set()
 
 #Generate threads for each node
 for i in range(c.num_edges):
     e = Event() 
+    e2 = Event()
     return_dict = manager.dict()
     
     c.nodes[i].set_queues(queues, use_queue)
     
-    p = Process(target=c.nodes[i].work, args=(e, return_dict), daemon=True)
+    p = Process(target=c.nodes[i].work, args=(e, e2, return_dict))
     nodes_thread.append(p)
     return_val.append(return_dict)
     events.append(e)
+    start_event.append(e2)
     
     p.start()
     
+for e in start_event:
+    e.wait()
+    
+print("All the processes started.")
 
 start_time = time.time()
 

@@ -1,12 +1,18 @@
 #!/bin/bash
-max_rep=100
-max_bids=50
-num_edges=10
+max_rep=10
+num_edges=15
 req_number=100
-timeout=300  # Set a timeout of 300 seconds (5 minutes)
+timeout=100  # Set a timeout of 300 seconds (5 minutes)
+pid=0
+
+trap on_sigint SIGINT
+on_sigint() { 
+    kill "-INT" "$pid"
+    exit
+}
 
 # strings=("stefano")
-strings=("alpha_GPU_CPU" "alpha_BW_CPU" "alpha_GPU_BW" "stefano")
+strings=("alpha_GPU_CPU" "alpha_BW_CPU" "alpha_GPU_BW")
 
 rm -rf "res" > /dev/null 2>&1
 rm -f "alpha_GPU_CPU.csv" > /dev/null 2>&1
@@ -28,6 +34,7 @@ for filename in "${strings[@]}"
         mkdir -p ./"res"/"$i"/
         for b in `seq 0 $max_rep`
         do
+            echo "main.py $req_number $i $num_edges $filename"
             # Start the Python process and get its PID
             python3 main.py "$req_number" "$i" "$num_edges" "$filename"> "./res/$i/$b" &        
             pid=$!
@@ -39,7 +46,7 @@ for filename in "${strings[@]}"
             # Check if the process has completed or timed out
             if ps -p $pid > /dev/null; then
                 # The process has timed out, kill it
-                kill $pid
+                kill "-INT" "$pid" 
                 echo "Process $pid has timed out and been killed"
             fi
 

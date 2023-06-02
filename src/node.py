@@ -662,7 +662,9 @@ class node:
         
         return True
 
-    def work(self, event, ret_val):
+    def work(self, event, notify_start, ret_val):
+        #print(f"Node {self.id}: waiting for the first job.", flush=True)
+        notify_start.set()
         retry = 0
         while True:
             try: 
