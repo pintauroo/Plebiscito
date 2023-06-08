@@ -1,9 +1,7 @@
 from multiprocessing import Process, Event, Manager, JoinableQueue
-import datetime
 import src.config as c
 import src.utils as u
 import time
-import random
 import sys
 import time
 import logging
@@ -33,7 +31,7 @@ signal.signal(signal.SIGINT, sigterm_handler)
 main_pid = os.getpid()
 
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=DEBUG, format='%(message)s', filemode='w')
+logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
 # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))
@@ -104,7 +102,7 @@ for job in c.job_list_instance.job_list:
                 job['read_count']
             )
         )
-    time.sleep(0.1)
+    #time.sleep(0.1)
     
 # wait for processes 
 
