@@ -30,7 +30,7 @@ enable_logging = False
 #NN model
 layer_number = 6 
 min_layer_number = 3 #Min number of layers per node
-max_layer_number = layer_number/2 #Max number of layers per node
+max_layer_number = 3 #Max number of layers per node
 
 
 dataset='./dataset_100_jobs_ratio_10_15.csv'
