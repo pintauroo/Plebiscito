@@ -1,9 +1,7 @@
 from multiprocessing import Process, Event, Manager, JoinableQueue
-import datetime
 import src.config as c
 import src.utils as u
 import time
-import random
 import sys
 import time
 import logging
@@ -104,7 +102,7 @@ for index, job in c.df_jobs.iterrows():
                 job['read_count']
             )
         )
-    time.sleep(0.1)
+    #time.sleep(0.1)
     
 # wait for processes 
 

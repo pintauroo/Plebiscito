@@ -143,6 +143,7 @@ class node:
 
 
     def init_null(self):
+        #print("hello")
         self.bids[self.item['job_id']]={
             "count":int(),
             "consensus_count":int(),
@@ -184,6 +185,7 @@ class node:
         first = True
         gpu_=0
         cpu_=0
+        job_id_counter = 0
         first_index = None
         layers = 0
 
@@ -663,9 +665,10 @@ class node:
         return True
 
     def work(self, event, notify_start, ret_val):
-        #print(f"Node {self.id}: waiting for the first job.", flush=True)
+        print(f"Node {self.id}: waiting for the first job.", flush=True)
         notify_start.set()
         retry = 0
+        
         while True:
             try: 
                 self.item = self.q[self.id].get(timeout=2)
@@ -674,12 +677,15 @@ class node:
                 if self.item['job_id'] not in self.bids:
                     self.init_null()
                 
+                #print(self.item)
+                #print(self.item['user'] not in self.user_requests)
+                #print(self.item['edge_id'] is None)
                 # check msg type
                 if self.item['edge_id'] is not None and self.item['user'] in self.user_requests:
                     if config.enable_logging:
                         self.print_node_state('IF1 q:' + str(self.q.qsize())) # edge to edge request
                     self.new_msg()
-
+                
                 elif self.item['edge_id'] is None and self.item['user'] not in self.user_requests:
                     if config.enable_logging:
                         self.print_node_state('IF2 q:' + str(self.q.qsize())) # brand new request from client
@@ -698,7 +704,7 @@ class node:
                     self.bid()
 
                 self.q[self.id].task_done()
-            except:
+            except Exception as e:
                 # the exception is raised if the timeout in the queue.get() expires.
                 # the break statement must be executed only if the event has been set 
                 # by the main thread (i.e., no more task will be submitted)
