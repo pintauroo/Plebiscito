@@ -554,21 +554,25 @@ class node:
         return True
     
     def integrity_check(self, bid, msg):
-        curr_count = {}
-        for i in range(0, len(bid)):
-            if bid[i] == float('-inf'):
-                continue
+        curr_val = bid[0]
+        curr_count = 1
+        for i in range(1, len(bid)):
             
-            if bid[i] not in curr_count:
-                curr_count[bid[i]] = 1
+            if bid[i] == curr_val:
+                curr_count += 1
             else:
-                curr_count[bid[i]] += 1
-            
-        for key in curr_count:
-            if curr_count[key] < config.min_layer_number or curr_count[key] > config.max_layer_number:
-                self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
-                return False
-                
+                if (curr_count < config.min_layer_number or curr_count > config.max_layer_number) and curr_val != float('-inf'):
+                    self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
+                    # print(bid)
+                    return False
+                    
+                curr_val = bid[i]
+                curr_count = 1
+        
+        if curr_count < config.min_layer_number or curr_count > config.max_layer_number:
+            self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
+            return False
+        
         return True
 
     def work(self, event):
