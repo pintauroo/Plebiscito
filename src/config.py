@@ -26,8 +26,8 @@ filename = str(sys.argv[4])
 
 #NN model
 layer_number = 6 
-min_layer_number = 2 #Min number of layers per node
-max_layer_number = layer_number/2 #Max number of layers per node
+min_layer_number = 3 #Min number of layers per node
+max_layer_number = 3 #Max number of layers per node
 
 
 dataset='./df_dataset.csv'
@@ -60,9 +60,9 @@ node_gpu=float(tot_gpu/num_edges)
 node_cpu=float(tot_cpu/num_edges) 
 node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
-node_gpu = 100000
-node_cpu = 100000
-node_bw = 100000
+#node_gpu = 100000
+#node_cpu = 100000
+#node_bw = 100000
 
 num_clients=len(set(d["user"] for d in job_list_instance.job_list))
 

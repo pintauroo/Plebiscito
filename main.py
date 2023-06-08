@@ -1,41 +1,81 @@
-import threading
-import datetime
+from multiprocessing import Process, Event, Manager, JoinableQueue
 import src.config as c
 import src.utils as u
 import time
-import random
 import sys
-#import yappi
-
-
-
 import time
-
 import logging
+import signal
+import os
+
 TRACE = 5
 DEBUG = logging.DEBUG
 INFO = logging.INFO
 
+def sigterm_handler(signum, frame):
+    # Perform cleanup actions here
+    # ...    
+    if os.getpid() == main_pid:
+        print("SIGINT received. Performing cleanup...")
+        for t in nodes_thread:
+            t.terminate()
+            t.join()    
+            
+        # ...
+        print("All processes have been gracefully teminated.")
+        sys.exit(0)  # Exit gracefully
+
+
+# Register the SIGTERM signal handler
+signal.signal(signal.SIGINT, sigterm_handler)
+main_pid = os.getpid()
+
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
+logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
+# logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))
 logging.debug('Edges number: ' + str(c.num_edges))
 logging.debug('Requests number: ' + str(c.req_number))
 
 nodes_thread = []
-event_list = []
+events = []
+start_event = []
+use_queue = []
+manager = Manager()
+return_val = []
+queues = []
 
-#yappi.set_clock_type("cpu") # Use set_clock_type("wall") for wall time
-#yappi.start()
+
+for i in range(c.num_edges):
+     q = JoinableQueue()
+     e = Event() 
+     
+     queues.append(q)
+     use_queue.append(e)
+     
+     e.set()
 
 #Generate threads for each node
 for i in range(c.num_edges):
-    event = threading.Event()
-    t = threading.Thread(target=c.nodes[i].work, args=(event,), daemon=True)
-    nodes_thread.append(t)
-    event_list.append(event)
-    t.start()
+    e = Event() 
+    e2 = Event()
+    return_dict = manager.dict()
+    
+    c.nodes[i].set_queues(queues, use_queue)
+    
+    p = Process(target=c.nodes[i].work, args=(e, e2, return_dict))
+    nodes_thread.append(p)
+    return_val.append(return_dict)
+    events.append(e)
+    start_event.append(e2)
+    
+    p.start()
+    
+for e in start_event:
+    e.wait()
+    
+print("All the processes started.")
 
 start_time = time.time()
 
@@ -46,9 +86,8 @@ print('request_number: ' +str(c.req_number))
 
 for job in c.job_list_instance.job_list:
     job_ids.append(job['job_id'])
-    for j in range(c.num_edges):
-        c.nodes[j].append_data(
-            c.message_data
+    for q in queues:
+        q.put(c.message_data
             (
                 job['job_id'],
                 job['user'],
@@ -63,16 +102,17 @@ for job in c.job_list_instance.job_list:
                 job['read_count']
             )
         )
-        
-# set the event to notify the thread that there won't be any more job requests
-for e in event_list:
+    #time.sleep(0.1)
+    
+# wait for processes 
+
+
+for e in events:
     e.set()
     
 # Block until all tasks are done.
-for t in nodes_thread:
-    t.join()
-    
-#yappi.get_func_stats().print_all()
+for nt in nodes_thread:
+   nt.join()
 
 #Calculate stats
 exec_time = time.time() - start_time
@@ -82,16 +122,24 @@ print("Run time: %s" % (time.time() - start_time))
 
 time.sleep(1) # Wait time nexessary to wait all threads to finish 
 
-# for j in job_ids:
-#     print('\n')
-#     print(j)
-#     logging.info("RESULTS req:" +str(j))
-#     for i in range(c.num_edges):
-#         if j not in c.nodes[i].bids:
-#             print('???????')
-#             print(str(c.nodes[i].id) + ' ' +str(j))
-#         # print('ktm')
-#         print(c.nodes[i].bids[j]['auction_id'])
+for v in return_val: 
+    c.nodes[v["id"]].bids = v["bids"]
+    c.counter += v["counter"]
+    c.nodes[v["id"]].updated_cpu = v["updated_cpu"]
+    c.nodes[v["id"]].updated_gpu = v["updated_gpu"]
+    c.nodes[v["id"]].updated_bw = v["updated_bw"]
+
+for j in job_ids:
+    #print('\n')
+    #print(j)
+    logging.info("RESULTS req:" +str(j))
+    for i in range(c.num_edges):
+        if j not in c.nodes[i].bids:
+            print('???????')
+            print(c.nodes[i].bids)
+            print(str(c.nodes[i].id) + ' ' +str(j))
+        # print('ktm')
+        #print(c.nodes[i].bids[j]['auction_id'])
         # print(c.nodes[i].bids[j]['x'])
         # print(c.nodes[i].initial_cpu)
         # print(c.nodes[i].updated_cpu)
