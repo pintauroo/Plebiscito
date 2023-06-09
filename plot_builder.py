@@ -91,6 +91,19 @@ def calculate_median(df):
         df_res = pd.concat([df_res, df_selected.median(axis=0).to_frame().T])
     return df_res
 
+def clean_data_as_dataframe(filename):
+    df = pd.read_csv(filename)
+    print(f'Row count of {filename} before clean is: {len(df.index)}')
+    
+    for column in df:
+        df.loc[df[column] == -0.0, column] = 0.0
+        df = df[df[column]>=0]
+
+    print(f'Row count of {filename} after clean is: {len(df.index)}')
+    
+    return df
+    #return df.to_dict(orient='records')
+
 def calculate_averages(filename):
     averages = defaultdict(lambda: defaultdict(float))
     counts = defaultdict(lambda: defaultdict(int))
@@ -618,11 +631,13 @@ def main():
 
     for file_index, filename_ in enumerate(filenames):
         print('ktm')
-        filename = '/home/andrea/Documents/Projects/decomposition_framework/'+str(filename_)+'.csv'
+        filename = str(filename_)+'.csv'
         resources = filename_.split("_")
-        df = pd.read_csv(filename)
+        df = clean_data_as_dataframe(filename)
         req = df['alpha'].unique()
         cdf_df = pd.DataFrame()
+        
+        print(df)
 
         for label_index, label in enumerate(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_used_bw']):
             ax = axes[file_index, label_index]
