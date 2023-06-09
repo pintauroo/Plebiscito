@@ -26,7 +26,7 @@ filename = str(sys.argv[4])
 
 #NN model
 layer_number = 6 
-min_layer_number = 2 #Min number of layers per node
+min_layer_number = 3 #Min number of layers per node
 max_layer_number = layer_number/2 #Max number of layers per node
 
 
