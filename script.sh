@@ -2,8 +2,8 @@
 max_rep=30
 max_bids=50
 num_edges=10
-req_number=100
-timeout=100  # Set a timeout of 300 seconds (5 minutes)
+req_number=1000
+timeout=300  # Set a timeout of 300 seconds (5 minutes)
 
 # strings=("stefano")
 strings=("alpha_GPU_CPU" "alpha_BW_CPU" "alpha_GPU_BW" "stefano")

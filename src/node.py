@@ -18,9 +18,9 @@ class node:
     def __init__(self, id):
         self.id = id    # unique edge node id
         self.initial_gpu = float(config.node_gpu) * random.uniform(0.7, 1)
-        self.updated_gpu = self.initial_gpu * random.uniform(0.7, 1)
+        self.updated_gpu = self.initial_gpu 
         self.initial_cpu = float(config.node_cpu) * random.uniform(0.7, 1)
-        self.updated_cpu = self.initial_cpu * random.uniform(0.7, 1)
+        self.updated_cpu = self.initial_cpu 
         self.initial_bw = config.t.b
         self.updated_bw = self.initial_bw
         
@@ -78,8 +78,11 @@ class node:
                     " job_id:" + str(self.item['job_id']) +
                     " NODEID:" + str(self.id) +
                     " from_edge:" + str(self.item['edge_id']) +
+                    " initial GPU:" + str(self.initial_gpu) +
                     " available GPU:" + str(self.updated_gpu) +
+                    " initial CPU:" + str(self.initial_cpu) +
                     " available CPU:" + str(self.updated_cpu) +
+                    " initial BW:" + str(self.initial_bw) +
                     " available BW:" + str(self.updated_bw) +
                     (("\n"+str(self.bids[self.item['job_id']]['auction_id']) if bid else "") +
                     ("\n" + str(self.item.get('auction_id')) if bid and self.item.get('auction_id') is not None else "\n"))

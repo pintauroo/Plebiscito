@@ -17,7 +17,7 @@ DEBUG = logging.DEBUG
 INFO = logging.INFO
 
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=DEBUG, format='%(message)s', filemode='w')
+logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
 # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))
@@ -91,7 +91,12 @@ for job in c.job_list_instance.job_list:
             print('???????')
             print(str(c.nodes[i].id) + ' ' +str(j))
         # print('ktm')
-        logging.info(str(c.nodes[i].bids[j]['auction_id']) + ' id: ' + str(c.nodes[i].id) + ' tot_gpu: ' + str(c.nodes[i].updated_gpu)  + ' tot_cpu: ' + str(c.nodes[i].updated_cpu) + ' bw: ' + str(c.nodes[i].updated_bw))
+        logging.info(
+            str(c.nodes[i].bids[j]['auction_id']) + 
+            ' id: ' + str(c.nodes[i].id) + 
+            ' used_tot_gpu: ' + str(c.nodes[i].initial_gpu)+' - ' +str(c.nodes[i].updated_gpu)  + ' = ' +str(c.nodes[i].initial_gpu - c.nodes[i].updated_gpu) + 
+            ' used_tot_cpu: ' + str(c.nodes[i].initial_cpu)+' - ' +str(c.nodes[i].updated_cpu)  + ' = ' +str(c.nodes[i].initial_cpu - c.nodes[i].updated_cpu) + 
+            ' used_tot_bw: '  + str(c.nodes[i].initial_bw)+' - '  +str(c.nodes[i].updated_bw) + ' = '  +str(c.nodes[i].initial_bw  - c.nodes[i].updated_bw))
         # print(c.nodes[i].bids[j]['x'])
         # print(c.nodes[i].initial_cpu)
         # print(c.nodes[i].updated_cpu)
