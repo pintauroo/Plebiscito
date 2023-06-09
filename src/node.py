@@ -39,10 +39,32 @@ class node:
 
     def utility_function(self):
         def f(x, alpha, beta):
-            return math.exp(-(alpha/2)*(x-beta)**2)
+            if beta == 0 and x == 0:
+                return 1
+            
+            # shouldn't happen
+            if beta == 0 and x != 0:
+                return 0
+            
+            # if beta != 0 and x == 0 is not necessary
+            
+            return math.exp(-(alpha/20)*(x-beta)**2)
         
+        # we assume that every job/node has always at least one CPU
         if config.filename == 'stefano':
-            return f(self.item['NN_cpu'][0]/self.item['NN_gpu'][0], config.a, self.initial_cpu/self.initial_gpu)
+            x = 0
+            if self.item['NN_gpu'][0] == 0:
+                x = 0
+            else:
+                x = self.item['NN_cpu'][0]/self.item['NN_gpu'][0]
+                
+            beta = 0
+            if self.initial_gpu == 0:
+                beta = 0
+            else:
+                beta = self.initial_cpu/self.initial_gpu
+                
+            return f(x, config.a, beta)
         elif config.filename == 'alpha_BW_CPU':
             return (config.a*(self.updated_bw/self.initial_bw))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #BW vs CPU
         elif config.filename == 'alpha_GPU_CPU':
