@@ -17,7 +17,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     stats['tot_utility'] = 0
     
     field_names = ['n_nodes', 'n_req', 'n_msg', 'exec_time', 'alpha', 'tot_utility', 'jaini', 'tot_bw']
-    dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'n_msg' : msg_count, 'exec_time': time, 'alpha': alpha, 'tot_bw': c.tot_bw}
+    dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'n_msg' : msg_count, 'exec_time': time, 'alpha': alpha, 'tot_bw': c.node_bw * c.num_edges}
 
     # ---------------------------------------------------------
     # calculate assigned jobs
