@@ -3,6 +3,7 @@ Module to plot all the info
 """
 
 import csv
+import os
 import pandas as pd
 from collections import defaultdict
 import matplotlib.pyplot as plt
@@ -626,19 +627,17 @@ def main():
     color_cycle = itertools.cycle(colors)
 
     # Read the data from the CSV file
-    filenames = ['alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU']
+    filenames = ['alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'stefano_CPU_GPU']
     fig, axes = plt.subplots(len(filenames), len(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']), figsize=(20, 10))
 
     for file_index, filename_ in enumerate(filenames):
         print('ktm')
-        filename = str(filename_)+'.csv'
+        filename = os.path.join('risorse_illimitate', 'results', str(filename_)+'.csv') 
         resources = filename_.split("_")
         df = clean_data_as_dataframe(filename)
         req = df['alpha'].unique()
         cdf_df = pd.DataFrame()
         
-        print(df)
-
         for label_index, label in enumerate(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_used_bw']):
             ax = axes[file_index, label_index]
 
