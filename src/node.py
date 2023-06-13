@@ -18,11 +18,11 @@ class node:
     def __init__(self, id):
         self.id = id    # unique edge node id
         self.initial_gpu = float(config.node_gpu) * random.uniform(0.7, 1)
-        self.updated_gpu = self.initial_gpu 
+        self.updated_gpu = self.initial_gpu * random.uniform(0.7, 1)
         self.initial_cpu = float(config.node_cpu) * random.uniform(0.7, 1)
-        self.updated_cpu = self.initial_cpu 
-        self.initial_bw = config.t.b
-        self.updated_bw = self.initial_bw
+        self.updated_cpu = self.initial_cpu * random.uniform(0.7, 1)
+        self.initial_bw = config.t.b  * random.uniform(0.7, 1)
+        self.updated_bw = self.initial_bw  * random.uniform(0.7, 1)
         
         self.q = queue.Queue()
         self.user_requests = []
@@ -497,8 +497,8 @@ class node:
             else:
                 self.print_node_state('Value not in dict (deconfliction)', type='error')
 
-        if self.integrity_check(tmp_local['auction_id'], 'deconfliction') and \
-            tmp_local['auction_id']!=self.bids[self.item['job_id']]['auction_id']:
+        if self.integrity_check(tmp_local['auction_id'], 'deconfliction'):# and \
+            #tmp_local['auction_id']!=self.bids[self.item['job_id']]['auction_id']:
             # tmp_local['bid'] != self.bids[self.item['job_id']]['bid'] and \
             # tmp_local['timestamp'] != self.bids[self.item['job_id']]['timestamp']:
 
