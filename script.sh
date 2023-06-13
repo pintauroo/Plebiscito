@@ -1,5 +1,5 @@
 #!/bin/bash
-max_rep=30
+max_rep=100
 max_bids=50
 num_edges=10
 req_number=1000
@@ -9,6 +9,10 @@ timeout=300  # Set a timeout of 300 seconds (5 minutes)
 strings=("alpha_GPU_CPU" "alpha_BW_CPU" "alpha_GPU_BW" "stefano")
 
 rm -rf "res"
+rm "alpha_GPU_CPU.csv"
+rm "alpha_BW_CPU.csv"
+rm "alpha_GPU_BW.csv"
+rm "stefano.csv"
 mkdir -p "res"
 
 
@@ -16,6 +20,7 @@ mkdir -p "res"
 # for i in $(seq 1 1 1)
 for filename in "${strings[@]}"
     do
+    echo $filename
     for i in $(seq 0 0.25 1)
     # for i in $(seq 1 1 10)
     do
@@ -42,7 +47,7 @@ for filename in "${strings[@]}"
             mv debug.log ./"res"/"$i"/debug_"$b".log
 
             # Print the iteration number
-            echo "$i"
+            echo "rep: $b,  alpha: $i"
         done
     done
 done

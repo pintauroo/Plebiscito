@@ -218,11 +218,12 @@ class node:
                 self.layer_bid_already[self.item['job_id']] = tmp_layer_bid_already
                 first_index = tmp_bid['auction_id'].index(self.id)
 
+                self.bids[self.item['job_id']] = copy.deepcopy(tmp_bid)
+
                 self.updated_bw -= self.item['NN_data_size'][first_index]  
                 self.updated_gpu -= gpu_
                 self.updated_cpu -= cpu_
 
-                self.bids[self.item['job_id']] = tmp_bid
                 job_id_counter += 1
                 self.bids[self.item['job_id']]['count'] = job_id_counter
                 

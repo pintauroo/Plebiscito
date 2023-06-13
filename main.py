@@ -46,6 +46,7 @@ print(len(c.job_list_instance.job_list))
 print('request_number: ' +str(c.req_number))
 
 for job in c.job_list_instance.job_list:
+    # time.sleep(0.11)
     job_ids.append(job['job_id'])
     for j in range(c.num_edges):
         c.nodes[j].append_data(
