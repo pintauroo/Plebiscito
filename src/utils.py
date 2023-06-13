@@ -5,6 +5,43 @@ from csv import DictWriter
 import os
 import src.config as c
 
+import math
+
+
+
+def wrong_bids_calc(nodes, job):
+    print('\n[WRONG BID]')
+    
+    j = job['job_id']
+    wrong_bids=[] # used to not replicate same action over different nodes
+    wrong_ids=[]
+
+    for curr_node in range(0, c.num_edges):
+        if nodes[curr_node].bids[j]['auction_id'] not in wrong_bids:
+            if all(x == float('-inf') for x in nodes[curr_node].bids[j]['x']):
+                continue
+            else:
+                # print('(wrong_bids_calc) NON matching: ' +str(wrong_ids))
+                print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
+
+                if curr_node in nodes[curr_node].bids[j]['auction_id'] and curr_node not in wrong_ids:
+                    
+                    wrong_ids.append(curr_node)
+                    first_time = True
+                    index=0
+                    while index<c.layer_number:
+                        if nodes[curr_node].bids[j]['auction_id'][index] == curr_node and id != float('-inf'):
+                            nodes[curr_node].updated_cpu += float(job['num_cpu']) / float(c.layer_number)
+                            nodes[curr_node].updated_gpu += float(job['num_gpu']) / float(c.layer_number)
+                            if first_time:
+                                nodes[curr_node].updated_bw += float(job['read_count']) / float(c.min_layer_number)
+                                first_time = False
+                        index += 1
+        else:
+            continue
+            # print('\nAlready in wrong bids req: ' + str(j))
+            # for i in range(0, c.num_edges):
+            #     print(nodes[i].bids[j]['auction_id'])
 
 
 def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
@@ -16,88 +53,94 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     stats['nodes'] = {}
     stats['tot_utility'] = 0
     
-    field_names = ['n_nodes', 'n_req', 'n_msg', 'exec_time', 'alpha', 'tot_utility', 'jaini', 'tot_bw']
-    dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'n_msg' : msg_count, 'exec_time': time, 'alpha': alpha, 'tot_bw': c.node_bw * c.num_edges}
+    field_names = ['n_nodes', 'n_req', 'n_msg', 'exec_time', 'alpha', 'tot_utility', 'jaini']
+    dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'n_msg' : msg_count, 'exec_time': time, 'alpha': alpha}
 
     # ---------------------------------------------------------
-    # calculate assigned jobs
+    # calculate assigned jobs, update resources if job not assigned
     # ---------------------------------------------------------
 
     count_assigned = 0
     count_unassigned = 0
     assigned_sum_cpu = 0
     assigned_sum_gpu = 0
+    assigned_sum_bw = 0
     unassigned_sum_cpu = 0
     unassigned_sum_gpu = 0
+    unassigned_sum_bw = 0
 
     count = 0 
     uncount = 0 
+    assigned_jobs = []
 
     for job in c.job_list_instance.job_list:
         count += 1
         flag = True
         j = job['job_id']
+        print('\nreq: ' + str(j) )
         # Check correctness of all bids
         equal_values = True 
         for i in range(1, c.num_edges):
-            if nodes[i].bids[j]['x'] != nodes[i-1].bids[j]['x']:
+            if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
                 uncount += 1
-                # print('ROTTO' + str(nodes[i].bids[j]['auction_id']))
+                print('BROKEN BID id: ' + str(j))
                 equal_values = False
                 break
         
-        if equal_values:
+        if equal_values: # matching auction
 
-                if float('-inf') in nodes[i].bids[j]['x'] and not all(x == 1 for x in nodes[i].bids[j]['x']): #check if there is a not assigned value
-                    # print(c.nodes[i].bids[j]['x'])
-
-                    
-                    first = True
-                    for index, node in enumerate(nodes[i].bids[j]['auction_id']):
-                    
-                        
-                        if node != float('-inf'):
-                            nodes[node].updated_cpu += float(job['num_cpu']) / float(c.layer_number)
-                            nodes[node].updated_gpu += float(job['num_gpu']) / float(c.layer_number)
-                            if first:
-                                nodes[node].updated_bw += float(job['read_count']) / float(c.layer_number)
-                                first=False
+                if all(x == float('-inf') for x in nodes[i].bids[j]['x']):
+                    print('Unassigned')
+                    flag = False # all unassigned
+                elif float('-inf') in nodes[i].bids[j]['x']: #check if there is a value not assigned 
+                    # print('matching with -inf: ' +str(c.nodes[i].bids[j]['auction_id']))
                     flag = False
-                    # break
-        else:
-            print(c.nodes[i].bids[j])
-            first = True
+                    wrong_bids_calc(nodes, job)
+                else:
+                    print('MATCH')
+                    # for i in range(0, c.num_edges):
+                    #     print('matching: ' +str(c.nodes[i].bids[j]['auction_id']))
 
-            for index, node in enumerate(nodes[i].bids[j]['auction_id']):
-                    
-                        
-                if node != float('-inf'):
-                    nodes[node].updated_cpu += float(job['num_cpu']) / float(c.layer_number)
-                    nodes[node].updated_gpu += float(job['num_gpu']) / float(c.layer_number)
-                    if first:
-                        nodes[node].updated_bw += float(job['read_count']) / float(c.layer_number)
-                        first=False
-
+        else: # unmatching auctions
+            # print('NON matching: ' +str(c.nodes[i].bids[j]['auction_id']))
             flag = False
-            continue
-                    
+            wrong_bids_calc(nodes, job)
+
 
         if flag:
+            assigned_jobs.append(j)
             count_assigned += 1
             assigned_sum_cpu += float(job['num_cpu'])
             assigned_sum_gpu += float(job['num_gpu'])
+            assigned_sum_bw += float(job['read_count']) 
         else:
             count_unassigned += 1
             unassigned_sum_cpu += float(job['num_cpu'])
             unassigned_sum_gpu += float(job['num_gpu'])
+            unassigned_sum_bw += float(job['read_count']) 
             
-    print('ASSIGNED unassigned jobs')
-    print(count_assigned)
-    print(count_unassigned)
+    print()
+    print('ASSIGNED jobs: ' +str(count_assigned))
+    print('UNASSIGNED jobs: ' +str(count_unassigned))
     field_names.append('count_assigned')
     field_names.append('count_unassigned')
     dictionary['count_assigned'] = round(count_assigned,2)
     dictionary['count_unassigned'] = round(count_unassigned,2)
+
+
+    # metrics lables
+    # field_names.append('tot_gpu')
+    field_names.append('assigned_sum_gpu')
+    field_names.append('tot_used_gpu')
+    # field_names.append('unassigned_sum_gpu')
+    # field_names.append('tot_cpu')
+    field_names.append('assigned_sum_cpu')
+    field_names.append('tot_used_cpu')
+    # field_names.append('unassigned_sum_cpu')
+    # field_names.append('tot_bw')
+    field_names.append('assigned_sum_bw')
+    field_names.append('tot_used_bw')
+    # field_names.append('unassigned_sum_bw')
 
 
     tot_used_bw = 0
@@ -110,17 +153,12 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     for i in range(num_edges):
         field_names.append('node_'+str(i)+'_jobs')
         field_names.append('node_'+str(i)+'_utility')
-
         field_names.append('node_'+str(i)+'_initial_gpu')
         field_names.append('node_'+str(i)+'_updated_gpu')
         field_names.append('node_'+str(i)+'_leftover_gpu')
-
-        
-
         field_names.append('node_'+str(i)+'_initial_cpu')
         field_names.append('node_'+str(i)+'_updated_cpu')
         field_names.append('node_'+str(i)+'_leftover_cpu')
-
         field_names.append('node_'+str(i)+'_initial_bw')
         field_names.append('node_'+str(i)+'_updated_bw')
         field_names.append('node_'+str(i)+'_leftover_bw')
@@ -134,31 +172,33 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         stats['nodes'][nodes[i].id]['assigned_count'] = 0
         dictionary['node_'+str(i)+'_initial_gpu'] = round(nodes[i].initial_gpu,2)
         dictionary['node_'+str(i)+'_updated_gpu'] = round(nodes[i].updated_gpu,2)
-        dictionary['node_'+str(i)+'_leftover_gpu'] = round(nodes[i].initial_gpu - nodes[i].updated_gpu,2)
+        dictionary['node_'+str(i)+'_leftover_gpu'] = 0 if math.isclose(nodes[i].initial_gpu - nodes[i].updated_gpu, 0.0, abs_tol=1e-1) else round(nodes[i].initial_gpu - nodes[i].updated_gpu, 2)
 
         tot_used_gpu += dictionary['node_'+str(i)+'_leftover_gpu']
 
         dictionary['node_'+str(i)+'_initial_cpu'] = round(nodes[i].initial_cpu,2)
         dictionary['node_'+str(i)+'_updated_cpu'] = round(nodes[i].updated_cpu,2)
-        dictionary['node_'+str(i)+'_leftover_cpu'] = round(nodes[i].initial_cpu - nodes[i].updated_cpu,2)
+        dictionary['node_'+str(i)+'_leftover_cpu'] = 0 if math.isclose(nodes[i].initial_cpu - nodes[i].updated_cpu, 0.0, abs_tol=1e-1) else round(nodes[i].initial_cpu - nodes[i].updated_cpu,2)
 
         tot_used_cpu += dictionary['node_'+str(i)+'_leftover_cpu']
 
         dictionary['node_'+str(i)+'_initial_bw'] = round(nodes[i].initial_bw,2)
         dictionary['node_'+str(i)+'_updated_bw'] = round(nodes[i].updated_bw,2)
-        dictionary['node_'+str(i)+'_leftover_bw'] = round(nodes[i].initial_bw - nodes[i].updated_bw,2)
+        dictionary['node_'+str(i)+'_leftover_bw'] = 0 if math.isclose(nodes[i].initial_bw - nodes[i].updated_bw, 0.0, abs_tol=1e-1) else round(nodes[i].initial_bw - nodes[i].updated_bw,2)
 
         tot_used_bw += dictionary['node_'+str(i)+'_leftover_bw']
 
-        for j, job_id in enumerate(nodes[i].bids):
 
-            if float('-inf') not in c.nodes[i].bids[job_id]['x'] and nodes[i].id in nodes[i].bids[job_id]['auction_id']:
+        #calculate node assigned count and utility
+        for j, job_id in enumerate(nodes[i].bids):
+            
+            if job_id in assigned_jobs and nodes[i].id in nodes[i].bids[job_id]['auction_id']:
                 stats['nodes'][nodes[i].id]['assigned_count'] += 1
 
             # print(nodes[i].bids[job_id])
             for k, auctioner in enumerate(nodes[i].bids[job_id]['auction_id']):
                 # print(nodes[i].id)
-                if float('-inf') not in c.nodes[i].bids[job_id]['x'] and auctioner== nodes[i].id:
+                if job_id in assigned_jobs and auctioner== nodes[i].id:
                     # print(nodes[i].bids[job_id]['bid'])
                     stats['nodes'][nodes[i].id]['utility'] += nodes[i].bids[job_id]['bid'][k]
 
@@ -174,37 +214,23 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
 
 
     #GPU metrics
-    field_names.append('tot_gpu')
-    field_names.append('assigned_sum_gpu')
-    field_names.append('unassigned_sum_gpu')
-    field_names.append('tot_used_gpu')
-
-
-    dictionary['tot_gpu'] = round(c.tot_gpu,2)
+    # dictionary['tot_gpu'] = round(c.tot_gpu,2)
     dictionary['assigned_sum_gpu'] = round(assigned_sum_gpu,2)
-    dictionary['unassigned_sum_gpu'] = round(unassigned_sum_gpu,2)
     dictionary['tot_used_gpu']=round(tot_used_gpu,2)
-
+    # dictionary['tot_used_gpu']=round(tot_used_gpu,2)
 
     #CPU metrics
-    field_names.append('tot_cpu')
-    field_names.append('assigned_sum_cpu')
-    field_names.append('unassigned_sum_cpu')
-    field_names.append('tot_used_cpu')
-
-    dictionary['tot_cpu'] = round(c.tot_cpu,2)
+    # dictionary['tot_cpu'] = round(c.tot_cpu,2)
     dictionary['assigned_sum_cpu'] = round(assigned_sum_cpu,2)
-    dictionary['unassigned_sum_cpu'] = round(unassigned_sum_cpu,2)
     dictionary['tot_used_cpu']=round(tot_used_cpu,2)
-
+    # dictionary['unassigned_sum_cpu'] = round(unassigned_sum_cpu,2)
 
     #BW metrics
-    field_names.append('tot_used_bw')
-    dictionary['tot_used_bw']=round(tot_used_bw,2)
-    
-    # print('FPUCPU')
-    # print( c.tot_cpu-tot_used_cpu)
-    # print( c.tot_gpu-tot_used_gpu)
+    # dictionary['tot_bw'] = round(c.tot_bw,2)
+    dictionary['assigned_sum_bw'] = round(assigned_sum_bw,2)
+    dictionary['tot_used_bw']=round(tot_used_bw,2)    
+    # dictionary['unassigned_sum_bw'] = round(unassigned_sum_bw,2)
+
     dictionary['tot_utility'] = round(stats["tot_utility"],2)
     print(stats["tot_utility"])
 
