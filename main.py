@@ -78,8 +78,6 @@ for t in nodes_thread:
 
 #Calculate stats
 exec_time = time.time() - start_time
-logging.info("Run time: %s" % (time.time() - start_time))
-print("Run time: %s" % (time.time() - start_time))
 
 
 time.sleep(1) # Wait time nexessary to wait all threads to finish 
@@ -122,6 +120,9 @@ u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, jo
 
 logging.info('Tot messages: '+str(c.counter))
 print('Tot messages: '+str(c.counter))
+logging.info("Run time: %s" % (time.time() - start_time))
+print("Run time: %s" % (time.time() - start_time))
+
 
 # print(c.t.b)
 # print(c.t.call_func())

@@ -24,6 +24,8 @@ a = float(sys.argv[2]) #Multiplicative factor
 num_edges = int(sys.argv[3]) #Nodes number 
 filename = str(sys.argv[4])
 
+enable_logging = False 
+
 #NN model
 layer_number = 6 
 min_layer_number = 3 #Min number of layers per node
