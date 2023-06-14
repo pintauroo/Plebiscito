@@ -10,9 +10,9 @@ import math
 
 
 def wrong_bids_calc(nodes, job):
-    print('\n[WRONG BID]')
     
     j = job['job_id']
+    print('\n[WRONG BID]' + str(j))
     wrong_bids=[] # used to not replicate same action over different nodes
     wrong_ids=[]
 
@@ -77,7 +77,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         count += 1
         flag = True
         j = job['job_id']
-        print('\nreq: ' + str(j) )
+        # print('\nreq: ' + str(j) )
         # Check correctness of all bids
         equal_values = True 
         for i in range(1, c.num_edges):
@@ -97,7 +97,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     flag = False
                     wrong_bids_calc(nodes, job)
                 else:
-                    print('MATCH')
+                    continue
+                    # print('MATCH')
                     # for i in range(0, c.num_edges):
                     #     print('matching: ' +str(c.nodes[i].bids[j]['auction_id']))
 
