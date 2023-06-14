@@ -76,9 +76,7 @@ class node:
 
     def forward_to_neighbohors(self):
         self.print_node_state('FORWARD', True)
-        for i in range(config.num_edges):
-            if config.t.to()[i][self.id] and self.id != i:
-                config.nodes[i].append_data({
+        msg = {
                     "job_id": self.item['job_id'], 
                     "user": self.item['user'],
                     "edge_id": self.id, 
@@ -89,7 +87,10 @@ class node:
                     "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
                     "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
                     "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
-                    })
+                    }
+        for i in range(config.num_edges):
+            if config.t.to()[i][self.id] and self.id != i:
+                config.nodes[i].append_data(msg)
                 # logging.debug("FORWARD NODEID:" + str(self.id) + " to " + str(i) + " " + str(self.bids[self.item['job_id']]['auction_id']))
 
 
