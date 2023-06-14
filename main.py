@@ -104,9 +104,6 @@ for index, job in c.df_jobs.iterrows():
         )
     #time.sleep(0.1)
     
-# wait for processes 
-
-
 for e in events:
     e.set()
     
