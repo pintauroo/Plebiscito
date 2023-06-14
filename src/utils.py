@@ -10,9 +10,9 @@ import math
 
 
 def wrong_bids_calc(nodes, job):
-    print('\n[WRONG BID]')
     
     j = job['job_id']
+    print('\n[WRONG BID]' + str(j))
     wrong_bids=[] # used to not replicate same action over different nodes
     wrong_ids=[]
 
@@ -77,7 +77,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         count += 1
         flag = True
         j = job['job_id']
-        print('\nreq: ' + str(j) )
+        # print('\nreq: ' + str(j) )
         # Check correctness of all bids
         equal_values = True 
         for i in range(1, c.num_edges):
@@ -97,7 +97,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     flag = False
                     wrong_bids_calc(nodes, job)
                 else:
-                    print('MATCH')
+                    continue
+                    # print('MATCH')
                     # for i in range(0, c.num_edges):
                     #     print('matching: ' +str(c.nodes[i].bids[j]['auction_id']))
 
@@ -129,18 +130,18 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
 
 
     # metrics lables
-    # field_names.append('tot_gpu')
+    field_names.append('tot_gpu')
     field_names.append('assigned_sum_gpu')
     field_names.append('tot_used_gpu')
-    # field_names.append('unassigned_sum_gpu')
-    # field_names.append('tot_cpu')
+    field_names.append('unassigned_sum_gpu')
+    field_names.append('tot_cpu')
     field_names.append('assigned_sum_cpu')
     field_names.append('tot_used_cpu')
-    # field_names.append('unassigned_sum_cpu')
-    # field_names.append('tot_bw')
+    field_names.append('unassigned_sum_cpu')
+    field_names.append('tot_bw')
     field_names.append('assigned_sum_bw')
     field_names.append('tot_used_bw')
-    # field_names.append('unassigned_sum_bw')
+    field_names.append('unassigned_sum_bw')
 
 
     tot_used_bw = 0
@@ -214,22 +215,22 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
 
 
     #GPU metrics
-    # dictionary['tot_gpu'] = round(c.tot_gpu,2)
+    dictionary['tot_gpu'] = round(c.tot_gpu,2)
     dictionary['assigned_sum_gpu'] = round(assigned_sum_gpu,2)
     dictionary['tot_used_gpu']=round(tot_used_gpu,2)
-    # dictionary['tot_used_gpu']=round(tot_used_gpu,2)
+    dictionary['tot_used_gpu']=round(tot_used_gpu,2)
 
     #CPU metrics
-    # dictionary['tot_cpu'] = round(c.tot_cpu,2)
+    dictionary['tot_cpu'] = round(c.tot_cpu,2)
     dictionary['assigned_sum_cpu'] = round(assigned_sum_cpu,2)
     dictionary['tot_used_cpu']=round(tot_used_cpu,2)
-    # dictionary['unassigned_sum_cpu'] = round(unassigned_sum_cpu,2)
+    dictionary['unassigned_sum_cpu'] = round(unassigned_sum_cpu,2)
 
     #BW metrics
-    # dictionary['tot_bw'] = round(c.tot_bw,2)
+    dictionary['tot_bw'] = round(c.tot_bw,2)
     dictionary['assigned_sum_bw'] = round(assigned_sum_bw,2)
     dictionary['tot_used_bw']=round(tot_used_bw,2)    
-    # dictionary['unassigned_sum_bw'] = round(unassigned_sum_bw,2)
+    dictionary['unassigned_sum_bw'] = round(unassigned_sum_bw,2)
 
     dictionary['tot_utility'] = round(stats["tot_utility"],2)
     print(stats["tot_utility"])
