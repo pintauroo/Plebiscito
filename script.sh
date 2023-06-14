@@ -2,7 +2,7 @@
 max_rep=100
 max_bids=50
 num_edges=10
-req_number=1000
+req_number=100
 timeout=300  # Set a timeout of 300 seconds (5 minutes)
 
 # strings=("stefano")

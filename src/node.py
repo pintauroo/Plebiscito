@@ -9,6 +9,11 @@ import copy
 import logging
 import math 
 import random
+import threading
+import time
+from collections import OrderedDict
+from queue import Empty
+
 
 TRACE = 5
 
@@ -23,8 +28,16 @@ class node:
         self.updated_cpu = self.initial_cpu 
         self.initial_bw = config.t.b
         self.updated_bw = self.initial_bw
-        
+
+        self.threads = []
+        self.event = threading.Event()
+        self.stop_event = threading.Event()
+
         self.q = queue.Queue()
+        # self.messages = {}
+        self.messages = OrderedDict()
+        self.messages_lock = threading.Lock()
+
         self.user_requests = []
         self.item={}
         self.bids= {}
@@ -76,21 +89,22 @@ class node:
 
     def forward_to_neighbohors(self):
         self.print_node_state('FORWARD', True)
+        msg = {
+                "job_id": self.item['job_id'], 
+                "user": self.item['user'],
+                "edge_id": self.id, 
+                "auction_id": copy.deepcopy(self.bids[self.item['job_id']]['auction_id']), 
+                "NN_gpu": self.item['NN_gpu'],
+                "NN_cpu": self.item['NN_cpu'],
+                "NN_data_size": self.item['NN_data_size'], 
+                "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
+                "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
+                "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
+                }
         for i in range(config.num_edges):
             if config.t.to()[i][self.id] and self.id != i:
-                config.nodes[i].append_data({
-                    "job_id": self.item['job_id'], 
-                    "user": self.item['user'],
-                    "edge_id": self.id, 
-                    "auction_id": copy.deepcopy(self.bids[self.item['job_id']]['auction_id']), 
-                    "NN_gpu": self.item['NN_gpu'],
-                    "NN_cpu": self.item['NN_cpu'],
-                    "NN_data_size": self.item['NN_data_size'], 
-                    "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
-                    "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
-                    "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
-                    })
-                # logging.debug("FORWARD NODEID:" + str(self.id) + " to " + str(i) + " " + str(self.bids[self.item['job_id']]['auction_id']))
+                config.nodes[i].append_data(msg)
+                logging.debug("FORWARD NODEID:" + str(self.id) + " to " + str(i) + " " + str(self.bids[self.item['job_id']]['auction_id']))
 
 
 
@@ -497,8 +511,8 @@ class node:
             else:
                 self.print_node_state('Value not in dict (deconfliction)', type='error')
 
-        if self.integrity_check(tmp_local['auction_id'], 'deconfliction') and \
-            tmp_local['auction_id']!=self.bids[self.item['job_id']]['auction_id']:
+        if self.integrity_check(tmp_local['auction_id'], 'deconfliction'): # and \
+         #   tmp_local['auction_id']!=self.bids[self.ietem['job_id']]['auction_id']:
             # tmp_local['bid'] != self.bids[self.item['job_id']]['bid'] and \
             # tmp_local['timestamp'] != self.bids[self.item['job_id']]['timestamp']:
 
@@ -602,12 +616,23 @@ class node:
         
         return True
 
-    def work(self, event):
+    def work(self):
+        # while True:
+        # while len(self.messages) == 0:
+        #     # print('sleep '  + str(self.id))
+        #     time.sleep(0.1)
         while True:
-            try: 
-                self.item = self.q.get(timeout=5)
+            # if not event.is_set() or len(self.messages) > 0:
+            if len(self.messages) > 0  and not self.stop_event.is_set():
+                # print('\nwork '  + str(self.id))
+                # self.item = self.q.get(timeout=5)
                 config.counter += 1
+                with self.messages_lock:
+                    first_key = next(iter(self.messages))
+                    self.item = copy.deepcopy(self.messages[first_key])
 
+
+                # print(self.item)
                 if self.item['job_id'] not in self.bids:
                     self.init_null()
                 
@@ -630,17 +655,62 @@ class node:
                     self.print_node_state('IF4 q:' + str(self.q.qsize())) # client after edge request
                     self.bid()
 
-                self.q.task_done()
-            except:
-                # the exception is raised if the timeout in the queue.get() expires.
-                # the break statement must be executed only if the event has been set 
-                # by the main thread (i.e., no more task will be submitted)
-                if event.is_set():
+                with self.messages_lock:
+                    del self.messages[first_key]
+
+
+                # self.q.task_done()
+            else:
+                if self.stop_event.is_set():
+                    # print('\nworker break '  + str(self.id))
                     break
+            #     # the exception is raised if the timeout in the queue.get() expires.
+            #     # the break statement must be executed only if the event has been set 
+            #     # by the main thread (i.e., no more task will be submitted)
+            #     if event.is_set():
+            #         break
 
                 
 
                 # print(str(self.q.qsize()) +" polpetta - user:"+ str(self.id) + " job_id: "  + str(self.item['job_id'])  + " from " + str(self.item['user']))
 
-      
+    def read_queue(self):
+        while True:
+            try: 
+                # print('\nreader ' + str(self.id))
+                self.queue_item = self.q.get(block=True, timeout=1)
+                # print(self.queue_item)
+
+                if 'auction_id' in self.queue_item:
+                    msg_tuple_key = (self.queue_item['job_id'], 
+                                     tuple(self.queue_item['auction_id']), 
+                                     tuple(self.queue_item['bid']), 
+                                     tuple(self.queue_item['timestamp']))
+                    
+                else:
+                    msg_tuple_key = (self.queue_item['job_id'])
+    
+                with self.messages_lock:
+                    # print(msg_tuple_key)
+                    if msg_tuple_key not in self.messages:
+                        # print('KTMMMMMMMMM?????????')
+                        self.messages[msg_tuple_key]= copy.deepcopy(self.queue_item)
+                        # print(self.messages)
+            except:
+                # print('ktmuooooo\n')
+                if self.event.is_set():
+                    # print('\nreader break ' + str(self.id))
+                    self.stop_event.set()
+
+                    break
+
+    def start_threads(self):
+        reader = threading.Thread(target=self.read_queue, daemon=True)
+        worker = threading.Thread(target=self.work, daemon=True)
+        
+        reader.start()
+        worker.start()
+
+        return [reader, worker]
+
       

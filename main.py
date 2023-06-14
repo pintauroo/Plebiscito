@@ -5,7 +5,7 @@ import src.utils as u
 import time
 import random
 import sys
-#import yappi
+import yappi
 
 
 
@@ -17,7 +17,7 @@ DEBUG = logging.DEBUG
 INFO = logging.INFO
 
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
+logging.basicConfig(filename='debug.log', level=DEBUG, format='%(message)s', filemode='w')
 # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))
@@ -27,21 +27,24 @@ logging.debug('Requests number: ' + str(c.req_number))
 nodes_thread = []
 event_list = []
 
-#yappi.set_clock_type("cpu") # Use set_clock_type("wall") for wall time
-#yappi.start()
+# yappi.set_clock_type("cpu") # Use set_clock_type("wall") for wall time
+# yappi.start()
 
 #Generate threads for each node
+# for i in range(c.num_edges):
+#     event = threading.Event()
+#     t = threading.Thread(target=c.nodes[i].work, args=(event,), daemon=True)
+#     nodes_thread.append(t)
+#     event_list.append(event)
+#     t.start()
+
 for i in range(c.num_edges):
-    event = threading.Event()
-    t = threading.Thread(target=c.nodes[i].work, args=(event,), daemon=True)
-    nodes_thread.append(t)
-    event_list.append(event)
-    t.start()
+    nodes_thread.append(c.nodes[i].start_threads())
+    # nodes_thread.append(c.nodes[i].start_threads)
 
 start_time = time.time()
 
 job_ids=[]
-print('ktm')
 print(len(c.job_list_instance.job_list))
 print('request_number: ' +str(c.req_number))
 
@@ -65,21 +68,26 @@ for job in c.job_list_instance.job_list:
                 job['read_count']
             )
         )
-        
+
+# time.sleep(1)
 # set the event to notify the thread that there won't be any more job requests
-for e in event_list:
-    e.set()
+for i in range(c.num_edges):
+    c.nodes[i].event.set()
     
 # Block until all tasks are done.
-for t in nodes_thread:
-    t.join()
+# for t in nodes_thread:
+#     t.join()
+
+for nt in nodes_thread:
+    for t in nt:
+        t.join()
+    # t[1].join()
     
-#yappi.get_func_stats().print_all()
+# yappi.get_func_stats().print_all()
 
 #Calculate stats
 exec_time = time.time() - start_time
 logging.info("Run time: %s" % (time.time() - start_time))
-print("Run time: %s" % (time.time() - start_time))
 
 
 time.sleep(1) # Wait time nexessary to wait all threads to finish 
@@ -122,6 +130,7 @@ u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, jo
 
 logging.info('Tot messages: '+str(c.counter))
 print('Tot messages: '+str(c.counter))
+print("Run time: %s" % (time.time() - start_time))
 
 # print(c.t.b)
 # print(c.t.call_func())
