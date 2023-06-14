@@ -105,9 +105,6 @@ for job in c.job_list_instance.job_list:
         )
     #time.sleep(0.1)
     
-# wait for processes 
-
-
 for e in events:
     e.set()
     

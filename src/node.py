@@ -32,13 +32,6 @@ class node:
         self.item={}
         self.bids= {}
         self.layer_bid_already = {}
-
-
-    def append_data(self, d):
-        self.q.put(d)
-
-    def join_queue(self):
-        self.q.join()
         
     def set_queues(self, q, use_queue):
         self.q = q
@@ -84,6 +77,7 @@ class node:
     def forward_to_neighbohors(self):
         if config.enable_logging:
             self.print_node_state('FORWARD', True)
+        
         msg = {
                     "job_id": self.item['job_id'], 
                     "user": self.item['user'],
@@ -98,7 +92,7 @@ class node:
                     }
         for i in range(config.num_edges):
             if config.t.to()[i][self.id] and self.id != i:
-                config.nodes[i].append_data(msg)
+                self.q[i].put(msg)
                 # logging.debug("FORWARD NODEID:" + str(self.id) + " to " + str(i) + " " + str(self.bids[self.item['job_id']]['auction_id']))
 
 
@@ -690,24 +684,24 @@ class node:
                 # check msg type
                 if self.item['edge_id'] is not None and self.item['user'] in self.user_requests:
                     if config.enable_logging:
-                        self.print_node_state('IF1 q:' + str(self.q.qsize())) # edge to edge request
+                        self.print_node_state('IF1 q:' + str(self.q[self.id].qsize())) # edge to edge request
                     self.new_msg()
                 
                 elif self.item['edge_id'] is None and self.item['user'] not in self.user_requests:
                     if config.enable_logging:
-                        self.print_node_state('IF2 q:' + str(self.q.qsize())) # brand new request from client
+                        self.print_node_state('IF2 q:' + str(self.q[self.id].qsize())) # brand new request from client
                     self.user_requests.append(self.item['user'])
                     self.bid()
 
                 elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
                     if config.enable_logging:
-                        self.print_node_state('IF3 q:' + str(self.q.qsize())) # edge anticipated client request
+                        self.print_node_state('IF3 q:' + str(self.q[self.id].qsize())) # edge anticipated client request
                     self.user_requests.append(self.item['user'])
                     self.new_msg()
 
                 elif self.item['edge_id'] is None and self.item['user'] in self.user_requests:
                     if config.enable_logging:
-                        self.print_node_state('IF4 q:' + str(self.q.qsize())) # client after edge request
+                        self.print_node_state('IF4 q:' + str(self.q[self.id].qsize())) # client after edge request
                     self.bid()
 
                 self.q[self.id].task_done()
