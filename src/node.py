@@ -66,11 +66,11 @@ class node:
                 
             return f(x, config.a, beta)
         elif config.filename == 'alpha_BW_CPU':
-            return (config.a*(self.updated_bw/self.initial_bw))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #BW vs CPU
+            return (config.a*(self.updated_bw/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
         elif config.filename == 'alpha_GPU_CPU':
-            return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #GPU vs CPU
+            return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #GPU vs CPU
         elif config.filename == 'alpha_GPU_BW':
-            return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_bw/self.initial_bw)) # GPU vs BW
+            return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw/config.tot_bw)) # GPU vs BW
 
 
 
