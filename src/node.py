@@ -4,6 +4,7 @@ This module impelments the behavior of a node
 
 import queue
 import sys
+import threading
 import time
 import src.config as config
 from datetime import datetime, timedelta
@@ -11,6 +12,8 @@ import copy
 import logging
 import math 
 import random
+from collections import OrderedDict
+from queue import Empty
 
 TRACE = 5
 
@@ -27,6 +30,14 @@ class node:
         self.updated_bw = self.initial_bw# * random.uniform(0.7, 1)
         
         self.counter = 0
+        self.threads = []
+        self.event = threading.Event()
+        self.stop_event = threading.Event()
+
+        self.q = queue.Queue()
+        # self.messages = {}
+        self.messages = OrderedDict()
+        self.messages_lock = threading.Lock()
         
         self.user_requests = []
         self.item={}
@@ -36,6 +47,9 @@ class node:
     def set_queues(self, q, use_queue):
         self.q = q
         self.use_queue = use_queue
+        
+    def notify_end_job(self):
+        self.event.set()
 
     def utility_function(self):
         def f(x, alpha, beta):
@@ -274,15 +288,15 @@ class node:
                 t_kj = self.item['timestamp'][index]
                 t_ij = tmp_local['timestamp'][index]
 
-                # logging.log(TRACE,'DECONFLICTION - NODEID(i):' + str(i) +
-                #               ' sender(k):' + str(k) +
-                #               ' z_kj:' + str(z_kj) +
+                # print('DECONFLICTION - NODEID(i):' + str(i) +
+                #                ' sender(k):' + str(k) +
+                #                ' z_kj:' + str(z_kj) +
                 #               ' z_ij:' + str(z_ij) +
-                #               ' y_kj:' + str(y_kj) +
-                #               ' y_ij:' + str(y_ij) +
-                #               ' t_kj:' + str(t_kj) +
-                #               ' t_ij:' + str(t_ij)
-                #                )
+                #                ' y_kj:' + str(y_kj) +
+                #                ' y_ij:' + str(y_ij) +
+                #                ' t_kj:' + str(t_kj) +
+                #                ' t_ij:' + str(t_ij)
+                #                 )
                 if z_kj==k : 
                     if z_ij==i:
                         if (y_kj>y_ij): 
@@ -665,16 +679,21 @@ class node:
         
         return True
 
-    def work(self, event, notify_start, ret_val):
+    def work(self, end_event, notify_start, ret_val):
         print(f"Node {self.id}: waiting for the first job.", flush=True)
         notify_start.set()
-        retry = 0
         
         while True:
-            try: 
-                self.item = self.q[self.id].get(timeout=2)
+            #print(self.stop_event.is_set())
+            if len(self.messages) > 0 and not self.stop_event.is_set():
                 self.counter += 1
-
+                
+                with self.messages_lock:
+                    first_key = next(iter(self.messages))
+                    self.item = copy.deepcopy(self.messages[first_key])
+                    
+                #print(self.item)
+                
                 if self.item['job_id'] not in self.bids:
                     self.init_null()
                 
@@ -692,32 +711,21 @@ class node:
                         self.print_node_state('IF2 q:' + str(self.q[self.id].qsize())) # brand new request from client
                     self.user_requests.append(self.item['user'])
                     self.bid()
-
                 elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
                     if config.enable_logging:
                         self.print_node_state('IF3 q:' + str(self.q[self.id].qsize())) # edge anticipated client request
                     self.user_requests.append(self.item['user'])
                     self.new_msg()
-
                 elif self.item['edge_id'] is None and self.item['user'] in self.user_requests:
                     if config.enable_logging:
                         self.print_node_state('IF4 q:' + str(self.q[self.id].qsize())) # client after edge request
                     self.bid()
-
-                self.q[self.id].task_done()
-            except Exception as e:
-                # the exception is raised if the timeout in the queue.get() expires.
-                # the break statement must be executed only if the event has been set 
-                # by the main thread (i.e., no more task will be submitted)
-                if retry < 2:
-                    self.use_queue[self.id].clear()
-                    if self.q[self.id].qsize() != 0:
-                        retry = 0
-                        self.use_queue[self.id].set()
-                    else:
-                        retry +=1
-                
-                if event.is_set():
+                    
+                with self.messages_lock:
+                    del self.messages[first_key]
+            
+            else:               
+                if self.stop_event.is_set():
                     ret_val["id"] = self.id
                     ret_val["bids"] = copy.deepcopy(self.bids)
                     ret_val["counter"] = self.counter
@@ -731,6 +739,49 @@ class node:
                 
 
                 # print(str(self.q.qsize()) +" polpetta - user:"+ str(self.id) + " job_id: "  + str(self.item['job_id'])  + " from " + str(self.item['user']))
+                
+    def read_queue(self, end_event):
+        while True:
+            try: 
+                # print('\nreader ' + str(self.id))
+                self.queue_item = self.q[self.id].get(block=True, timeout=1)
+                # print(self.queue_item)
+
+                if 'auction_id' in self.queue_item:
+                    msg_tuple_key = (self.queue_item['job_id'], 
+                                     tuple(self.queue_item['auction_id']), 
+                                     tuple(self.queue_item['bid']), 
+                                     tuple(self.queue_item['timestamp']))
+                    
+                else:
+                    msg_tuple_key = (self.queue_item['job_id'])
+    
+                with self.messages_lock:
+                    # print(msg_tuple_key)
+                    if msg_tuple_key not in self.messages:
+                        # print('KTMMMMMMMMM?????????')
+                        self.messages[msg_tuple_key]= copy.deepcopy(self.queue_item)
+                        # print(self.messages)
+                        
+                self.q[self.id].task_done()
+            except Exception as e:
+                print(e)
+                # print('ktmuooooo\n')
+                if end_event.is_set():
+                    # print('\nreader break ' + str(self.id))
+                    self.stop_event.set()
+
+                    break
 
       
-      
+    def start_threads(self,end_event, notify_start, result):
+        reader = threading.Thread(target=self.read_queue, args=[end_event], daemon=True)
+        worker = threading.Thread(target=self.work, args=[end_event, notify_start, result], daemon=True)
+
+        reader.start()
+        worker.start()
+        
+        reader.join()
+        worker.join()
+
+        return

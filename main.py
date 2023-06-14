@@ -64,7 +64,7 @@ for i in range(c.num_edges):
     
     c.nodes[i].set_queues(queues, use_queue)
     
-    p = Process(target=c.nodes[i].work, args=(e, e2, return_dict))
+    p = Process(target=c.nodes[i].start_threads, args=(e, e2, return_dict))
     nodes_thread.append(p)
     return_val.append(return_dict)
     events.append(e)
@@ -105,12 +105,15 @@ for job in c.job_list_instance.job_list:
         )
     #time.sleep(0.1)
     
+for n in c.nodes:
+    n.notify_end_job()
+    
 for e in events:
     e.set()
     
 # Block until all tasks are done.
 for nt in nodes_thread:
-   nt.join()
+    nt.join()
 
 #Calculate stats
 exec_time = time.time() - start_time
