@@ -1,8 +1,8 @@
 #!/bin/bash
-max_rep=10
-num_edges=15
+max_rep=30
+num_edges=10
 req_number=100
-timeout=100  # Set a timeout of 300 seconds (5 minutes)
+timeout=200  # Set a timeout of 300 seconds (5 minutes)
 pid=0
 
 trap on_sigint SIGINT
@@ -11,8 +11,8 @@ on_sigint() {
     exit
 }
 
-# strings=("stefano")
-strings=("alpha_GPU_CPU" "alpha_BW_CPU" "alpha_GPU_BW")
+strings=("stefano")
+# strings=("alpha_GPU_CPU" "stefano")
 
 rm -rf "res" > /dev/null 2>&1
 rm -f "alpha_GPU_CPU.csv" > /dev/null 2>&1
@@ -27,7 +27,7 @@ mkdir -p "res" > /dev/null 2>&1
 for filename in "${strings[@]}"
     do
     echo $filename
-    for i in $(seq 0 0.25 1)
+    for i in $(seq 0.5 0.25 0.5)
     # for i in $(seq 1 1 10)
     do
         rm -rf "res/""$i"
@@ -36,7 +36,7 @@ for filename in "${strings[@]}"
         do
             echo "main.py $req_number $i $num_edges $filename"
             # Start the Python process and get its PID
-            python3 main.py "$req_number" "$i" "$num_edges" "$filename"> "./res/$i/$b" &        
+            python3 main.py "$req_number" "$i" "$num_edges" "$filename" "$b"> "./res/$i/$b" &        
             pid=$!
 
             # Wait for the process to complete or time out

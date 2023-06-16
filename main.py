@@ -82,13 +82,9 @@ start_time = time.time()
 job_ids=[]
 print('request_number: ' +str(c.req_number))
 
-for index, job in c.df_jobs.iterrows():
-
-    # time.sleep(0.11)
-    job_ids.append(job['job_id'])
-    for q in queues:
-        q.put(c.message_data
-            (
+for job in c.job_list_instance.job_list:
+    time.sleep(0.25)
+    data = c.message_data(
                 job['job_id'],
                 job['user'],
                 job['num_gpu'],
@@ -101,7 +97,10 @@ for index, job in c.df_jobs.iterrows():
                 job['size'],
                 job['read_count']
             )
-        )
+    #print(data)
+    job_ids.append(job['job_id'])
+    for q in queues:
+        q.put(data)
     #time.sleep(0.1)
     
 for e in events:

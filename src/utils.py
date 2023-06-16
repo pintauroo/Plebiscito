@@ -218,22 +218,28 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         print('node: '+ str(i) + ' assigned jobs count: ' + str(stats['nodes'][i]['assigned_count']))
         dictionary['node_'+str(i)+'_jobs'] = round(stats['nodes'][i]['assigned_count'],2)
 
-
+    tot_gpu = 0
+    tot_cpu = 0
+    tot_bw = 0
+    for n in c.nodes:
+        tot_cpu += n.initial_cpu
+        tot_gpu += n.initial_gpu
+        tot_bw += n.initial_bw
 
     #GPU metrics
-    dictionary['tot_gpu'] = round(c.tot_gpu,2)
+    dictionary['tot_gpu'] = round(tot_gpu,2)
     dictionary['assigned_sum_gpu'] = round(assigned_sum_gpu,2)
     dictionary['tot_used_gpu']=round(tot_used_gpu,2)
-    dictionary['unassigned_sum_gpu']=round(unassigned_sum_gpu,2)
+    dictionary['unassigned_sum_gpu'] = round(unassigned_sum_gpu,2)
 
     #CPU metrics
-    dictionary['tot_cpu'] = round(c.tot_cpu,2)
+    dictionary['tot_cpu'] = round(tot_cpu,2)
     dictionary['assigned_sum_cpu'] = round(assigned_sum_cpu,2)
     dictionary['tot_used_cpu']=round(tot_used_cpu,2)
     dictionary['unassigned_sum_cpu'] = round(unassigned_sum_cpu,2)
 
     #BW metrics
-    dictionary['tot_bw'] = round(c.tot_bw,2)
+    dictionary['tot_bw'] = round(tot_bw,2)
     dictionary['assigned_sum_bw'] = round(assigned_sum_bw,2)
     dictionary['tot_used_bw']=round(tot_used_bw,2)    
     dictionary['unassigned_sum_bw'] = round(unassigned_sum_bw,2)

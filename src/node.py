@@ -12,20 +12,24 @@ import logging
 import math 
 import random
 
-TRACE = 5
-
+TRACE = 5    
 
 class node:
 
-    def __init__(self, id):
+    def __init__(self, id, seed):
+        random.seed(seed)
         self.id = id    # unique edge node id
-        self.initial_gpu = float(config.node_gpu) # * random.uniform(0.7, 1)
-        self.updated_gpu = self.initial_gpu 
-        self.initial_cpu = float(config.node_cpu) # * random.uniform(0.7, 1)
-        self.updated_cpu = self.initial_cpu 
+        self.initial_gpu = float(config.node_gpu) * random.choice([0, 0.2, 0.4, 0.6, 0.8, 1])
+        self.updated_gpu = self.initial_gpu# * random.uniform(0.7, 1)
+        self.initial_cpu = float(config.node_cpu) * random.uniform(0.5, 1)
+        self.updated_cpu = self.initial_cpu
         self.initial_bw = config.t.b
-        self.updated_bw = self.initial_bw
+        self.updated_bw = self.initial_bw# * random.uniform(0.7, 1)
         
+        if self.initial_gpu != 0:
+            print(f"Node {self.id} CPU/GPU ratio: {self.initial_cpu/self.initial_gpu}")
+        else:
+            print(f"Node {self.id} CPU/GPU ratio: <inf>")
         self.counter = 0
         
         self.user_requests = []
@@ -48,7 +52,7 @@ class node:
             
             # if beta != 0 and x == 0 is not necessary
             
-            return math.exp(-(alpha/20)*(x-beta)**2)
+            return math.exp(-(alpha/10)*(x-beta)**2)
         
         # we assume that every job/node has always at least one CPU
         if config.filename == 'stefano':
@@ -98,7 +102,7 @@ class node:
                     "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
                     }
         for i in range(config.num_edges):
-            if config.t.to()[i][self.id] and self.id != i:
+            if config.t.to()[i][self.id] and self.id != i and self.use_queue[i].is_set():
                 self.q[i].put(msg)
                 # logging.debug("FORWARD NODEID:" + str(self.id) + " to " + str(i) + " " + str(self.bids[self.item['job_id']]['auction_id']))
 
@@ -666,7 +670,7 @@ class node:
         
         while True:
             try: 
-                self.item = self.q[self.id].get(timeout=2)
+                self.item = self.q[self.id].get(timeout=7)
                 self.counter += 1
 
                 if self.item['job_id'] not in self.bids:
@@ -700,27 +704,28 @@ class node:
 
                 self.q[self.id].task_done()
             except Exception as e:
+                #print(f"Node {self.id}: timeout reached.")
                 # the exception is raised if the timeout in the queue.get() expires.
                 # the break statement must be executed only if the event has been set 
                 # by the main thread (i.e., no more task will be submitted)
-                if retry < 2:
+                if retry < 1:
                     self.use_queue[self.id].clear()
                     if self.q[self.id].qsize() != 0:
                         retry = 0
-                        self.use_queue[self.id].set()
+                        #self.use_queue[self.id].set()
                     else:
                         retry +=1
-                
-                if event.is_set():
-                    ret_val["id"] = self.id
-                    ret_val["bids"] = copy.deepcopy(self.bids)
-                    ret_val["counter"] = self.counter
-                    ret_val["updated_cpu"] = self.updated_cpu
-                    ret_val["updated_gpu"] = self.updated_gpu
-                    ret_val["updated_bw"] = self.updated_bw
-                    # Event has occurred, handle it in your desired way
-                    print(f"Node {self.id}: received end processing signal", flush=True)
-                    break
+                else:
+                    if event.is_set():
+                        ret_val["id"] = self.id
+                        ret_val["bids"] = copy.deepcopy(self.bids)
+                        ret_val["counter"] = self.counter
+                        ret_val["updated_cpu"] = self.updated_cpu
+                        ret_val["updated_gpu"] = self.updated_gpu
+                        ret_val["updated_bw"] = self.updated_bw
+                        # Event has occurred, handle it in your desired way
+                        print(f"Node {self.id}: received end processing signal", flush=True)
+                        break
 
                 
 

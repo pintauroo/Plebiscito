@@ -9,14 +9,15 @@ import random
 import numpy as np
 import sys
 
-
-
 pd.options.display.max_columns = None
 pd.options.display.max_rows = None
 
-
 class JobList:
+<<<<<<< HEAD
     def __init__(self, csv_file, num_jobs_limit, min_cpu_gpu_ratio=0, max_cpu_gpu_ratio=100):
+=======
+    def __init__(self, csv_file, num_jobs_limit, seed):
+>>>>>>> update
         self.job_list = []
         self.describe_dict = None
         self.min_cpu_gpu_ratio = min_cpu_gpu_ratio
@@ -28,6 +29,9 @@ class JobList:
         self.arrival_shuffle = False
         self.num_jobs_limit = num_jobs_limit
         self.num_jobs = None
+        
+        if seed is not None:
+            random.seed(seed)
 
 
     def add_job(self, csv_file, describe_dict, limit=None):
@@ -39,13 +43,18 @@ class JobList:
             reader = csv.DictReader(fd, delimiter=',')
             keys = reader.fieldnames
             for i, row in enumerate(reader):
-                if float(row['num_gpu']) != float(0):
+                #if float(row['num_gpu']) != float(0):
                     # print(row['num_gpu'])
+<<<<<<< HEAD
                     cpu_gpu_ratio = float(row['num_cpu']) / float(row['num_gpu'])
                     if self.min_cpu_gpu_ratio<=cpu_gpu_ratio<=self.max_cpu_gpu_ratio:
                         # print(cpu_gpu_ratio)
                         self._add_job(job_list, row, describe_dict)
                 if limit is not None and len(job_list) >= limit:
+=======
+                self._add_job(job_list, row, describe_dict)
+                if limit is not None and i >= limit:
+>>>>>>> update
                     break
         return job_list
         

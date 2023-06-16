@@ -96,6 +96,8 @@ def clean_data_as_dataframe(filename):
     df = pd.read_csv(filename)
     print(f'Row count of {filename} before clean is: {len(df.index)}')
     
+    #print(df)
+    
     for column in df:
         df.loc[df[column] == -0.0, column] = 0.0
         df = df[df[column]>=0]
@@ -627,19 +629,23 @@ def main():
     color_cycle = itertools.cycle(colors)
 
     # Read the data from the CSV file
-    filenames = ['alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'stefano_CPU_GPU']
-    fig, axes = plt.subplots(len(filenames), len(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']), figsize=(20, 10))
+    filenames = ['stefano', 'alpha_GPU_CPU']
+    fig, axes = plt.subplots(1, len(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']), figsize=(20, 5))
+    
+    res = {}
 
     for file_index, filename_ in enumerate(filenames):
         print('ktm')
-        filename = os.path.join('risorse_illimitate', 'results', str(filename_)+'.csv') 
+        filename = os.path.join('', '', str(filename_)+'.csv') 
         resources = filename_.split("_")
         df = clean_data_as_dataframe(filename)
         req = df['alpha'].unique()
         cdf_df = pd.DataFrame()
         
+        color = next(color_cycle)
+        
         for label_index, label in enumerate(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_used_bw']):
-            ax = axes[file_index, label_index]
+            ax = axes[label_index]
 
             for i in range(len(req)):
                 df_selected = df[df['alpha'] == req[i]]
@@ -652,28 +658,31 @@ def main():
                 cdf = np.arange(1, len(sorted_values) + 1) / len(sorted_values)
 
                 # Create a new DataFrame with the CDF values and corresponding column values
-                cdf_df_ = pd.DataFrame({'CDF': cdf, 'Column Values': sorted_values})
+                cdf_df_ = pd.DataFrame({'CDF': cdf, str(filename_): sorted_values})
 
-                lbl = None
-                if req[i] == 0:
-                    lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[2])
-                elif req[i] == 1:
-                    lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[1])
-                else:
-                    lbl = '\u03B1=' + str(req[i])
+                # lbl = None
+                # if req[i] == 0:
+                #     lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[2])
+                # elif req[i] == 1:
+                #     lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[1])
+                # else:
+                #     lbl = '\u03B1=' + str(req[i])
 
                 # Get the next color from the color cycle
-                color = next(color_cycle)
+                
 
                 # Plotting code with different line styles and colors
-                ax.plot(cdf_df_['Column Values'], cdf_df_['CDF'], linestyle=line_styles[i % len(line_styles)],
-                        color=color, label=lbl)
+                ax.plot(cdf_df_[filename_], cdf_df_['CDF'], linestyle=line_styles[i % len(line_styles)],
+                        color=color, label=filename_)
+                
+                #print(cdf_df_)
 
                 ax.set_xlabel(label)
                 ax.set_ylabel('CDF')
                 ax.grid(True)
                 ax.legend(fontsize=10, loc='upper right')
-
+        
+        
         plt.tight_layout()
 
     # Save the figure with the desired size
