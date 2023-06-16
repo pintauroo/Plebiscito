@@ -46,11 +46,13 @@ job_list_instance = JobList(dataset, num_jobs_limit=req_number, seed=seed)
 job_list_instance.select_jobs()
 job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find jobs by id
 
-df_jobs = pd.read_csv(dataset)
+print(job_dict)
 
-df_jobs = df_jobs.head(req_number)
+#df_jobs = pd.read_csv(dataset)
 
-print('jobs number = ' + str(len(df_jobs)))
+#df_jobs = df_jobs.head(req_number)
+
+#print('jobs number = ' + str(len(df_jobs)))
 
 # print(job_list_instance.job_list[0])
 
@@ -58,7 +60,7 @@ print('jobs number = ' + str(len(df_jobs)))
 tot_gpu = 0 
 tot_cpu = 0 
 tot_bw = 0 
-for index, d in df_jobs.iterrows():
+for d in job_list_instance.job_list:
     tot_gpu += d["num_gpu"] 
     tot_cpu += d["num_cpu"] 
     tot_bw += float(d['read_count'])
@@ -69,16 +71,16 @@ print('bw: ' +str(tot_bw))
 cpu_gpu_ratio = tot_cpu / tot_gpu
 print('cpu_gpu_ratio: ' +str(cpu_gpu_ratio))
 
-node_gpu=float(tot_gpu/num_edges)*2.0
-node_cpu=float(tot_cpu/num_edges)*2.0
-node_bw=float(tot_bw/num_edges)*2.0
+node_gpu=float(tot_gpu/num_edges)*100.0
+node_cpu=float(tot_cpu/num_edges)*100.0
+node_bw=float(tot_bw/num_edges)*100.0
 # node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
 # node_gpu = 10000000000
 # node_cpu = 10000000000
 # node_bw = 10000000000
 
-num_clients=len(set(d["user"] for _, d in df_jobs.iterrows()))
+num_clients=len(set(d["user"] for d in job_list_instance.job_list))
 
 #Build Topolgy
 t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)

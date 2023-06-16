@@ -73,7 +73,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     count = 0 
     count_broken = 0 
     assigned_jobs = []
-    for _, job in c.df_jobs.iterrows():
+    for job in c.job_list_instance.job_list:
         count += 1
         flag = True
         j = job['job_id']
