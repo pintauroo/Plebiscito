@@ -41,11 +41,10 @@ for i in range(c.num_edges):
 start_time = time.time()
 
 job_ids=[]
-print('ktm')
-print(len(c.job_list_instance.job_list))
 print('request_number: ' +str(c.req_number))
 
-for job in c.job_list_instance.job_list:
+for index, job in c.df_jobs.iterrows():
+
     # time.sleep(0.11)
     job_ids.append(job['job_id'])
     for j in range(c.num_edges):
@@ -81,8 +80,7 @@ exec_time = time.time() - start_time
 
 
 time.sleep(1) # Wait time nexessary to wait all threads to finish 
-
-for job in c.job_list_instance.job_list:
+for _, job in c.df_jobs.iterrows():
     j=job['job_id']
     logging.info('\n'+str(j) + ' tot_gpu: ' + str(job['num_gpu']) + ' tot_cpu: ' + str(job['num_cpu']) + ' tot_bw: ' + str(job['read_count']) )
     for i in range(c.num_edges):
@@ -96,25 +94,6 @@ for job in c.job_list_instance.job_list:
             ' used_tot_gpu: ' + str(c.nodes[i].initial_gpu)+' - ' +str(c.nodes[i].updated_gpu)  + ' = ' +str(c.nodes[i].initial_gpu - c.nodes[i].updated_gpu) + 
             ' used_tot_cpu: ' + str(c.nodes[i].initial_cpu)+' - ' +str(c.nodes[i].updated_cpu)  + ' = ' +str(c.nodes[i].initial_cpu - c.nodes[i].updated_cpu) + 
             ' used_tot_bw: '  + str(c.nodes[i].initial_bw)+' - '  +str(c.nodes[i].updated_bw) + ' = '  +str(c.nodes[i].initial_bw  - c.nodes[i].updated_bw))
-        # print(c.nodes[i].bids[j]['x'])
-        # print(c.nodes[i].initial_cpu)
-        # print(c.nodes[i].updated_cpu)
-        # print(c.nodes[i].initial_gpu)
-        # print(c.nodes[i].updated_gpu)
-        # print(c.nodes[i].initial_bw)
-        # print(c.nodes[i].updated_bw)
-
-        # print(c.nodes[i].bids)
-        # print('id: ' + str(i)+ "avl res: "+ str(c.nodes[i].updated_resources))
-        
-        # print(vars(c.nodes[i].bids))
-        # print(c.nodes[i].__dict__)
-
-
-# for i in range(c.num_edges):
-#     print(c.nodes[i].initial_bw)
-#     print(c.nodes[i].updated_bw)
-
 
 u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, job_ids, c.a)
 
@@ -122,7 +101,3 @@ logging.info('Tot messages: '+str(c.counter))
 print('Tot messages: '+str(c.counter))
 logging.info("Run time: %s" % (time.time() - start_time))
 print("Run time: %s" % (time.time() - start_time))
-
-
-# print(c.t.b)
-# print(c.t.call_func())

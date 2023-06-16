@@ -9,7 +9,7 @@ import numpy as np
 
 class topo:
     def __init__(self, func_name, max_bandwidth, min_bandwidth, num_clients, num_edges):
-        self.n = num_edges #asjacency matrix
+        self.n = num_edges #adjacency matrix
 
         self.to = getattr(self, func_name)
         print(self.to)
@@ -73,6 +73,4 @@ class topo:
                 if j < self.n-1:
                     adjacency_matrix[node][node+1] = 1
         return adjacency_matrix
-    
-# t = topo(func_name='grid_graph', max_bandwidth=100, min_bandwidth=10,num_clients=10, num_edges=10)
-# print(t.call_func())
+

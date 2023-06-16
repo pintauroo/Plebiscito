@@ -8,6 +8,7 @@ import datetime
 import sys
 from src.dataset import JobList
 from src.topology import topo
+import pandas as pd
 
 # Alibaba datacenter servers
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -32,14 +33,18 @@ min_layer_number = 3 #Min number of layers per node
 max_layer_number = layer_number/2 #Max number of layers per node
 
 
-dataset='./df_dataset.csv'
+dataset='./dataset_100_jobs_ratio_10_15.csv'
 
 #Data analisys
-job_list_instance = JobList(dataset, num_jobs_limit=req_number)
-job_list_instance.select_jobs()
-job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find jobs by id
+# job_list_instance = JobList(dataset, num_jobs_limit=req_number)
+# job_list_instance.select_jobs()
+# job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find jobs by id
 
-print('jobs number = ' + str(len(job_dict)))
+df_jobs = pd.read_csv(dataset)
+
+df_jobs = df_jobs.head(req_number)
+
+print('jobs number = ' + str(len(df_jobs)))
 
 # print(job_list_instance.job_list[0])
 
@@ -47,7 +52,7 @@ print('jobs number = ' + str(len(job_dict)))
 tot_gpu = 0 
 tot_cpu = 0 
 tot_bw = 0 
-for d in job_list_instance.job_list:
+for index, d in df_jobs.iterrows():
     tot_gpu += d["num_gpu"] 
     tot_cpu += d["num_cpu"] 
     tot_bw += float(d['read_count'])
@@ -63,12 +68,11 @@ node_cpu=float(tot_cpu/num_edges)
 node_bw=float(tot_bw/num_edges)
 # node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
-node_gpu = 1000000
-node_cpu = 1000000
-node_bw = 1000000
+# node_gpu = 10000000000
+# node_cpu = 10000000000
+# node_bw = 10000000000
 
-num_clients=len(set(d["user"] for d in job_list_instance.job_list))
-
+num_clients=len(set(d["user"] for _, d in df_jobs.iterrows()))
 
 #Build Topolgy
 t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
@@ -119,22 +123,3 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time
     data['job_id']=job_id
 
     return data
-
-
-
-"""
-NOTES
-
-I -> Index set of agents {1,..., Na}; Na -> Max Agent Number
-J -> Index set of tasks {1,..., Nt}; Nt -> tasks set
-Lt -> max lenght of the bundle
-
-b_i -> bundle for task i
-tao_i -> vector of task execution time for agent i
-s_i -> communication timestamps with other agents carried by agent i
-y_i -> list of winning bids for all tasks carried by agent i
-z_i -> list of winning agents for all tasks carried by agent i
-
-
-Nothe that each task L_t
-"""

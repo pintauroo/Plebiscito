@@ -4,6 +4,7 @@ This module contains utils functions to calculate all necessary stats
 from csv import DictWriter
 import os
 import src.config as c
+import logging
 
 import math
 
@@ -70,19 +71,24 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     unassigned_sum_bw = 0
 
     count = 0 
-    uncount = 0 
+    count_broken = 0 
     assigned_jobs = []
-
-    for job in c.job_list_instance.job_list:
+    for _, job in c.df_jobs.iterrows():
         count += 1
         flag = True
         j = job['job_id']
-        # print('\nreq: ' + str(j) )
         # Check correctness of all bids
         equal_values = True 
+        print('job_id: ' +str(j))
+        
+        for i in range(0, c.num_edges):
+            print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
+            print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
+            print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
+            print('')
         for i in range(1, c.num_edges):
             if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
-                uncount += 1
+                count_broken += 1
                 print('BROKEN BID id: ' + str(j))
                 equal_values = False
                 break
@@ -97,8 +103,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     flag = False
                     wrong_bids_calc(nodes, job)
                 else:
-                    continue
-                    # print('MATCH')
+                    print('MATCH')
+                    pass
                     # for i in range(0, c.num_edges):
                     #     print('matching: ' +str(c.nodes[i].bids[j]['auction_id']))
 
@@ -203,7 +209,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     # print(nodes[i].bids[job_id]['bid'])
                     stats['nodes'][nodes[i].id]['utility'] += nodes[i].bids[job_id]['bid'][k]
 
-        print(str(nodes[i].id) + ' utility: ' + str(stats['nodes'][nodes[i].id]['utility']))
+        print('node: ' + str(nodes[i].id) + ' utility: ' + str(stats['nodes'][nodes[i].id]['utility']))
         dictionary['node_'+str(i)+'_utility'] = round(stats['nodes'][nodes[i].id]['utility'],2)
         stats["tot_utility"] += stats['nodes'][nodes[i].id]['utility']
 
@@ -218,7 +224,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     dictionary['tot_gpu'] = round(c.tot_gpu,2)
     dictionary['assigned_sum_gpu'] = round(assigned_sum_gpu,2)
     dictionary['tot_used_gpu']=round(tot_used_gpu,2)
-    dictionary['tot_used_gpu']=round(tot_used_gpu,2)
+    dictionary['unassigned_sum_gpu']=round(unassigned_sum_gpu,2)
 
     #CPU metrics
     dictionary['tot_cpu'] = round(c.tot_cpu,2)
@@ -233,7 +239,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     dictionary['unassigned_sum_bw'] = round(unassigned_sum_bw,2)
 
     dictionary['tot_utility'] = round(stats["tot_utility"],2)
-    print(stats["tot_utility"])
+    print('total utility: ' + str(stats["tot_utility"]))
 
 
     # ---------------------------------------------------------
@@ -241,9 +247,9 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     # ---------------------------------------------------------
     dictionary['jaini'] = jaini_index(dictionary, num_edges)
 
-    print('jobids = ' + str(len(job_ids)))
+    print('jobs number: ' + str(len(job_ids)))
 
-    print('count= ' +str(count) + ' uncount =  ' +str(uncount))
+    print('count: ' +str(count) + ' count_broken: ' +str(count_broken))
 
     
 

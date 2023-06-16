@@ -17,12 +17,12 @@ class node:
 
     def __init__(self, id):
         self.id = id    # unique edge node id
-        self.initial_gpu = float(config.node_gpu) * random.uniform(0.7, 1)
-        self.updated_gpu = self.initial_gpu# * random.uniform(0.7, 1)
-        self.initial_cpu = float(config.node_cpu) * random.uniform(0.7, 1)
-        self.updated_cpu = self.initial_cpu# * random.uniform(0.7, 1)
-        self.initial_bw = config.t.b  * random.uniform(0.7, 1)
-        self.updated_bw = self.initial_bw# * random.uniform(0.7, 1)
+        self.initial_gpu = float(config.node_gpu) # * random.uniform(0.7, 1)
+        self.updated_gpu = self.initial_gpu 
+        self.initial_cpu = float(config.node_cpu) # * random.uniform(0.7, 1)
+        self.updated_cpu = self.initial_cpu 
+        self.initial_bw = config.t.b
+        self.updated_bw = self.initial_bw
         
         self.q = queue.Queue()
         self.user_requests = []
@@ -65,6 +65,14 @@ class node:
                 beta = self.initial_cpu/self.initial_gpu
                 
             return f(x, config.a, beta)
+        # elif config.filename == 'alpha_BW_CPU':
+        #     return (config.a*(self.updated_bw/self.initial_bw))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #BW vs CPU
+        # elif config.filename == 'alpha_GPU_CPU':
+        #     return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #GPU vs CPU
+        # elif config.filename == 'alpha_GPU_BW':
+        #     return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_bw/self.initial_bw)) # GPU vs BW
+
+
         elif config.filename == 'alpha_BW_CPU':
             return (config.a*(self.updated_bw/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
         elif config.filename == 'alpha_GPU_CPU':
@@ -73,26 +81,24 @@ class node:
             return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw/config.tot_bw)) # GPU vs BW
 
 
-
     def forward_to_neighbohors(self):
-        if config.enable_logging:
-            self.print_node_state('FORWARD', True)
-        msg = {
-                    "job_id": self.item['job_id'], 
-                    "user": self.item['user'],
-                    "edge_id": self.id, 
-                    "auction_id": copy.deepcopy(self.bids[self.item['job_id']]['auction_id']), 
-                    "NN_gpu": self.item['NN_gpu'],
-                    "NN_cpu": self.item['NN_cpu'],
-                    "NN_data_size": self.item['NN_data_size'], 
-                    "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
-                    "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
-                    "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
-                    }
+        self.print_node_state('FORWARD', True)
+        self.bids[self.item['job_id']]['forward_count']+=1
+        msg={
+            "job_id": self.item['job_id'], 
+            "user": self.item['user'],
+            "edge_id": self.id, 
+            "auction_id": copy.deepcopy(self.bids[self.item['job_id']]['auction_id']), 
+            "NN_gpu": self.item['NN_gpu'],
+            "NN_cpu": self.item['NN_cpu'],
+            "NN_data_size": self.item['NN_data_size'], 
+            "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
+            "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
+            "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
+            }
         for i in range(config.num_edges):
             if config.t.to()[i][self.id] and self.id != i:
                 config.nodes[i].append_data(msg)
-                # logging.debug("FORWARD NODEID:" + str(self.id) + " to " + str(i) + " " + str(self.bids[self.item['job_id']]['auction_id']))
 
 
 
@@ -132,6 +138,9 @@ class node:
     def init_null(self):
         self.bids[self.item['job_id']]={
             "count":int(),
+            "consensus_count":int(),
+            "forward_count":int(),
+            "deconflictions":int(),
             "job_id": self.item['job_id'], 
             "user": int(), 
             "auction_id": list(), 
@@ -251,6 +260,7 @@ class node:
         rebroadcast = False
         k = self.item['edge_id'] # sender
         i = self.id # receiver
+        self.bids[self.item['job_id']]['deconflictions']+=1
         
         tmp_local = copy.deepcopy(self.bids[self.item['job_id']])
         tmp_gpu = 0 
@@ -298,19 +308,6 @@ class node:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3else')
                             index+=1
-                        # if (y_kj>y_ij) or (y_kj==y_ij and z_kj<z_ij):
-                        #     rebroadcast = True
-                        #     logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #1-#2')
-                        #     index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
-                        # elif (y_kj<y_ij):
-                        #     logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3')
-                        #     rebroadcast = True
-                        #     while index<config.layer_number and tmp_local['auction_id'][index]  == z_ij:
-                        #         index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], datetime.now())
-
-                        # else:
-                        #     logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3else')
-                        #     index+=1
 
                     elif  z_ij==k:
                         if  t_kj>t_ij:
@@ -544,8 +541,8 @@ class node:
                 if config.enable_logging:
                     self.print_node_state('Value not in dict (deconfliction)', type='error')
 
-        if self.integrity_check(tmp_local['auction_id'], 'deconfliction'):# and \
-            #tmp_local['auction_id']!=self.bids[self.item['job_id']]['auction_id']:
+        if self.integrity_check(tmp_local['auction_id'], 'deconfliction'):
+            # tmp_local['auction_id']!=self.bids[self.item['job_id']]['auction_id']:
             # tmp_local['bid'] != self.bids[self.item['job_id']]['bid'] and \
             # tmp_local['timestamp'] != self.bids[self.item['job_id']]['timestamp']:
 
@@ -578,6 +575,7 @@ class node:
                     else:
                         if config.enable_logging:
                             self.print_node_state('Consensus -', True)
+                            self.bids[self.item['job_id']]['consensus_count']+=1
                             # pass
                     
             else:
@@ -588,9 +586,8 @@ class node:
                 if self.id not in self.bids[self.item['job_id']]['auction_id'] and float('-inf') in self.bids[self.item['job_id']]['auction_id']:
                     self.bid()
                     
-                elif rebroadcast:# and self.integrity_check(self.item['auction_id'], 'update_bid'): 
+                elif rebroadcast:
                     self.forward_to_neighbohors()
-                # self.print_node_state('AFTER', True)
 
         else:
             if config.enable_logging:
@@ -619,9 +616,7 @@ class node:
                     curr_count += 1
                 else:
                     if curr_count < config.min_layer_number or curr_count > config.max_layer_number:
-                        if config.enable_logging:
-                            self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
-                        # print(bid)
+                        self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
                         return False
                     
                     curr_val = bid[i]
@@ -643,9 +638,7 @@ class node:
                 curr_count += 1
             else:
                 if (curr_count < config.min_layer_number or curr_count > config.max_layer_number) and curr_val != float('-inf'):
-                    if config.enable_logging:
-                        self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
-                    # print(bid)
+                    self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
                     return False
                     
                 curr_val = bid[i]
@@ -661,7 +654,7 @@ class node:
     def work(self, event):
         while True:
             try: 
-                self.item = self.q.get(timeout=5)
+                self.item = self.q.get(timeout=2)
                 config.counter += 1
 
                 if self.item['job_id'] not in self.bids:
