@@ -37,6 +37,7 @@ class node:
         # self.messages = {}
         self.messages = OrderedDict()
         self.messages_lock = threading.Lock()
+        self.messages_rwlock = threading.RLock()
 
         self.user_requests = []
         self.item={}
@@ -87,8 +88,9 @@ class node:
 
 
 
-    def forward_to_neighbohors(self):
+    def forward_to_neighbohors(self, consensus=False):
         self.print_node_state('FORWARD', True)
+        self.bids[self.item['job_id']]['forward_count']+=1
         msg = {
                 "job_id": self.item['job_id'], 
                 "user": self.item['user'],
@@ -99,7 +101,9 @@ class node:
                 "NN_data_size": self.item['NN_data_size'], 
                 "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
                 "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
-                "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
+                "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp']),
+                "consensus": True if consensus else False,
+                "consensus_timestamp": datetime.now() if consensus else ""
                 }
         for i in range(config.num_edges):
             if config.t.to()[i][self.id] and self.id != i:
@@ -111,7 +115,8 @@ class node:
     def print_node_state(self, msg, bid=False, type='debug'):
         logger_method = getattr(logging, type)
         #print(str(self.item.get('auction_id')) if bid and self.item.get('auction_id') is not None else "\n")
-        logger_method(str(msg) +
+        logger_method(
+                    str(msg) +
                     " job_id:" + str(self.item['job_id']) +
                     " NODEID:" + str(self.id) +
                     " from_edge:" + str(self.item['edge_id']) +
@@ -121,8 +126,8 @@ class node:
                     " available CPU:" + str(self.updated_cpu) +
                     " initial BW:" + str(self.initial_bw) +
                     " available BW:" + str(self.updated_bw) +
-                    (("\n"+str(self.bids[self.item['job_id']]['auction_id']) if bid else "") +
-                    ("\n" + str(self.item.get('auction_id')) if bid and self.item.get('auction_id') is not None else "\n"))
+                    (("\n" + str(self.bids[self.item['job_id']]['auction_id']) if bid else "") +
+                     ("\n" + str(self.item.get('auction_id')) if bid and self.item.get('auction_id') is not None else "\n"))
                     )
     
     def update_local_val(self, tmp, index, id, bid, timestamp):
@@ -142,33 +147,38 @@ class node:
 
 
     def init_null(self):
-        self.bids[self.item['job_id']]={
-            "count":int(),
-            "job_id": self.item['job_id'], 
-            "user": int(), 
-            "auction_id": list(), 
-            "NN_gpu": self.item['NN_gpu'], 
-            "NN_cpu": self.item['NN_cpu'], 
-            "bid": list(), 
-            "bid_gpu": list(), 
-            "bid_cpu": list(), 
-            "bid_bw": list(), 
-            "x": list(), 
-            "timestamp": list()
-            }
+        with self.messages_rwlock:
+            self.bids[self.item['job_id']]={
+                "consensus":False,
+                "count":int(),
+                "consensus_count":int(),
+                "forward_count":int(),
+                "deconflictions":int(),
+                "job_id": self.item['job_id'], 
+                "user": int(), 
+                "auction_id": list(), 
+                "NN_gpu": self.item['NN_gpu'], 
+                "NN_cpu": self.item['NN_cpu'], 
+                "bid": list(), 
+                "bid_gpu": list(), 
+                "bid_cpu": list(), 
+                "bid_bw": list(), 
+                "x": list(), 
+                "timestamp": list()
+                }
         
-        self.layer_bid_already[self.item['job_id']] = [False] * config.layer_number
-        
-        NN_len = len(self.item['NN_gpu'])
-        
-        for _ in range(0, NN_len):
-            self.bids[self.item['job_id']]['x'].append(float('-inf'))
-            self.bids[self.item['job_id']]['bid'].append(float('-inf'))
-            self.bids[self.item['job_id']]['bid_gpu'].append(float('-inf'))
-            self.bids[self.item['job_id']]['bid_cpu'].append(float('-inf'))
-            self.bids[self.item['job_id']]['bid_bw'].append(float('-inf'))
-            self.bids[self.item['job_id']]['auction_id'].append(float('-inf'))
-            self.bids[self.item['job_id']]['timestamp'].append(datetime.now() - timedelta(days=1))
+            self.layer_bid_already[self.item['job_id']] = [False] * config.layer_number
+            
+            NN_len = len(self.item['NN_gpu'])
+            
+            for _ in range(0, NN_len):
+                self.bids[self.item['job_id']]['x'].append(float('-inf'))
+                self.bids[self.item['job_id']]['bid'].append(float('-inf'))
+                self.bids[self.item['job_id']]['bid_gpu'].append(float('-inf'))
+                self.bids[self.item['job_id']]['bid_cpu'].append(float('-inf'))
+                self.bids[self.item['job_id']]['bid_bw'].append(float('-inf'))
+                self.bids[self.item['job_id']]['auction_id'].append(float('-inf'))
+                self.bids[self.item['job_id']]['timestamp'].append(datetime.now() - timedelta(days=1))
 
     def bid(self):
 
@@ -244,24 +254,47 @@ class node:
                 self.forward_to_neighbohors()
         else:
             self.print_node_state('Value not in dict (first_msg)', type='error')
+   
+    def consensus(self):
+        self.bids[self.item['job_id']]['consensus'] = True
+        index = 0
+        while index < config.layer_number:
+            if self.id == id:
+                index, _, _, _ = self.lost_bid(index, 
+                              self.id, 
+                              self.bids[self.item['job_id']], 
+                              self.updated_gpu, 
+                              self.updated_cpu, 
+                              self.updated_bw
+                              )
+            else:
+                self.bids[self.item['job_id']]['auction_id'][index] = self.item['auction_id'][index]
+                self.bids[self.item['job_id']]['bid'][index] = self.item['bid'][index]
+                self.bids[self.item['job_id']]['timestamp'][index] = self.item['timestamp'][index]
+                index+=1
+
+        self.print_node_state('Consensus -', True)
+        self.bids[self.item['job_id']]['consensus_count']+=1
+        self.forward_to_neighbohors(True)
 
 
-    def lost_bid(self, index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw):
+    def lost_bid(self, index, z_kj, bundle, gpu, cpu, bw):
         first_time = True
 
         while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-            tmp_gpu +=  self.item['NN_gpu'][index]
-            tmp_cpu +=  self.item['NN_cpu'][index]
+            gpu +=  self.item['NN_gpu'][index]
+            cpu +=  self.item['NN_cpu'][index]
             if first_time:
-                tmp_bw += self.item['NN_data_size'][index]
+                bw += self.item['NN_data_size'][index]
                 first_time = False
-            index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
-        return index, tmp_gpu, tmp_cpu, tmp_bw
+            index = self.update_local_val(bundle, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+        return index, gpu, cpu, bw
     
     def deconfliction(self):
         rebroadcast = False
         k = self.item['edge_id'] # sender
         i = self.id # receiver
+        self.bids[self.item['job_id']]['deconflictions']+=1
         
         tmp_local = copy.deepcopy(self.bids[self.item['job_id']])
         tmp_gpu = 0 
@@ -544,6 +577,8 @@ class node:
                             self.bid()
                     else:
                             self.print_node_state('Consensus -', True)
+                            self.bids[self.item['job_id']]['consensus_count']+=1
+                            self.forward_to_neighbohors(True,)
                             # pass
                     
             else:
@@ -572,28 +607,7 @@ class node:
         else:
             self.print_node_state('Value not in dict (new_msg)', type='error')
 
-    def integrity_check_old(self, bid, msg):
-        curr_val = bid[0]
-        curr_count = 1
-        for i in range(1, len(bid)):
-            if curr_val != float('-inf'):
-                if bid[i] == curr_val:
-                    curr_count += 1
-                else:
-                    if curr_count < config.min_layer_number or curr_count > config.max_layer_number:
-                        self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
-                        # print(bid)
-                        return False
-                    
-                    curr_val = bid[i]
-                    curr_count = 1
-        
-        if curr_count < config.min_layer_number or curr_count > config.max_layer_number:
-            self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
-            return False
-        
-        return True
-    
+
     def integrity_check(self, bid, msg):
         curr_val = bid[0]
         curr_count = 1
@@ -616,53 +630,66 @@ class node:
         
         return True
 
+
+
+
     def work(self):
-        # while True:
         # while len(self.messages) == 0:
-        #     # print('sleep '  + str(self.id))
+        #     print('sleep '  + str(self.id))
         #     time.sleep(0.1)
         while True:
             # if not event.is_set() or len(self.messages) > 0:
             if len(self.messages) > 0  and not self.stop_event.is_set():
-                # print('\nwork '  + str(self.id))
+                #print('\nwork '  + str(self.id))
                 # self.item = self.q.get(timeout=5)
                 config.counter += 1
-                with self.messages_lock:
+                with self.messages_rwlock:
                     first_key = next(iter(self.messages))
-                    self.item = copy.deepcopy(self.messages[first_key])
+                    self.item = copy.deepcopy(self.messages[first_key]) #change this to work on messages
 
 
-                # print(self.item)
+                # print(self.item)self.q.qsize()
                 if self.item['job_id'] not in self.bids:
                     self.init_null()
-                
-                # check msg type
-                if self.item['edge_id'] is not None and self.item['user'] in self.user_requests:
-                    self.print_node_state('IF1 q:' + str(self.q.qsize())) # edge to edge request
-                    self.new_msg()
 
-                elif self.item['edge_id'] is None and self.item['user'] not in self.user_requests:
-                    self.print_node_state('IF2 q:' + str(self.q.qsize())) # brand new request from client
-                    self.user_requests.append(self.item['user'])
-                    self.bid()
+                if not self.bids[self.item['job_id']]['consensus']:
+                    if self.item['consensus']:
+                        #print('consensus!!!!!!!!!!!')
+                        self.consensus()
 
-                elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
-                    self.print_node_state('IF3 q:' + str(self.q.qsize())) # edge anticipated client request
-                    self.user_requests.append(self.item['user'])
-                    self.new_msg()
+                    else: 
+                        #print('deconfritto' + str(self.id))
+                    
+                        # check msg type
+                        if self.item['edge_id'] is not None and self.item['user'] in self.user_requests:
+                            self.print_node_state('IF1 q:' + str(self.q.qsize())) # edge to edge request
+                            self.new_msg()
 
-                elif self.item['edge_id'] is None and self.item['user'] in self.user_requests:
-                    self.print_node_state('IF4 q:' + str(self.q.qsize())) # client after edge request
-                    self.bid()
+                        elif self.item['edge_id'] is None and self.item['user'] not in self.user_requests:
+                            self.print_node_state('IF2 q:' + str(self.q.qsize())) # brand new request from client
+                            self.user_requests.append(self.item['user'])
+                            self.bid()
 
-                with self.messages_lock:
+                        elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
+                            self.print_node_state('IF3 q:' + str(self.q.qsize())) # edge anticipated client request
+                            self.user_requests.append(self.item['user'])
+                            self.new_msg()
+
+                        elif self.item['edge_id'] is None and self.item['user'] in self.user_requests:
+                            self.print_node_state('IF4 q:' + str(self.q.qsize())) # client after edge request
+                            self.bid()
+                else:
+                    pass
+                    # print('CONSENSUS BUKKIIII')
+
+                with self.messages_rwlock:
                     del self.messages[first_key]
 
 
                 # self.q.task_done()
             else:
                 if self.stop_event.is_set():
-                    # print('\nworker break '  + str(self.id))
+                    #print('\nworker break '  + str(self.id))
                     break
             #     # the exception is raised if the timeout in the queue.get() expires.
             #     # the break statement must be executed only if the event has been set 
@@ -677,28 +704,82 @@ class node:
     def read_queue(self):
         while True:
             try: 
-                # print('\nreader ' + str(self.id))
                 self.queue_item = self.q.get(block=True, timeout=1)
-                # print(self.queue_item)
+                #print('\nreader ' + str(self.id) + ' ' + str(self.queue_item))
 
                 if 'auction_id' in self.queue_item:
                     msg_tuple_key = (self.queue_item['job_id'], 
                                      tuple(self.queue_item['auction_id']), 
                                      tuple(self.queue_item['bid']), 
-                                     tuple(self.queue_item['timestamp']))
+                                     tuple(self.queue_item['timestamp']),
+                                     )
                     
-                else:
-                    msg_tuple_key = (self.queue_item['job_id'])
+                        #print('reaer ' + str(self.id) + str(msg_tuple_key))
+
+
+                if msg_tuple_key in self.messages:
+
+                    if self.bids[self.queue_item['job_id']]['consensus']: #if consensus already received
+
+                        if self.messages[msg_tuple_key]['consensus']:
+
+                            if self.bids[self.queue_item['job_id']]['consensus_timestamp'] < self.queue_item['consensus_timestamp']: # check consensus ts
+                                # choose message with lowest ts do nothing
+                                pass
+
+                            else:
+                                with self.messages_rwlock:
+                                    self.messages[msg_tuple_key] = copy.deepcopy(self.queue_item)
+
+                        else:
+                            # node has consensus and message dosent
+                            pass
+
+
+                    else:
+                    
+                        if self.messages[msg_tuple_key]['consensus']:
+                        
+                            if self.messages[msg_tuple_key]['consensus_timestamp'] < self.queue_item[msg_tuple_key]['consensus_timestamp']:
+                                #choose message with lowest ts do nothing
+                                pass
+
+                            else:
+                                with self.messages_rwlock:
+                                    self.messages[msg_tuple_key] = copy.deepcopy(self.queue_item)
+                        
+                        else: # message to deconflict but currently without cosensus
+                            with self.messages_rwlock:
+                                self.messages[msg_tuple_key] = copy.deepcopy(self.queue_item)
+                
+                else: # tuple not in messages
+
+                    if self.queue_item[msg_tuple_key]['consensus']: # if consensus message
+                        
+                        if self.bids[self.queue_item['job_id']]['consensus']: #if consensus already received
+                            
+                            if self.bids[self.queue_item['job_id']]['consensus_timestamp'] < self.queue_item['consensus_timestamp']: # check consensus ts
+                                #choose message with lowest ts do nothing
+                                pass
+
+                            else:
+                                with self.messages_rwlock:
+                                    self.messages[msg_tuple_key] = copy.deepcopy(self.queue_item)
+                        
+                        else:
+                            with self.messages_rwlock:
+                                self.messages[msg_tuple_key] = copy.deepcopy(self.queue_item)
+
+                    else:
+                        with self.messages_rwlock:
+                            self.messages[msg_tuple_key] = copy.deepcopy(self.queue_item)
+
     
-                with self.messages_lock:
-                    # print(msg_tuple_key)
-                    if msg_tuple_key not in self.messages:
-                        # print('KTMMMMMMMMM?????????')
-                        self.messages[msg_tuple_key]= copy.deepcopy(self.queue_item)
-                        # print(self.messages)
+                
+
             except:
                 # print('ktmuooooo\n')
-                if self.event.is_set():
+                if self.event.is_set() and  len(self.messages) == 0 and self.q.qsize() == 0 :
                     # print('\nreader break ' + str(self.id))
                     self.stop_event.set()
 

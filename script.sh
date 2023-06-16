@@ -13,6 +13,7 @@ rm "alpha_GPU_CPU.csv"
 rm "alpha_BW_CPU.csv"
 rm "alpha_GPU_BW.csv"
 rm "stefano.csv"
+rm "debug.log"
 mkdir -p "res"
 
 

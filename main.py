@@ -48,6 +48,7 @@ job_ids=[]
 print(len(c.job_list_instance.job_list))
 print('request_number: ' +str(c.req_number))
 
+time.sleep(0.1)
 for job in c.job_list_instance.job_list:
     # time.sleep(0.11)
     job_ids.append(job['job_id'])
@@ -131,6 +132,6 @@ u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, jo
 logging.info('Tot messages: '+str(c.counter))
 print('Tot messages: '+str(c.counter))
 print("Run time: %s" % (time.time() - start_time))
-
+print('duplicated: ' + str(c.duplicated))
 # print(c.t.b)
 # print(c.t.call_func())

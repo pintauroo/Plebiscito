@@ -1,0 +1,2137 @@
+jobs number = 100
+cpu: 204900
+gpu: 18569
+bw: 529267.364126272
+cpu_gpu_ratio: 11.034519898755992
+<bound method topo.complete_graph of <src.topology.topo object at 0x7f2619c68070>>
+100
+request_number: 100
+
+req: 10
+consensus_count: 1
+deconflictions: 44
+consensus_count: 1
+deconflictions: 42
+consensus_count: 1
+deconflictions: 42
+consensus_count: 1
+deconflictions: 44
+consensus_count: 0
+deconflictions: 31
+consensus_count: 1
+deconflictions: 43
+consensus_count: 1
+deconflictions: 45
+consensus_count: 1
+deconflictions: 43
+consensus_count: 1
+deconflictions: 45
+MATCH
+
+req: 55
+consensus_count: 0
+deconflictions: 202
+consensus_count: 0
+deconflictions: 139
+consensus_count: 1
+deconflictions: 137
+consensus_count: 0
+deconflictions: 184
+consensus_count: 0
+deconflictions: 180
+consensus_count: 1
+deconflictions: 138
+consensus_count: 0
+deconflictions: 214
+consensus_count: 1
+deconflictions: 138
+consensus_count: 0
+deconflictions: 183
+MATCH
+
+req: 67
+consensus_count: 0
+deconflictions: 207
+consensus_count: 0
+deconflictions: 140
+consensus_count: 1
+deconflictions: 144
+consensus_count: 0
+deconflictions: 193
+consensus_count: 0
+deconflictions: 190
+consensus_count: 1
+deconflictions: 144
+consensus_count: 0
+deconflictions: 218
+consensus_count: 1
+deconflictions: 144
+consensus_count: 0
+deconflictions: 192
+MATCH
+
+req: 70
+consensus_count: 0
+deconflictions: 216
+consensus_count: 0
+deconflictions: 146
+consensus_count: 1
+deconflictions: 152
+consensus_count: 0
+deconflictions: 184
+consensus_count: 0
+deconflictions: 200
+consensus_count: 1
+deconflictions: 152
+consensus_count: 0
+deconflictions: 228
+consensus_count: 1
+deconflictions: 151
+consensus_count: 0
+deconflictions: 152
+MATCH
+
+req: 73
+consensus_count: 0
+deconflictions: 236
+consensus_count: 0
+deconflictions: 161
+consensus_count: 1
+deconflictions: 167
+consensus_count: 0
+deconflictions: 162
+consensus_count: 0
+deconflictions: 217
+consensus_count: 1
+deconflictions: 167
+consensus_count: 0
+deconflictions: 247
+consensus_count: 1
+deconflictions: 167
+consensus_count: 0
+deconflictions: 162
+MATCH
+
+req: 84
+consensus_count: 0
+deconflictions: 231
+consensus_count: 0
+deconflictions: 156
+consensus_count: 1
+deconflictions: 168
+consensus_count: 0
+deconflictions: 163
+consensus_count: 0
+deconflictions: 216
+consensus_count: 1
+deconflictions: 164
+consensus_count: 0
+deconflictions: 243
+consensus_count: 1
+deconflictions: 158
+consensus_count: 0
+deconflictions: 163
+MATCH
+
+req: 105
+consensus_count: 1
+deconflictions: 231
+consensus_count: 0
+deconflictions: 156
+consensus_count: 2
+deconflictions: 153
+consensus_count: 1
+deconflictions: 163
+consensus_count: 0
+deconflictions: 220
+consensus_count: 2
+deconflictions: 153
+consensus_count: 1
+deconflictions: 244
+consensus_count: 2
+deconflictions: 153
+consensus_count: 1
+deconflictions: 164
+MATCH
+
+req: 118
+consensus_count: 1
+deconflictions: 230
+consensus_count: 0
+deconflictions: 155
+consensus_count: 2
+deconflictions: 153
+consensus_count: 1
+deconflictions: 163
+consensus_count: 0
+deconflictions: 219
+consensus_count: 2
+deconflictions: 153
+consensus_count: 1
+deconflictions: 243
+consensus_count: 2
+deconflictions: 153
+consensus_count: 1
+deconflictions: 164
+MATCH
+
+req: 119
+consensus_count: 1
+deconflictions: 300
+consensus_count: 0
+deconflictions: 201
+consensus_count: 0
+deconflictions: 185
+consensus_count: 1
+deconflictions: 205
+consensus_count: 0
+deconflictions: 299
+consensus_count: 0
+deconflictions: 185
+consensus_count: 1
+deconflictions: 323
+consensus_count: 0
+deconflictions: 185
+consensus_count: 1
+deconflictions: 206
+MATCH
+
+req: 135
+consensus_count: 1
+deconflictions: 300
+consensus_count: 0
+deconflictions: 201
+consensus_count: 0
+deconflictions: 185
+consensus_count: 1
+deconflictions: 205
+consensus_count: 0
+deconflictions: 299
+consensus_count: 0
+deconflictions: 185
+consensus_count: 1
+deconflictions: 323
+consensus_count: 0
+deconflictions: 185
+consensus_count: 1
+deconflictions: 206
+MATCH
+
+req: 136
+consensus_count: 1
+deconflictions: 294
+consensus_count: 0
+deconflictions: 196
+consensus_count: 0
+deconflictions: 184
+consensus_count: 1
+deconflictions: 200
+consensus_count: 0
+deconflictions: 293
+consensus_count: 0
+deconflictions: 184
+consensus_count: 1
+deconflictions: 318
+consensus_count: 0
+deconflictions: 184
+consensus_count: 1
+deconflictions: 201
+MATCH
+
+req: 150
+consensus_count: 2
+deconflictions: 290
+consensus_count: 0
+deconflictions: 194
+consensus_count: 1
+deconflictions: 181
+consensus_count: 1
+deconflictions: 191
+consensus_count: 0
+deconflictions: 290
+consensus_count: 1
+deconflictions: 181
+consensus_count: 2
+deconflictions: 315
+consensus_count: 1
+deconflictions: 181
+consensus_count: 1
+deconflictions: 180
+MATCH
+
+req: 165
+consensus_count: 2
+deconflictions: 291
+consensus_count: 0
+deconflictions: 195
+consensus_count: 1
+deconflictions: 181
+consensus_count: 1
+deconflictions: 177
+consensus_count: 0
+deconflictions: 291
+consensus_count: 1
+deconflictions: 181
+consensus_count: 2
+deconflictions: 316
+consensus_count: 1
+deconflictions: 181
+consensus_count: 1
+deconflictions: 177
+MATCH
+
+req: 182
+consensus_count: 2
+deconflictions: 289
+consensus_count: 0
+deconflictions: 193
+consensus_count: 1
+deconflictions: 180
+consensus_count: 1
+deconflictions: 176
+consensus_count: 0
+deconflictions: 289
+consensus_count: 1
+deconflictions: 180
+consensus_count: 2
+deconflictions: 313
+consensus_count: 1
+deconflictions: 180
+consensus_count: 1
+deconflictions: 176
+MATCH
+
+req: 186
+consensus_count: 2
+deconflictions: 288
+consensus_count: 0
+deconflictions: 172
+consensus_count: 1
+deconflictions: 180
+consensus_count: 1
+deconflictions: 176
+consensus_count: 0
+deconflictions: 288
+consensus_count: 1
+deconflictions: 180
+consensus_count: 2
+deconflictions: 310
+consensus_count: 1
+deconflictions: 180
+consensus_count: 1
+deconflictions: 176
+MATCH
+
+req: 194
+consensus_count: 2
+deconflictions: 291
+consensus_count: 0
+deconflictions: 163
+consensus_count: 2
+deconflictions: 178
+consensus_count: 1
+deconflictions: 174
+consensus_count: 0
+deconflictions: 288
+consensus_count: 2
+deconflictions: 178
+consensus_count: 2
+deconflictions: 302
+consensus_count: 2
+deconflictions: 179
+consensus_count: 1
+deconflictions: 174
+MATCH
+
+req: 198
+consensus_count: 2
+deconflictions: 291
+consensus_count: 0
+deconflictions: 163
+consensus_count: 2
+deconflictions: 179
+consensus_count: 1
+deconflictions: 175
+consensus_count: 0
+deconflictions: 288
+consensus_count: 2
+deconflictions: 179
+consensus_count: 2
+deconflictions: 260
+consensus_count: 2
+deconflictions: 181
+consensus_count: 1
+deconflictions: 175
+MATCH
+
+req: 242
+consensus_count: 2
+deconflictions: 291
+consensus_count: 0
+deconflictions: 163
+consensus_count: 2
+deconflictions: 180
+consensus_count: 1
+deconflictions: 175
+consensus_count: 0
+deconflictions: 288
+consensus_count: 2
+deconflictions: 181
+consensus_count: 2
+deconflictions: 246
+consensus_count: 2
+deconflictions: 181
+consensus_count: 1
+deconflictions: 175
+MATCH
+
+req: 245
+consensus_count: 2
+deconflictions: 284
+consensus_count: 0
+deconflictions: 158
+consensus_count: 2
+deconflictions: 178
+consensus_count: 1
+deconflictions: 172
+consensus_count: 0
+deconflictions: 281
+consensus_count: 2
+deconflictions: 178
+consensus_count: 2
+deconflictions: 228
+consensus_count: 2
+deconflictions: 179
+consensus_count: 1
+deconflictions: 173
+MATCH
+
+req: 251
+consensus_count: 2
+deconflictions: 280
+consensus_count: 0
+deconflictions: 156
+consensus_count: 2
+deconflictions: 178
+consensus_count: 1
+deconflictions: 172
+consensus_count: 0
+deconflictions: 277
+consensus_count: 2
+deconflictions: 178
+consensus_count: 2
+deconflictions: 198
+consensus_count: 2
+deconflictions: 178
+consensus_count: 1
+deconflictions: 172
+MATCH
+
+req: 255
+consensus_count: 2
+deconflictions: 283
+consensus_count: 0
+deconflictions: 157
+consensus_count: 2
+deconflictions: 180
+consensus_count: 1
+deconflictions: 174
+consensus_count: 0
+deconflictions: 280
+consensus_count: 1
+deconflictions: 181
+consensus_count: 2
+deconflictions: 183
+consensus_count: 1
+deconflictions: 181
+consensus_count: 1
+deconflictions: 175
+MATCH
+
+req: 258
+consensus_count: 2
+deconflictions: 279
+consensus_count: 0
+deconflictions: 154
+consensus_count: 2
+deconflictions: 178
+consensus_count: 1
+deconflictions: 173
+consensus_count: 0
+deconflictions: 276
+consensus_count: 2
+deconflictions: 178
+consensus_count: 2
+deconflictions: 182
+consensus_count: 2
+deconflictions: 178
+consensus_count: 1
+deconflictions: 172
+MATCH
+
+req: 263
+consensus_count: 2
+deconflictions: 277
+consensus_count: 0
+deconflictions: 154
+consensus_count: 2
+deconflictions: 178
+consensus_count: 1
+deconflictions: 173
+consensus_count: 0
+deconflictions: 276
+consensus_count: 2
+deconflictions: 178
+consensus_count: 2
+deconflictions: 182
+consensus_count: 2
+deconflictions: 178
+consensus_count: 1
+deconflictions: 173
+MATCH
+
+req: 265
+consensus_count: 2
+deconflictions: 282
+consensus_count: 0
+deconflictions: 147
+consensus_count: 2
+deconflictions: 180
+consensus_count: 1
+deconflictions: 175
+consensus_count: 0
+deconflictions: 281
+consensus_count: 2
+deconflictions: 180
+consensus_count: 2
+deconflictions: 186
+consensus_count: 2
+deconflictions: 180
+consensus_count: 1
+deconflictions: 175
+MATCH
+
+req: 268
+consensus_count: 2
+deconflictions: 280
+consensus_count: 0
+deconflictions: 143
+consensus_count: 2
+deconflictions: 180
+consensus_count: 1
+deconflictions: 175
+consensus_count: 0
+deconflictions: 279
+consensus_count: 2
+deconflictions: 180
+consensus_count: 2
+deconflictions: 182
+consensus_count: 2
+deconflictions: 180
+consensus_count: 1
+deconflictions: 175
+MATCH
+
+req: 281
+consensus_count: 2
+deconflictions: 281
+consensus_count: 0
+deconflictions: 144
+consensus_count: 2
+deconflictions: 181
+consensus_count: 1
+deconflictions: 176
+consensus_count: 0
+deconflictions: 281
+consensus_count: 2
+deconflictions: 181
+consensus_count: 2
+deconflictions: 181
+consensus_count: 2
+deconflictions: 181
+consensus_count: 1
+deconflictions: 176
+MATCH
+
+req: 310
+consensus_count: 2
+deconflictions: 280
+consensus_count: 0
+deconflictions: 144
+consensus_count: 2
+deconflictions: 181
+consensus_count: 1
+deconflictions: 175
+consensus_count: 0
+deconflictions: 280
+consensus_count: 2
+deconflictions: 181
+consensus_count: 2
+deconflictions: 182
+consensus_count: 2
+deconflictions: 181
+consensus_count: 1
+deconflictions: 177
+MATCH
+
+req: 327
+consensus_count: 2
+deconflictions: 255
+consensus_count: 0
+deconflictions: 134
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 160
+consensus_count: 0
+deconflictions: 253
+consensus_count: 1
+deconflictions: 169
+consensus_count: 2
+deconflictions: 161
+consensus_count: 1
+deconflictions: 169
+consensus_count: 1
+deconflictions: 165
+MATCH
+
+req: 339
+consensus_count: 2
+deconflictions: 249
+consensus_count: 0
+deconflictions: 131
+consensus_count: 1
+deconflictions: 163
+consensus_count: 1
+deconflictions: 153
+consensus_count: 0
+deconflictions: 246
+consensus_count: 1
+deconflictions: 163
+consensus_count: 1
+deconflictions: 149
+consensus_count: 1
+deconflictions: 163
+consensus_count: 1
+deconflictions: 159
+MATCH
+
+req: 343
+consensus_count: 2
+deconflictions: 249
+consensus_count: 0
+deconflictions: 133
+consensus_count: 1
+deconflictions: 165
+consensus_count: 1
+deconflictions: 155
+consensus_count: 1
+deconflictions: 247
+consensus_count: 1
+deconflictions: 165
+consensus_count: 1
+deconflictions: 151
+consensus_count: 1
+deconflictions: 165
+consensus_count: 1
+deconflictions: 161
+MATCH
+
+req: 371
+consensus_count: 2
+deconflictions: 199
+consensus_count: 0
+deconflictions: 107
+consensus_count: 2
+deconflictions: 138
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 194
+consensus_count: 2
+deconflictions: 138
+consensus_count: 1
+deconflictions: 134
+consensus_count: 2
+deconflictions: 138
+consensus_count: 1
+deconflictions: 134
+MATCH
+
+req: 380
+consensus_count: 2
+deconflictions: 200
+consensus_count: 0
+deconflictions: 108
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 135
+consensus_count: 1
+deconflictions: 196
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 135
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 135
+MATCH
+
+req: 385
+consensus_count: 2
+deconflictions: 208
+consensus_count: 0
+deconflictions: 112
+consensus_count: 2
+deconflictions: 144
+consensus_count: 1
+deconflictions: 140
+consensus_count: 1
+deconflictions: 206
+consensus_count: 2
+deconflictions: 144
+consensus_count: 1
+deconflictions: 140
+consensus_count: 2
+deconflictions: 144
+consensus_count: 1
+deconflictions: 140
+MATCH
+
+req: 408
+consensus_count: 2
+deconflictions: 193
+consensus_count: 0
+deconflictions: 104
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 190
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 134
+MATCH
+
+req: 412
+consensus_count: 2
+deconflictions: 193
+consensus_count: 0
+deconflictions: 104
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 190
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 134
+MATCH
+
+req: 418
+consensus_count: 2
+deconflictions: 193
+consensus_count: 0
+deconflictions: 104
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 190
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 134
+MATCH
+
+req: 422
+consensus_count: 2
+deconflictions: 191
+consensus_count: 0
+deconflictions: 103
+consensus_count: 1
+deconflictions: 136
+consensus_count: 1
+deconflictions: 133
+consensus_count: 1
+deconflictions: 187
+consensus_count: 1
+deconflictions: 136
+consensus_count: 1
+deconflictions: 133
+consensus_count: 1
+deconflictions: 136
+consensus_count: 1
+deconflictions: 133
+MATCH
+
+req: 431
+consensus_count: 2
+deconflictions: 191
+consensus_count: 0
+deconflictions: 103
+consensus_count: 1
+deconflictions: 136
+consensus_count: 1
+deconflictions: 133
+consensus_count: 1
+deconflictions: 187
+consensus_count: 1
+deconflictions: 136
+consensus_count: 1
+deconflictions: 133
+consensus_count: 1
+deconflictions: 136
+consensus_count: 1
+deconflictions: 133
+MATCH
+
+req: 457
+consensus_count: 2
+deconflictions: 190
+consensus_count: 0
+deconflictions: 102
+consensus_count: 1
+deconflictions: 135
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 185
+consensus_count: 1
+deconflictions: 135
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 135
+consensus_count: 1
+deconflictions: 132
+MATCH
+
+req: 465
+consensus_count: 2
+deconflictions: 219
+consensus_count: 0
+deconflictions: 117
+consensus_count: 1
+deconflictions: 149
+consensus_count: 1
+deconflictions: 144
+consensus_count: 1
+deconflictions: 213
+consensus_count: 1
+deconflictions: 149
+consensus_count: 1
+deconflictions: 140
+consensus_count: 1
+deconflictions: 149
+consensus_count: 1
+deconflictions: 145
+MATCH
+
+req: 478
+consensus_count: 2
+deconflictions: 224
+consensus_count: 0
+deconflictions: 119
+consensus_count: 1
+deconflictions: 152
+consensus_count: 1
+deconflictions: 146
+consensus_count: 1
+deconflictions: 217
+consensus_count: 1
+deconflictions: 152
+consensus_count: 1
+deconflictions: 143
+consensus_count: 1
+deconflictions: 152
+consensus_count: 1
+deconflictions: 147
+MATCH
+
+req: 489
+consensus_count: 2
+deconflictions: 223
+consensus_count: 0
+deconflictions: 120
+consensus_count: 1
+deconflictions: 152
+consensus_count: 1
+deconflictions: 147
+consensus_count: 1
+deconflictions: 219
+consensus_count: 1
+deconflictions: 152
+consensus_count: 1
+deconflictions: 143
+consensus_count: 1
+deconflictions: 152
+consensus_count: 1
+deconflictions: 148
+MATCH
+
+req: 491
+consensus_count: 2
+deconflictions: 219
+consensus_count: 0
+deconflictions: 118
+consensus_count: 1
+deconflictions: 150
+consensus_count: 1
+deconflictions: 145
+consensus_count: 1
+deconflictions: 215
+consensus_count: 1
+deconflictions: 150
+consensus_count: 1
+deconflictions: 141
+consensus_count: 1
+deconflictions: 150
+consensus_count: 1
+deconflictions: 147
+MATCH
+
+req: 509
+consensus_count: 2
+deconflictions: 214
+consensus_count: 0
+deconflictions: 114
+consensus_count: 1
+deconflictions: 146
+consensus_count: 1
+deconflictions: 141
+consensus_count: 1
+deconflictions: 207
+consensus_count: 1
+deconflictions: 146
+consensus_count: 1
+deconflictions: 138
+consensus_count: 1
+deconflictions: 146
+consensus_count: 1
+deconflictions: 143
+MATCH
+
+req: 512
+consensus_count: 2
+deconflictions: 218
+consensus_count: 0
+deconflictions: 116
+consensus_count: 1
+deconflictions: 148
+consensus_count: 1
+deconflictions: 143
+consensus_count: 1
+deconflictions: 211
+consensus_count: 1
+deconflictions: 148
+consensus_count: 1
+deconflictions: 140
+consensus_count: 1
+deconflictions: 148
+consensus_count: 1
+deconflictions: 144
+MATCH
+
+req: 527
+consensus_count: 2
+deconflictions: 218
+consensus_count: 0
+deconflictions: 116
+consensus_count: 1
+deconflictions: 148
+consensus_count: 1
+deconflictions: 143
+consensus_count: 1
+deconflictions: 211
+consensus_count: 1
+deconflictions: 148
+consensus_count: 1
+deconflictions: 140
+consensus_count: 1
+deconflictions: 148
+consensus_count: 1
+deconflictions: 144
+MATCH
+
+req: 532
+consensus_count: 2
+deconflictions: 214
+consensus_count: 0
+deconflictions: 114
+consensus_count: 1
+deconflictions: 146
+consensus_count: 1
+deconflictions: 142
+consensus_count: 1
+deconflictions: 207
+consensus_count: 1
+deconflictions: 146
+consensus_count: 1
+deconflictions: 139
+consensus_count: 1
+deconflictions: 146
+consensus_count: 1
+deconflictions: 142
+MATCH
+
+req: 538
+consensus_count: 2
+deconflictions: 208
+consensus_count: 0
+deconflictions: 112
+consensus_count: 1
+deconflictions: 143
+consensus_count: 1
+deconflictions: 139
+consensus_count: 1
+deconflictions: 201
+consensus_count: 1
+deconflictions: 143
+consensus_count: 1
+deconflictions: 136
+consensus_count: 1
+deconflictions: 143
+consensus_count: 1
+deconflictions: 139
+MATCH
+
+req: 547
+consensus_count: 2
+deconflictions: 208
+consensus_count: 0
+deconflictions: 111
+consensus_count: 1
+deconflictions: 144
+consensus_count: 1
+deconflictions: 142
+consensus_count: 1
+deconflictions: 201
+consensus_count: 1
+deconflictions: 144
+consensus_count: 1
+deconflictions: 139
+consensus_count: 1
+deconflictions: 144
+consensus_count: 1
+deconflictions: 140
+MATCH
+
+req: 552
+consensus_count: 2
+deconflictions: 242
+consensus_count: 0
+deconflictions: 128
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 163
+consensus_count: 1
+deconflictions: 236
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 162
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 162
+MATCH
+
+req: 566
+consensus_count: 2
+deconflictions: 246
+consensus_count: 0
+deconflictions: 130
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 165
+consensus_count: 1
+deconflictions: 240
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 164
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 163
+MATCH
+
+req: 570
+consensus_count: 2
+deconflictions: 246
+consensus_count: 0
+deconflictions: 130
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 165
+consensus_count: 1
+deconflictions: 240
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 164
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 163
+MATCH
+
+req: 587
+consensus_count: 2
+deconflictions: 246
+consensus_count: 0
+deconflictions: 130
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 165
+consensus_count: 1
+deconflictions: 240
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 164
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 163
+MATCH
+
+req: 589
+consensus_count: 2
+deconflictions: 254
+consensus_count: 0
+deconflictions: 134
+consensus_count: 1
+deconflictions: 172
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 248
+consensus_count: 1
+deconflictions: 172
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 172
+consensus_count: 1
+deconflictions: 167
+MATCH
+
+req: 592
+consensus_count: 2
+deconflictions: 256
+consensus_count: 0
+deconflictions: 136
+consensus_count: 1
+deconflictions: 174
+consensus_count: 1
+deconflictions: 170
+consensus_count: 1
+deconflictions: 252
+consensus_count: 1
+deconflictions: 174
+consensus_count: 1
+deconflictions: 169
+consensus_count: 1
+deconflictions: 174
+consensus_count: 1
+deconflictions: 168
+MATCH
+
+req: 594
+consensus_count: 2
+deconflictions: 248
+consensus_count: 0
+deconflictions: 132
+consensus_count: 1
+deconflictions: 169
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 244
+consensus_count: 1
+deconflictions: 170
+consensus_count: 1
+deconflictions: 164
+consensus_count: 1
+deconflictions: 170
+consensus_count: 1
+deconflictions: 166
+MATCH
+
+req: 603
+consensus_count: 2
+deconflictions: 248
+consensus_count: 0
+deconflictions: 132
+consensus_count: 1
+deconflictions: 169
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 244
+consensus_count: 1
+deconflictions: 170
+consensus_count: 1
+deconflictions: 164
+consensus_count: 1
+deconflictions: 170
+consensus_count: 1
+deconflictions: 166
+MATCH
+
+req: 604
+consensus_count: 2
+deconflictions: 246
+consensus_count: 0
+deconflictions: 131
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 242
+consensus_count: 1
+deconflictions: 169
+consensus_count: 1
+deconflictions: 163
+consensus_count: 1
+deconflictions: 169
+consensus_count: 1
+deconflictions: 165
+MATCH
+
+req: 616
+consensus_count: 2
+deconflictions: 246
+consensus_count: 0
+deconflictions: 131
+consensus_count: 1
+deconflictions: 168
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 242
+consensus_count: 1
+deconflictions: 169
+consensus_count: 1
+deconflictions: 163
+consensus_count: 1
+deconflictions: 169
+consensus_count: 1
+deconflictions: 165
+MATCH
+
+req: 621
+consensus_count: 2
+deconflictions: 247
+consensus_count: 0
+deconflictions: 131
+consensus_count: 1
+deconflictions: 169
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 242
+consensus_count: 1
+deconflictions: 170
+consensus_count: 1
+deconflictions: 165
+consensus_count: 1
+deconflictions: 170
+consensus_count: 1
+deconflictions: 165
+MATCH
+
+req: 635
+consensus_count: 2
+deconflictions: 273
+consensus_count: 0
+deconflictions: 145
+consensus_count: 1
+deconflictions: 182
+consensus_count: 1
+deconflictions: 176
+consensus_count: 1
+deconflictions: 269
+consensus_count: 1
+deconflictions: 183
+consensus_count: 1
+deconflictions: 172
+consensus_count: 1
+deconflictions: 183
+consensus_count: 1
+deconflictions: 178
+MATCH
+
+req: 657
+consensus_count: 2
+deconflictions: 285
+consensus_count: 0
+deconflictions: 150
+consensus_count: 1
+deconflictions: 188
+consensus_count: 1
+deconflictions: 181
+consensus_count: 1
+deconflictions: 281
+consensus_count: 1
+deconflictions: 189
+consensus_count: 1
+deconflictions: 178
+consensus_count: 1
+deconflictions: 189
+consensus_count: 1
+deconflictions: 183
+MATCH
+
+req: 661
+consensus_count: 2
+deconflictions: 306
+consensus_count: 0
+deconflictions: 161
+consensus_count: 1
+deconflictions: 199
+consensus_count: 1
+deconflictions: 190
+consensus_count: 1
+deconflictions: 301
+consensus_count: 1
+deconflictions: 199
+consensus_count: 1
+deconflictions: 184
+consensus_count: 1
+deconflictions: 199
+consensus_count: 1
+deconflictions: 194
+MATCH
+
+req: 682
+consensus_count: 2
+deconflictions: 276
+consensus_count: 0
+deconflictions: 149
+consensus_count: 1
+deconflictions: 181
+consensus_count: 1
+deconflictions: 173
+consensus_count: 1
+deconflictions: 275
+consensus_count: 1
+deconflictions: 182
+consensus_count: 1
+deconflictions: 166
+consensus_count: 1
+deconflictions: 182
+consensus_count: 1
+deconflictions: 177
+MATCH
+
+req: 699
+consensus_count: 2
+deconflictions: 190
+consensus_count: 0
+deconflictions: 107
+consensus_count: 2
+deconflictions: 135
+consensus_count: 1
+deconflictions: 131
+consensus_count: 1
+deconflictions: 185
+consensus_count: 2
+deconflictions: 135
+consensus_count: 1
+deconflictions: 132
+consensus_count: 2
+deconflictions: 135
+consensus_count: 1
+deconflictions: 130
+MATCH
+
+req: 717
+consensus_count: 2
+deconflictions: 183
+consensus_count: 0
+deconflictions: 104
+consensus_count: 2
+deconflictions: 131
+consensus_count: 1
+deconflictions: 128
+consensus_count: 1
+deconflictions: 176
+consensus_count: 2
+deconflictions: 132
+consensus_count: 1
+deconflictions: 127
+consensus_count: 2
+deconflictions: 132
+consensus_count: 1
+deconflictions: 127
+MATCH
+
+req: 718
+consensus_count: 2
+deconflictions: 179
+consensus_count: 0
+deconflictions: 102
+consensus_count: 2
+deconflictions: 130
+consensus_count: 1
+deconflictions: 126
+consensus_count: 1
+deconflictions: 172
+consensus_count: 2
+deconflictions: 130
+consensus_count: 1
+deconflictions: 125
+consensus_count: 2
+deconflictions: 130
+consensus_count: 1
+deconflictions: 126
+MATCH
+
+req: 725
+consensus_count: 2
+deconflictions: 209
+consensus_count: 0
+deconflictions: 116
+consensus_count: 2
+deconflictions: 144
+consensus_count: 1
+deconflictions: 138
+consensus_count: 1
+deconflictions: 202
+consensus_count: 2
+deconflictions: 144
+consensus_count: 1
+deconflictions: 137
+consensus_count: 2
+deconflictions: 144
+consensus_count: 1
+deconflictions: 138
+MATCH
+
+req: 727
+consensus_count: 2
+deconflictions: 206
+consensus_count: 0
+deconflictions: 115
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 198
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 136
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+MATCH
+
+req: 736
+consensus_count: 2
+deconflictions: 206
+consensus_count: 0
+deconflictions: 115
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 199
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 135
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+MATCH
+
+req: 743
+consensus_count: 2
+deconflictions: 206
+consensus_count: 0
+deconflictions: 115
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 199
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 135
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+MATCH
+
+req: 753
+consensus_count: 2
+deconflictions: 206
+consensus_count: 0
+deconflictions: 115
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 199
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 135
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+MATCH
+
+req: 757
+consensus_count: 2
+deconflictions: 206
+consensus_count: 0
+deconflictions: 115
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+consensus_count: 1
+deconflictions: 199
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 135
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+MATCH
+
+req: 778
+consensus_count: 2
+deconflictions: 205
+consensus_count: 0
+deconflictions: 115
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 136
+consensus_count: 1
+deconflictions: 200
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 134
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+MATCH
+
+req: 783
+consensus_count: 2
+deconflictions: 206
+consensus_count: 0
+deconflictions: 115
+consensus_count: 2
+deconflictions: 142
+consensus_count: 1
+deconflictions: 136
+consensus_count: 1
+deconflictions: 200
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 134
+consensus_count: 2
+deconflictions: 143
+consensus_count: 1
+deconflictions: 137
+MATCH
+
+req: 786
+consensus_count: 2
+deconflictions: 201
+consensus_count: 0
+deconflictions: 112
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 135
+consensus_count: 1
+deconflictions: 209
+consensus_count: 2
+deconflictions: 140
+consensus_count: 1
+deconflictions: 133
+consensus_count: 2
+deconflictions: 140
+consensus_count: 1
+deconflictions: 134
+MATCH
+
+req: 793
+consensus_count: 2
+deconflictions: 201
+consensus_count: 0
+deconflictions: 112
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 135
+consensus_count: 1
+deconflictions: 236
+consensus_count: 2
+deconflictions: 140
+consensus_count: 1
+deconflictions: 133
+consensus_count: 2
+deconflictions: 140
+consensus_count: 1
+deconflictions: 134
+MATCH
+
+req: 797
+consensus_count: 2
+deconflictions: 195
+consensus_count: 0
+deconflictions: 109
+consensus_count: 2
+deconflictions: 137
+consensus_count: 1
+deconflictions: 131
+consensus_count: 1
+deconflictions: 255
+consensus_count: 2
+deconflictions: 137
+consensus_count: 1
+deconflictions: 129
+consensus_count: 2
+deconflictions: 137
+consensus_count: 1
+deconflictions: 132
+MATCH
+
+req: 828
+consensus_count: 2
+deconflictions: 195
+consensus_count: 0
+deconflictions: 109
+consensus_count: 2
+deconflictions: 136
+consensus_count: 1
+deconflictions: 131
+consensus_count: 1
+deconflictions: 288
+consensus_count: 2
+deconflictions: 137
+consensus_count: 1
+deconflictions: 128
+consensus_count: 2
+deconflictions: 137
+consensus_count: 1
+deconflictions: 132
+MATCH
+
+req: 829
+consensus_count: 2
+deconflictions: 200
+consensus_count: 0
+deconflictions: 111
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 133
+consensus_count: 1
+deconflictions: 312
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 131
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 134
+MATCH
+
+req: 833
+consensus_count: 2
+deconflictions: 200
+consensus_count: 0
+deconflictions: 111
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 133
+consensus_count: 1
+deconflictions: 311
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 131
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 134
+MATCH
+
+req: 841
+consensus_count: 2
+deconflictions: 202
+consensus_count: 0
+deconflictions: 112
+consensus_count: 2
+deconflictions: 139
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 324
+consensus_count: 2
+deconflictions: 140
+consensus_count: 1
+deconflictions: 131
+consensus_count: 2
+deconflictions: 140
+consensus_count: 1
+deconflictions: 135
+MATCH
+
+req: 860
+consensus_count: 2
+deconflictions: 204
+consensus_count: 0
+deconflictions: 113
+consensus_count: 2
+deconflictions: 140
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 349
+consensus_count: 2
+deconflictions: 141
+consensus_count: 1
+deconflictions: 132
+consensus_count: 2
+deconflictions: 141
+consensus_count: 1
+deconflictions: 136
+MATCH
+
+req: 863
+consensus_count: 2
+deconflictions: 200
+consensus_count: 0
+deconflictions: 111
+consensus_count: 1
+deconflictions: 139
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 364
+consensus_count: 1
+deconflictions: 139
+consensus_count: 1
+deconflictions: 129
+consensus_count: 1
+deconflictions: 139
+consensus_count: 1
+deconflictions: 135
+MATCH
+
+req: 881
+consensus_count: 2
+deconflictions: 202
+consensus_count: 0
+deconflictions: 112
+consensus_count: 1
+deconflictions: 141
+consensus_count: 1
+deconflictions: 133
+consensus_count: 1
+deconflictions: 384
+consensus_count: 1
+deconflictions: 141
+consensus_count: 1
+deconflictions: 130
+consensus_count: 1
+deconflictions: 141
+consensus_count: 1
+deconflictions: 136
+MATCH
+
+req: 893
+consensus_count: 2
+deconflictions: 201
+consensus_count: 0
+deconflictions: 111
+consensus_count: 1
+deconflictions: 140
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 388
+consensus_count: 1
+deconflictions: 140
+consensus_count: 1
+deconflictions: 129
+consensus_count: 1
+deconflictions: 140
+consensus_count: 1
+deconflictions: 135
+MATCH
+
+req: 898
+consensus_count: 2
+deconflictions: 204
+consensus_count: 0
+deconflictions: 111
+consensus_count: 1
+deconflictions: 135
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 395
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 129
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 135
+MATCH
+
+req: 910
+consensus_count: 2
+deconflictions: 208
+consensus_count: 0
+deconflictions: 109
+consensus_count: 2
+deconflictions: 130
+consensus_count: 1
+deconflictions: 131
+consensus_count: 1
+deconflictions: 380
+consensus_count: 1
+deconflictions: 127
+consensus_count: 1
+deconflictions: 128
+consensus_count: 1
+deconflictions: 120
+consensus_count: 1
+deconflictions: 133
+MATCH
+
+req: 933
+consensus_count: 2
+deconflictions: 202
+consensus_count: 0
+deconflictions: 109
+consensus_count: 2
+deconflictions: 115
+consensus_count: 1
+deconflictions: 131
+consensus_count: 1
+deconflictions: 358
+consensus_count: 1
+deconflictions: 113
+consensus_count: 1
+deconflictions: 128
+consensus_count: 1
+deconflictions: 111
+consensus_count: 1
+deconflictions: 133
+MATCH
+
+req: 945
+consensus_count: 2
+deconflictions: 205
+consensus_count: 0
+deconflictions: 110
+consensus_count: 2
+deconflictions: 94
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 319
+consensus_count: 1
+deconflictions: 93
+consensus_count: 1
+deconflictions: 130
+consensus_count: 1
+deconflictions: 90
+consensus_count: 1
+deconflictions: 133
+MATCH
+
+req: 947
+consensus_count: 2
+deconflictions: 203
+consensus_count: 0
+deconflictions: 110
+consensus_count: 1
+deconflictions: 90
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 311
+consensus_count: 1
+deconflictions: 90
+consensus_count: 1
+deconflictions: 129
+consensus_count: 1
+deconflictions: 90
+consensus_count: 1
+deconflictions: 133
+MATCH
+
+req: 956
+consensus_count: 2
+deconflictions: 195
+consensus_count: 0
+deconflictions: 108
+consensus_count: 1
+deconflictions: 90
+consensus_count: 1
+deconflictions: 130
+consensus_count: 1
+deconflictions: 296
+consensus_count: 1
+deconflictions: 90
+consensus_count: 1
+deconflictions: 128
+consensus_count: 1
+deconflictions: 90
+consensus_count: 1
+deconflictions: 132
+MATCH
+
+req: 959
+consensus_count: 2
+deconflictions: 196
+consensus_count: 0
+deconflictions: 109
+consensus_count: 1
+deconflictions: 90
+consensus_count: 1
+deconflictions: 131
+consensus_count: 1
+deconflictions: 301
+consensus_count: 1
+deconflictions: 90
+consensus_count: 1
+deconflictions: 129
+consensus_count: 1
+deconflictions: 88
+consensus_count: 1
+deconflictions: 133
+MATCH
+
+req: 967
+consensus_count: 2
+deconflictions: 196
+consensus_count: 0
+deconflictions: 108
+consensus_count: 1
+deconflictions: 87
+consensus_count: 1
+deconflictions: 130
+consensus_count: 1
+deconflictions: 325
+consensus_count: 1
+deconflictions: 78
+consensus_count: 1
+deconflictions: 127
+consensus_count: 1
+deconflictions: 70
+consensus_count: 1
+deconflictions: 132
+MATCH
+
+req: 969
+consensus_count: 2
+deconflictions: 200
+consensus_count: 0
+deconflictions: 110
+consensus_count: 1
+deconflictions: 62
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 375
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 129
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 133
+MATCH
+
+req: 973
+consensus_count: 2
+deconflictions: 199
+consensus_count: 0
+deconflictions: 108
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 130
+consensus_count: 1
+deconflictions: 362
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 128
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 128
+MATCH
+
+req: 977
+consensus_count: 2
+deconflictions: 196
+consensus_count: 0
+deconflictions: 108
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 130
+consensus_count: 1
+deconflictions: 360
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 128
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 125
+MATCH
+
+req: 985
+consensus_count: 2
+deconflictions: 207
+consensus_count: 0
+deconflictions: 112
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 134
+consensus_count: 1
+deconflictions: 367
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 132
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 115
+MATCH
+
+req: 988
+consensus_count: 2
+deconflictions: 214
+consensus_count: 0
+deconflictions: 114
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 121
+consensus_count: 1
+deconflictions: 356
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 133
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 107
+MATCH
+
+req: 998
+consensus_count: 2
+deconflictions: 207
+consensus_count: 0
+deconflictions: 112
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 107
+consensus_count: 1
+deconflictions: 343
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 130
+consensus_count: 1
+deconflictions: 61
+consensus_count: 1
+deconflictions: 90
+MATCH
+
+ASSIGNED jobs: 100
+UNASSIGNED jobs: 0
+0 utility: 3.0
+1 utility: 0
+2 utility: 294.1627328298283
+3 utility: 0
+4 utility: 0
+5 utility: 298.3759110087421
+6 utility: 0
+7 utility: 0
+8 utility: 0
+9 utility: 0
+node: 0 assigned jobs count: 1
+node: 1 assigned jobs count: 0
+node: 2 assigned jobs count: 99
+node: 3 assigned jobs count: 0
+node: 4 assigned jobs count: 0
+node: 5 assigned jobs count: 100
+node: 6 assigned jobs count: 0
+node: 7 assigned jobs count: 0
+node: 8 assigned jobs count: 0
+node: 9 assigned jobs count: 0
+595.5386438385704
+jobids = 100
+count= 100 uncount =  0
+Tot messages: 168745
+Run time: 239.2886073589325
+duplicated: 718534

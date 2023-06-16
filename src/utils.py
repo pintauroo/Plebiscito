@@ -77,10 +77,14 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         count += 1
         flag = True
         j = job['job_id']
-        # print('\nreq: ' + str(j) )
+        print('\njob_id: ' + str(j) )
         # Check correctness of all bids
         equal_values = True 
         for i in range(1, c.num_edges):
+            print('nodeid: ' + str(i) + 'consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
+            print('nodeid: ' + str(i) + 'deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
+            print('nodeid: ' + str(i) + 'forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
+
             if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
                 uncount += 1
                 print('BROKEN BID id: ' + str(j))
@@ -97,10 +101,10 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     flag = False
                     wrong_bids_calc(nodes, job)
                 else:
-                    continue
-                    # print('MATCH')
+                    # pass
+                    print('MATCH')
                     # for i in range(0, c.num_edges):
-                    #     print('matching: ' +str(c.nodes[i].bids[j]['auction_id']))
+                    #     print('consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
 
         else: # unmatching auctions
             # print('NON matching: ' +str(c.nodes[i].bids[j]['auction_id']))

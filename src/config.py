@@ -8,6 +8,7 @@ import datetime
 import sys
 from src.dataset import JobList
 from src.topology import topo
+import csv
 
 # Alibaba datacenter servers
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -18,6 +19,7 @@ from src.topology import topo
 #3	    |96	        |0	        |83	        |7968	    |0	        |inf	        |4.375329	            |5.088903	                |0.000000
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+duplicated = 0
 counter = 0 #Messages counter
 req_number = int(sys.argv[1]) #Total number of requests
 a = float(sys.argv[2]) #Multiplicative factor
@@ -32,11 +34,16 @@ max_layer_number = layer_number/2 #Max number of layers per node
 
 dataset='./df_dataset.csv'
 
-#Data analisys
-job_list_instance = JobList(dataset, num_jobs_limit=req_number)
+#Data analysis
+job_list_instance = JobList(dataset, num_jobs_limit=req_number, min_cpu_gpu_ratio=10, max_cpu_gpu_ratio=15)
 job_list_instance.select_jobs()
 job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find jobs by id
 
+filename = 'dataset_1000_jobs_ratio_10_15.csv'
+data = job_list_instance.job_list
+with open(filename, 'w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerows(data)
 print('jobs number = ' + str(len(job_dict)))
 
 # print(job_list_instance.job_list[0])
@@ -99,7 +106,8 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time
         "edge_id":int(),
         "NN_gpu": NN_gpu,
         "NN_cpu": NN_cpu,
-        "NN_data_size": NN_data_size
+        "NN_data_size": NN_data_size,
+        "consensus":False
         }
 
 
