@@ -46,8 +46,6 @@ job_list_instance = JobList(dataset, num_jobs_limit=req_number, seed=seed)
 job_list_instance.select_jobs()
 job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find jobs by id
 
-print(job_dict)
-
 #df_jobs = pd.read_csv(dataset)
 
 #df_jobs = df_jobs.head(req_number)
