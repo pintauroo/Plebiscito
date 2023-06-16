@@ -666,11 +666,11 @@ class node:
     def work(self, event, notify_start, ret_val):
         print(f"Node {self.id}: waiting for the first job.", flush=True)
         notify_start.set()
-        retry = 0
+        timeout = 5
         
         while True:
             try: 
-                self.item = self.q[self.id].get(timeout=7)
+                self.item = self.q[self.id].get(timeout=timeout)
                 self.counter += 1
 
                 if self.item['job_id'] not in self.bids:
@@ -708,14 +708,12 @@ class node:
                 # the exception is raised if the timeout in the queue.get() expires.
                 # the break statement must be executed only if the event has been set 
                 # by the main thread (i.e., no more task will be submitted)
-                if retry < 1:
-                    self.use_queue[self.id].clear()
-                    if self.q[self.id].qsize() != 0:
-                        retry = 0
-                        #self.use_queue[self.id].set()
-                    else:
-                        retry +=1
-                else:
+
+                self.use_queue[self.id].clear()
+                try: 
+                    self.item = self.q[self.id].get(timeout=timeout)
+                    self.q[self.id].put(self.item)
+                except Exception as e2:
                     if event.is_set():
                         ret_val["id"] = self.id
                         ret_val["bids"] = copy.deepcopy(self.bids)

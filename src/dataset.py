@@ -13,15 +13,9 @@ pd.options.display.max_columns = None
 pd.options.display.max_rows = None
 
 class JobList:
-<<<<<<< HEAD
-    def __init__(self, csv_file, num_jobs_limit, min_cpu_gpu_ratio=0, max_cpu_gpu_ratio=100):
-=======
     def __init__(self, csv_file, num_jobs_limit, seed):
->>>>>>> update
         self.job_list = []
         self.describe_dict = None
-        self.min_cpu_gpu_ratio = min_cpu_gpu_ratio
-        self.max_cpu_gpu_ratio = max_cpu_gpu_ratio
         self.job_origin_list = self.add_job(csv_file, self.describe_dict, limit=num_jobs_limit * 10)
         self.csv_file = csv_file
         self.arrival_rate = 1000
@@ -45,16 +39,8 @@ class JobList:
             for i, row in enumerate(reader):
                 #if float(row['num_gpu']) != float(0):
                     # print(row['num_gpu'])
-<<<<<<< HEAD
-                    cpu_gpu_ratio = float(row['num_cpu']) / float(row['num_gpu'])
-                    if self.min_cpu_gpu_ratio<=cpu_gpu_ratio<=self.max_cpu_gpu_ratio:
-                        # print(cpu_gpu_ratio)
-                        self._add_job(job_list, row, describe_dict)
-                if limit is not None and len(job_list) >= limit:
-=======
                 self._add_job(job_list, row, describe_dict)
                 if limit is not None and i >= limit:
->>>>>>> update
                     break
         return job_list
         
