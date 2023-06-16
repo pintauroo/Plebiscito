@@ -7,6 +7,7 @@ import pandas as pd
 import copy
 import random
 import numpy as np
+import sys
 
 
 
@@ -15,9 +16,11 @@ pd.options.display.max_rows = None
 
 
 class JobList:
-    def __init__(self, csv_file, num_jobs_limit):
+    def __init__(self, csv_file, num_jobs_limit, min_cpu_gpu_ratio=0, max_cpu_gpu_ratio=100):
         self.job_list = []
         self.describe_dict = None
+        self.min_cpu_gpu_ratio = min_cpu_gpu_ratio
+        self.max_cpu_gpu_ratio = max_cpu_gpu_ratio
         self.job_origin_list = self.add_job(csv_file, self.describe_dict, limit=num_jobs_limit * 10)
         self.csv_file = csv_file
         self.arrival_rate = 1000
@@ -25,6 +28,7 @@ class JobList:
         self.arrival_shuffle = False
         self.num_jobs_limit = num_jobs_limit
         self.num_jobs = None
+
 
     def add_job(self, csv_file, describe_dict, limit=None):
         """
@@ -37,8 +41,11 @@ class JobList:
             for i, row in enumerate(reader):
                 if float(row['num_gpu']) != float(0):
                     # print(row['num_gpu'])
-                    self._add_job(job_list, row, describe_dict)
-                if limit is not None and i >= limit:
+                    cpu_gpu_ratio = float(row['num_cpu']) / float(row['num_gpu'])
+                    if self.min_cpu_gpu_ratio<=cpu_gpu_ratio<=self.max_cpu_gpu_ratio:
+                        # print(cpu_gpu_ratio)
+                        self._add_job(job_list, row, describe_dict)
+                if limit is not None and len(job_list) >= limit:
                     break
         return job_list
         
@@ -95,20 +102,6 @@ class JobList:
 
         job_list.append(job_dict)
 
-     
-     
-    
-
-
-
-    def build_df(self):
-        self.df_jobs = pd.DataFrame(self.job_list)
-        print(len(self.df_jobs['job_name'].unique()))
-        print(len(self.df_jobs['user'].unique()))
-        # for id in self.df_jobs['job_name'].unique():
-        #     print(self.df_jobs[self.df_jobs['job_name'] == id])
-
-
 
     def select_jobs(self):
         self.cur_time = 0
@@ -152,8 +145,23 @@ class JobList:
 
 
 
+def main():
+    #Data analysis
+    dataset='./df_dataset.csv'
+    req_number = int(sys.argv[1]) #Total number of requests
+    min_cpu_gpu_ratio=10
+    max_cpu_gpu_ratio=15
 
-# job_list_instance = JobList('/home/andrea/Documents/Projects/clusterdata-master/cluster-trace-gpu-v2020/simulator/traces/pai/pai_job_duration_estimate_100K.csv', limit=20000)
-# job_list_instance.select_jobs()
-# print(job_list_instance.job_list[0])
+    job_list_instance = JobList(dataset, num_jobs_limit=req_number, min_cpu_gpu_ratio=min_cpu_gpu_ratio, max_cpu_gpu_ratio=max_cpu_gpu_ratio)
+    job_list_instance.select_jobs()
+    print(job_list_instance.job_list)
+    #job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find jobs by id
+    print('jobs number = ' + str(len(job_list_instance.job_list)))
 
+    filename = 'dataset_'+str(req_number)+'_jobs_ratio_'+str(min_cpu_gpu_ratio)+'_'+str(max_cpu_gpu_ratio)+'.csv'
+    data = job_list_instance.job_list
+    df = pd.DataFrame(data)
+    df.to_csv(filename, index=False)
+
+# Use the main to customize your dataset
+# main()

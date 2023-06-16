@@ -8,12 +8,12 @@ timeout=300  # Set a timeout of 300 seconds (5 minutes)
 # strings=("stefano")
 strings=("alpha_GPU_CPU" "alpha_BW_CPU" "alpha_GPU_BW" "stefano")
 
-rm -rf "res"
-rm "alpha_GPU_CPU.csv"
-rm "alpha_BW_CPU.csv"
-rm "alpha_GPU_BW.csv"
-rm "stefano.csv"
-mkdir -p "res"
+rm -rf "res" > /dev/null 2>&1
+rm -f "alpha_GPU_CPU.csv" > /dev/null 2>&1
+rm -f "alpha_BW_CPU.csv" > /dev/null 2>&1
+rm -f "alpha_GPU_BW.csv" > /dev/null 2>&1
+rm -f "stefano.csv" > /dev/null 2>&1
+mkdir -p "res" > /dev/null 2>&1
 
 
 # for i in $(seq 100 100 1000)
