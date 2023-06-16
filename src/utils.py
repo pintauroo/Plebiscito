@@ -77,18 +77,15 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         count += 1
         flag = True
         j = job['job_id']
-<<<<<<< HEAD
-        # print('\nreq: ' + str(j) )
-=======
->>>>>>> main
         # Check correctness of all bids
         equal_values = True 
         print('job_id: ' +str(j))
         
         for i in range(0, c.num_edges):
             print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
-            print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
+            print('nodeid: ' + str(i) + ' deconflictions_count: ' +str(c.nodes[i].bids[j]['deconflictions_count']))
             print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
+            print('nodeid: ' + str(i) + ' duplicated_count: ' +str(c.nodes[i].bids[j]['duplicated_count']))
             print('')
         for i in range(1, c.num_edges):
             if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
@@ -107,13 +104,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     flag = False
                     wrong_bids_calc(nodes, job)
                 else:
-<<<<<<< HEAD
-                    continue
-                    # print('MATCH')
-=======
                     print('MATCH')
                     pass
->>>>>>> main
                     # for i in range(0, c.num_edges):
                     #     print('matching: ' +str(c.nodes[i].bids[j]['auction_id']))
 
@@ -233,11 +225,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     dictionary['tot_gpu'] = round(c.tot_gpu,2)
     dictionary['assigned_sum_gpu'] = round(assigned_sum_gpu,2)
     dictionary['tot_used_gpu']=round(tot_used_gpu,2)
-<<<<<<< HEAD
-    dictionary['tot_used_gpu']=round(tot_used_gpu,2)
-=======
     dictionary['unassigned_sum_gpu']=round(unassigned_sum_gpu,2)
->>>>>>> main
 
     #CPU metrics
     dictionary['tot_cpu'] = round(c.tot_cpu,2)

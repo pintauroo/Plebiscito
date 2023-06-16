@@ -1,5 +1,5 @@
 #!/bin/bash
-max_rep=100
+max_rep=30
 max_bids=50
 num_edges=10
 req_number=100
