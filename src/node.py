@@ -462,7 +462,7 @@ class node:
 
                     elif z_ij==k:
                         
-                        if y_kj<y_ij:
+                        if y_kj>y_ij: #diverso dal paper
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #20Flavio')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
