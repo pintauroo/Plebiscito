@@ -14,18 +14,18 @@ pd.options.display.max_rows = None
 
 class JobList:
     def __init__(self, csv_file, num_jobs_limit, seed):
+        if seed is not None:
+            random.seed(seed)
+        
         self.job_list = []
         self.describe_dict = None
-        self.job_origin_list = self.add_job(csv_file, self.describe_dict, limit=num_jobs_limit * 10)
+        self.job_origin_list = self.add_job(csv_file, self.describe_dict, limit=num_jobs_limit * 100)
         self.csv_file = csv_file
         self.arrival_rate = 1000
         self.arrival_interval = 60
         self.arrival_shuffle = False
         self.num_jobs_limit = num_jobs_limit
         self.num_jobs = None
-        
-        if seed is not None:
-            random.seed(seed)
 
 
     def add_job(self, csv_file, describe_dict, limit=None):

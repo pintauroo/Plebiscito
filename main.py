@@ -83,7 +83,7 @@ job_ids=[]
 print('request_number: ' +str(c.req_number))
 
 for job in c.job_list_instance.job_list:
-    time.sleep(0.25)
+    time.sleep(0.35)
     data = c.message_data(
                 job['job_id'],
                 job['user'],

@@ -21,7 +21,7 @@ class node:
         self.id = id    # unique edge node id
         self.initial_gpu = float(config.node_gpu) * random.choice([0, 0.2, 0.4, 0.6, 0.8, 1])
         self.updated_gpu = self.initial_gpu# * random.uniform(0.7, 1)
-        self.initial_cpu = float(config.node_cpu) * random.uniform(0.5, 1)
+        self.initial_cpu = float(config.node_cpu) * random.uniform(0.3, 1)
         self.updated_cpu = self.initial_cpu
         self.initial_bw = config.t.b
         self.updated_bw = self.initial_bw# * random.uniform(0.7, 1)
@@ -52,7 +52,7 @@ class node:
             
             # if beta != 0 and x == 0 is not necessary
             
-            return math.exp(-(alpha/10)*(x-beta)**2)
+            return math.exp(-(alpha/100)*(x-beta)**2)
         
         # we assume that every job/node has always at least one CPU
         if config.filename == 'stefano':
@@ -462,12 +462,17 @@ class node:
 
                     elif z_ij==k:
                         
-                        if y_kj>y_ij: #diverso dal paper
+                        if y_kj>y_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #20Flavio')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
                                 index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                             rebroadcast = True 
+                        elif (y_kj==y_ij and z_kj<z_ij):
+                            if config.enable_logging:
+                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3stefano')
+                            rebroadcast = True
+                            index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
                         elif t_kj>t_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#20')
@@ -664,7 +669,7 @@ class node:
         return True
 
     def work(self, event, notify_start, ret_val):
-        print(f"Node {self.id}: waiting for the first job.", flush=True)
+        # print(f"Node {self.id}: waiting for the first job.", flush=True)
         notify_start.set()
         timeout = 5
         
