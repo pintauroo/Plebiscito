@@ -19,11 +19,12 @@ def wrong_bids_calc(nodes, job):
 
     for curr_node in range(0, c.num_edges):
         if nodes[curr_node].bids[j]['auction_id'] not in wrong_bids:
+            print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
+            print('Unmatching x: ' +str(c.nodes[curr_node].bids[j]['x']))
             if all(x == float('-inf') for x in nodes[curr_node].bids[j]['x']):
                 continue
             else:
                 # print('(wrong_bids_calc) NON matching: ' +str(wrong_ids))
-                print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
 
                 if curr_node in nodes[curr_node].bids[j]['auction_id'] and curr_node not in wrong_ids:
                     
@@ -81,11 +82,11 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         equal_values = True 
         print('job_id: ' +str(j))
         
-        for i in range(0, c.num_edges):
-            print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
-            print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
-            print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
-            print('')
+        # for i in range(0, c.num_edges):
+        #     print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
+        #     print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
+        #     print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
+        #     print('')
         for i in range(1, c.num_edges):
             if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
                 count_broken += 1
@@ -95,10 +96,10 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         
         if equal_values: # matching auction
 
-                if all(x == float('-inf') for x in nodes[i].bids[j]['x']):
+                if all(x == float('-inf') for x in nodes[i].bids[j]['auction_id']):
                     print('Unassigned')
                     flag = False # all unassigned
-                elif float('-inf') in nodes[i].bids[j]['x']: #check if there is a value not assigned 
+                elif float('-inf') in nodes[i].bids[j]['auction_id']: #check if there is a value not assigned 
                     # print('matching with -inf: ' +str(c.nodes[i].bids[j]['auction_id']))
                     flag = False
                     wrong_bids_calc(nodes, job)

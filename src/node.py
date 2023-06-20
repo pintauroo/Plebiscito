@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 import copy
 import logging
 import math 
+import threading
+from threading import Event
 import random
 
 TRACE = 5    
@@ -19,12 +21,15 @@ class node:
     def __init__(self, id, seed):
         random.seed(seed)
         self.id = id    # unique edge node id
-        self.initial_gpu = float(config.node_gpu) * random.choice([0, 0.2, 0.4, 0.6, 0.8, 1])
+        self.initial_gpu = float(config.node_gpu) * random.choice([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
         self.updated_gpu = self.initial_gpu# * random.uniform(0.7, 1)
-        self.initial_cpu = float(config.node_cpu) * random.uniform(0.3, 1)
+        self.initial_cpu = float(config.node_cpu) * random.choice([0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
         self.updated_cpu = self.initial_cpu
         self.initial_bw = config.t.b
         self.updated_bw = self.initial_bw# * random.uniform(0.7, 1)
+        
+        self.last_bid_timestamp = {}
+        self.last_bid_timestamp_lock = threading.Lock()
         
         if self.initial_gpu != 0:
             print(f"Node {self.id} CPU/GPU ratio: {self.initial_cpu/self.initial_gpu}")
@@ -51,8 +56,8 @@ class node:
                 return 0
             
             # if beta != 0 and x == 0 is not necessary
-            
-            return math.exp(-(alpha/100)*(x-beta)**2)
+            return math.exp(-((alpha/100) * (x - beta))**2)
+            #return math.exp(-(alpha/100)*(x-beta)**2)
         
         # we assume that every job/node has always at least one CPU
         if config.filename == 'stefano':
@@ -63,10 +68,10 @@ class node:
                 x = self.item['NN_cpu'][0]/self.item['NN_gpu'][0]
                 
             beta = 0
-            if self.initial_gpu == 0:
+            if self.updated_gpu == 0:
                 beta = 0
             else:
-                beta = self.initial_cpu/self.initial_gpu
+                beta = self.updated_cpu/self.updated_gpu
                 
             return f(x, config.a, beta)
         # elif config.filename == 'alpha_BW_CPU':
@@ -472,7 +477,8 @@ class node:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3stefano')
                             rebroadcast = True
-                            index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
+                            while index<config.layer_number and self.item['auction_id'][index] == z_kj:
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                         elif t_kj>t_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#20')
@@ -667,67 +673,110 @@ class node:
             return False
         
         return True
+    
+    def garbage_collection(self, end_event):
+        while not end_event.is_set():
+            time.sleep(0.3)
+            
+            with self.last_bid_timestamp_lock:
+                for key in self.last_bid_timestamp:
+                    if (datetime.now() - self.last_bid_timestamp[key]["timestamp"]).total_seconds() > 1:
+                        found = False
+                        inf_found = False
+                        for index in range(len(self.bids[key]['auction_id'])):
+                            if self.bids[key]['auction_id'][index] == self.id:
+                                found = True
+                            elif self.bids[key]['auction_id'][index] == float('-inf'):
+                                inf_found = True
+                        if found and inf_found:
+                            print(f"Node {self.id} -- Garbage collection on job bid {key} {self.bids[key]['auction_id']}", flush=True)
+                            for index in range(len(self.bids[key]['auction_id'])):
+                                if self.bids[key]['auction_id'][index] == self.id:
+                                    self.updated_cpu += self.last_bid_timestamp[key]["item"]['NN_cpu'][index]
+                                    self.updated_gpu += self.last_bid_timestamp[key]["item"]['NN_gpu'][index]
+                                self.bids[key]['auction_id'][index] = float('-inf')
+                                self.bids[key]['x'][index] = float('-inf')
+                                
+                            self.updated_bw += self.last_bid_timestamp[key]["item"]['NN_data_size'][0]
+                        elif inf_found:
+                            for id in range(len(self.bids[key]['auction_id'])):
+                                self.bids[key]['auction_id'][id] = float('-inf')
+                                self.bids[key]['x'][index] = float('-inf')
+            
 
     def work(self, event, notify_start, ret_val):
-        # print(f"Node {self.id}: waiting for the first job.", flush=True)
         notify_start.set()
         timeout = 5
+        terminate_garbage_collect = Event()
+        # t = threading.Thread(target=self.garbage_collection, args=(terminate_garbage_collect,))
+        # t.start()
         
         while True:
             try: 
                 self.item = self.q[self.id].get(timeout=timeout)
                 self.counter += 1
-
-                if self.item['job_id'] not in self.bids:
-                    self.init_null()
                 
-                #print(self.item)
-                #print(self.item['user'] not in self.user_requests)
-                #print(self.item['edge_id'] is None)
-                # check msg type
-                if self.item['edge_id'] is not None and self.item['user'] in self.user_requests:
-                    if config.enable_logging:
-                        self.print_node_state('IF1 q:' + str(self.q[self.id].qsize())) # edge to edge request
-                    self.new_msg()
-                
-                elif self.item['edge_id'] is None and self.item['user'] not in self.user_requests:
-                    if config.enable_logging:
-                        self.print_node_state('IF2 q:' + str(self.q[self.id].qsize())) # brand new request from client
-                    self.user_requests.append(self.item['user'])
-                    self.bid()
+                with self.last_bid_timestamp_lock:
+                    # self.last_bid_timestamp[self.item['job_id']] = {
+                    #     "timestamp": datetime.now(),
+                    #     "item": copy.deepcopy(self.item)
+                    # }
 
-                elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
-                    if config.enable_logging:
-                        self.print_node_state('IF3 q:' + str(self.q[self.id].qsize())) # edge anticipated client request
-                    self.user_requests.append(self.item['user'])
-                    self.new_msg()
+                    if self.item['job_id'] not in self.bids:
+                        self.init_null()
+                    
+                    #print(self.item)
+                    #print(self.item['user'] not in self.user_requests)
+                    #print(self.item['edge_id'] is None)
+                    # check msg type
+                    if self.item['edge_id'] is not None and self.item['user'] in self.user_requests:
+                        if config.enable_logging:
+                            self.print_node_state('IF1 q:' + str(self.q[self.id].qsize())) # edge to edge request
+                        self.new_msg()
+                    
+                    elif self.item['edge_id'] is None and self.item['user'] not in self.user_requests:
+                        if config.enable_logging:
+                            self.print_node_state('IF2 q:' + str(self.q[self.id].qsize())) # brand new request from client
+                        self.user_requests.append(self.item['user'])
+                        self.bid()
 
-                elif self.item['edge_id'] is None and self.item['user'] in self.user_requests:
-                    if config.enable_logging:
-                        self.print_node_state('IF4 q:' + str(self.q[self.id].qsize())) # client after edge request
-                    self.bid()
+                    elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
+                        if config.enable_logging:
+                            self.print_node_state('IF3 q:' + str(self.q[self.id].qsize())) # edge anticipated client request
+                        self.user_requests.append(self.item['user'])
+                        self.new_msg()
 
-                self.q[self.id].task_done()
+                    elif self.item['edge_id'] is None and self.item['user'] in self.user_requests:
+                        if config.enable_logging:
+                            self.print_node_state('IF4 q:' + str(self.q[self.id].qsize())) # client after edge request
+                        self.bid()
+
+                    self.q[self.id].task_done()
+                    
             except Exception as e:
-                #print(f"Node {self.id}: timeout reached.")
                 # the exception is raised if the timeout in the queue.get() expires.
                 # the break statement must be executed only if the event has been set 
                 # by the main thread (i.e., no more task will be submitted)
-
                 self.use_queue[self.id].clear()
                 try: 
                     self.item = self.q[self.id].get(timeout=timeout)
                     self.q[self.id].put(self.item)
                 except Exception as e2:
                     if event.is_set():
-                        ret_val["id"] = self.id
-                        ret_val["bids"] = copy.deepcopy(self.bids)
-                        ret_val["counter"] = self.counter
-                        ret_val["updated_cpu"] = self.updated_cpu
-                        ret_val["updated_gpu"] = self.updated_gpu
-                        ret_val["updated_bw"] = self.updated_bw
-                        # Event has occurred, handle it in your desired way
+                        with self.last_bid_timestamp_lock:
+                            ret_val["id"] = self.id
+                            ret_val["bids"] = copy.deepcopy(self.bids)
+                            ret_val["counter"] = self.counter
+                            ret_val["updated_cpu"] = self.updated_cpu
+                            ret_val["updated_gpu"] = self.updated_gpu
+                            ret_val["updated_bw"] = self.updated_bw
+                            
                         print(f"Node {self.id}: received end processing signal", flush=True)
+                        
+                        terminate_garbage_collect.set()
+                        # t.join()
+                        if self.updated_cpu > self.initial_cpu:
+                            print(f"Node {self.id} -- Mannaggia", flush=True)
                         break
 
                 

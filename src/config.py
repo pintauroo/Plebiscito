@@ -72,8 +72,8 @@ if tot_gpu != 0:
 else:
     print('cpu_gpu_ratio: <inf>')
     
-node_gpu=float(tot_gpu/num_edges)
-node_cpu=float(tot_cpu/num_edges)
+node_gpu=float(tot_gpu/num_edges)*0.5
+node_cpu=float(tot_cpu/num_edges)*0.5
 node_bw=float(tot_bw/num_edges)
 # node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
