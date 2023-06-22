@@ -450,12 +450,18 @@ class node:
 
                     elif z_ij==k:
                         
-                        if y_kj<y_ij:
+                        if y_kj>y_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #20Flavio')
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
                                 index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                             rebroadcast = True 
+                        elif (y_kj==y_ij and z_kj<z_ij):
+                            if config.enable_logging:
+                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3stefano')
+                            rebroadcast = True
+                            while index<config.layer_number and self.item['auction_id'][index] == z_kj:
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
                         elif t_kj>t_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#20')
