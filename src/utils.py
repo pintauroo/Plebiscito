@@ -19,7 +19,7 @@ def wrong_bids_calc(nodes, job):
 
     for curr_node in range(0, c.num_edges):
         if nodes[curr_node].bids[j]['auction_id'] not in wrong_bids:
-            if all(x == float('-inf') for x in nodes[curr_node].bids[j]['x']):
+            if all(x == float('-inf') for x in nodes[curr_node].bids[j]['auction_id']):
                 continue
             else:
                 # print('(wrong_bids_calc) NON matching: ' +str(wrong_ids))
@@ -95,7 +95,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         
         if equal_values: # matching auction
 
-                if all(x == float('-inf') for x in nodes[i].bids[j]['x']):
+                if all(x == float('-inf') for x in nodes[i].bids[j]['auction_id']):
                     print('Unassigned')
                     flag = False # all unassigned
                 elif float('-inf') in nodes[i].bids[j]['x']: #check if there is a value not assigned 

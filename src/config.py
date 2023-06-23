@@ -8,6 +8,7 @@ import datetime
 import sys
 from src.dataset import JobList
 from src.topology import topo
+from src.network_topology import NetworkTopology, TopologyType
 import pandas as pd
 
 # Alibaba datacenter servers
@@ -25,7 +26,7 @@ a = float(sys.argv[2]) #Multiplicative factor
 num_edges = int(sys.argv[3]) #Nodes number 
 filename = str(sys.argv[4])
 
-enable_logging = False 
+enable_logging = True 
 
 #NN model
 layer_number = 6 
@@ -63,9 +64,9 @@ print('bw: ' +str(tot_bw))
 cpu_gpu_ratio = tot_cpu / tot_gpu
 print('cpu_gpu_ratio: ' +str(cpu_gpu_ratio))
 
-node_gpu=float(tot_gpu/num_edges)
-node_cpu=float(tot_cpu/num_edges) 
-node_bw=float(tot_bw/num_edges)
+node_gpu=float(tot_gpu/num_edges)*30
+node_cpu=float(tot_cpu/num_edges)*30 
+node_bw=float(tot_bw/num_edges)*30
 # node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
 # node_gpu = 10000000000
@@ -76,6 +77,7 @@ num_clients=len(set(d["user"] for _, d in df_jobs.iterrows()))
 
 #Build Topolgy
 t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
+net_t = NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
 
 nodes = [node(row) for row in range(num_edges)]
 
