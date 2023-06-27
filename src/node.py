@@ -3,6 +3,7 @@ This module impelments the behavior of a node
 '''
 
 import queue
+from queue import Empty
 import src.config as config
 from datetime import datetime, timedelta
 import copy
@@ -17,9 +18,9 @@ class node:
 
     def __init__(self, id):
         self.id = id    # unique edge node id
-        self.initial_gpu = float(config.node_gpu) # * random.uniform(0.7, 1)
+        self.initial_gpu = float(config.node_gpu) * random.uniform(0.7, 1)
         self.updated_gpu = self.initial_gpu 
-        self.initial_cpu = float(config.node_cpu) # * random.uniform(0.7, 1)
+        self.initial_cpu = float(config.node_cpu) * random.uniform(0.7, 1)
         self.updated_cpu = self.initial_cpu 
         self.initial_bw = config.net_t.get_node_direct_link_bw(self.id)
         
@@ -80,8 +81,9 @@ class node:
         #     return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(avail_bw/config.tot_bw)) # GPU vs BW
 
 
-    def forward_to_neighbohors(self):
-        self.print_node_state('FORWARD', True)
+    def forward_to_neighbohors(self, reset_by=None):
+        self.print_node_state(f'FORWARD', True)
+
         self.bids[self.item['job_id']]['forward_count']+=1
         msg={
             "job_id": self.item['job_id'], 
@@ -93,8 +95,9 @@ class node:
             "NN_data_size": self.item['NN_data_size'], 
             "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
             "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
-            "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
+            "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp']),
             }
+            
         for i in range(config.num_edges):
             if config.t.to()[i][self.id] and self.id != i:
                 config.nodes[i].append_data(msg)
@@ -125,8 +128,9 @@ class node:
         tmp['timestamp'][index] = timestamp
         return index + 1
     
-    def reset(self, dict, index):
-        dict['auction_id'][index] = float('-inf')
+    def reset(self, dict, index, with_auction_id=True):
+        if with_auction_id:
+            dict['auction_id'][index] = float('-inf')
         dict['x'][index] = float('-inf')
         dict['bid'][index]= float('-inf')
         dict['timestamp'][index]=datetime.now()# + timedelta(days=1)
@@ -235,7 +239,13 @@ class node:
                 # we need to remove the bw between the node and the client.
                 # net_t.consume_bandwidth_node_and_client() return false if the resources cannot be consumed by
                 # in that case the bid cannot be performed
-                if (bw_with_client and config.net_t.consume_bandwidth_node_and_client(self.id, self.item['NN_data_size'][0])) or (not bw_with_client and config.net_t.consume_bandwidth_between_nodes(self.id, previous_winner_id, self.item['NN_data_size'][0])):
+                success = False
+                if bw_with_client and config.net_t.consume_bandwidth_node_and_client(self.id, self.item['NN_data_size'][0], self.item['job_id']):
+                    success = True
+                elif not bw_with_client and config.net_t.consume_bandwidth_between_nodes(self.id, previous_winner_id, self.item['NN_data_size'][0], self.item['job_id']):
+                    success = True
+                
+                if success:
                     self.layer_bid_already[self.item['job_id']] = tmp_layer_bid_already
 
                     self.bids[self.item['job_id']] = copy.deepcopy(tmp_bid)
@@ -247,6 +257,10 @@ class node:
                     self.bids[self.item['job_id']]['count'] = job_id_counter
                     
                     self.forward_to_neighbohors()
+                else:
+                    # if not bw_with_client:
+                    #     print(f"Node {self.id} - Failed to reserve bw between node {self.id} and {previous_winner_id}", flush=True)
+                    pass
         else:
             if config.enable_logging:
                 self.print_node_state('Value not in dict (first_msg)', type='error')
@@ -288,41 +302,40 @@ class node:
                 t_kj = self.item['timestamp'][index]
                 t_ij = tmp_local['timestamp'][index]
 
-                logging.log(TRACE,'DECONFLICTION - NODEID(i):' + str(i) +
-                              ' sender(k):' + str(k) +
-                              ' z_kj:' + str(z_kj) +
-                              ' z_ij:' + str(z_ij) +
-                              ' y_kj:' + str(y_kj) +
-                              ' y_ij:' + str(y_ij) +
-                              ' t_kj:' + str(t_kj) +
-                              ' t_ij:' + str(t_ij)
-                               )
-                if z_kj==k : 
+                # logging.log(TRACE,'DECONFLICTION - NODEID(i):' + str(i) +
+                #               ' sender(k):' + str(k) +
+                #               ' z_kj:' + str(z_kj) +
+                #               ' z_ij:' + str(z_ij) +
+                #               ' y_kj:' + str(y_kj) +
+                #               ' y_ij:' + str(y_ij) +
+                #               ' t_kj:' + str(t_kj) +
+                #               ' t_ij:' + str(t_ij)
+                #                )
+                
+                if z_kj==k: 
                     if z_ij==i:
                         if (y_kj>y_ij): 
                             rebroadcast = True
                             if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #1')
+                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #1-#2')
                             if index == 0:
                                 release_to_client = True
                             else:
                                 previous_winner_id = previous_bet['auction_id'][index-1]
                             index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
-                            
                         elif (y_kj==y_ij and z_kj<z_ij):
                             if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #2')
+                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3')
                             rebroadcast = True
                             if index == 0:
-                                release_to_client = True  
+                                release_to_client = True
                             else:
-                                previous_winner_id = previous_bet['auction_id'][index-1] 
-                            index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)   
-                                 
+                                previous_winner_id = previous_bet['auction_id'][index-1]
+                            index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)           
                         elif (y_kj<y_ij):
                             rebroadcast = True
                             if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3')
+                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #1-#2-')
                             while index<config.layer_number and tmp_local['auction_id'][index]  == z_ij:
                                 index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], datetime.now())
                         else:
@@ -396,12 +409,20 @@ class node:
                         else:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #13elseFlavio')
-                            index+=1
+                            index += 1
                     
                     elif z_ij==k:
                         if config.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #14')
-                        index = self.reset(tmp_local, index)                        
+                        if "reset_by" in self.item and self.item["reset_by"] is not None:
+                            for b in self.item["reset_by"]:
+                                if b[index] == tmp_local["auction_id"][index]:
+                                    index = self.reset(self.bids[self.item['job_id']], index)
+                                    index -= 1
+                                    index = self.reset(tmp_local, index)
+                                    index -= 1
+                        index += 1
+                        rebroadcast = True                      
 
                     elif z_ij == float('-inf'):
                         if config.enable_logging:
@@ -410,11 +431,16 @@ class node:
                         index+=1
                     
                     elif z_ij!=i and z_ij!=k:
-                        if config.enable_logging:
-                            logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #15')
-                        rebroadcast = True
-                        index+=1
-                    
+                        if t_kj>t_ij:
+                            if config.enable_logging:
+                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #15Stefano')
+                            while index<config.layer_number and self.item['auction_id'][index] == z_kj:
+                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], datetime.now())                            
+                        else:
+                            if config.enable_logging:
+                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #15elseStefano')
+                            index+=1
+                        rebroadcast = True 
                     else:
                         if config.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #15else')
@@ -431,7 +457,14 @@ class node:
                     elif z_ij==k:
                         if config.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #32')
-                        index = self.reset(tmp_local, index)
+                        if "reset_by" in self.item and self.item["reset_by"] is not None:
+                            for b in self.item["reset_by"]:
+                                if b[index] == tmp_local["auction_id"][index]:
+                                    index = self.reset(self.bids[self.item['job_id']], index)
+                                    index -= 1
+                                    index = self.reset(tmp_local, index)
+                                    index -= 1
+                        index += 1
                         rebroadcast = True
                         
                     elif z_ij == float('-inf'):
@@ -439,17 +472,18 @@ class node:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #34')
                         index+=1
                         
-                    elif z_ij!=i and z_ij!=k:                          
-                        if t_kj > t_ij:    
-                            if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #33')
-                            while index < config.layer_number and self.item['auction_id'][index] == z_kj:
-                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
-                            rebroadcast = True
-                        else:
-                            if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #33')
-                            index += 1
+                    elif z_ij!=i and z_ij!=k:
+                        if config.enable_logging:
+                            logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #33')
+                        if "reset_by" in self.item and self.item["reset_by"] is not None:
+                            for b in self.item["reset_by"]:
+                                if b[index] == tmp_local["auction_id"][index]:
+                                    index = self.reset(self.bids[self.item['job_id']], index)
+                                    index -= 1
+                                    index = self.reset(tmp_local, index)
+                                    index -= 1
+                        index += 1
+                        rebroadcast = True
                         
                     else:
                         if config.enable_logging:
@@ -468,9 +502,9 @@ class node:
                             else:
                                 previous_winner_id = previous_bet['auction_id'][index-1]
                             index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
-                        elif (y_kj==y_ij and z_kj<z_ij):
+                        elif y_kj==y_ij and z_kj<z_ij:    
                             if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  '#18')
+                                logging.log(TRACE, 'NODEID:'+str(self.id) +  '#17-2')
                             rebroadcast = True
                             if index == 0:
                                 release_to_client = True
@@ -511,7 +545,14 @@ class node:
                         elif t_kj<t_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#21')
-                            index = self.reset(tmp_local, index)
+                            if "reset_by" in self.item and self.item["reset_by"] is not None:
+                                for b in self.item["reset_by"]:
+                                    if b[index] == tmp_local["auction_id"][index]:
+                                        index = self.reset(self.bids[self.item['job_id']], index)
+                                        index -= 1
+                                        index = self.reset(tmp_local, index)
+                                        index -= 1
+                            index += 1
                             rebroadcast = True
                         else:
                             if config.enable_logging:
@@ -531,23 +572,10 @@ class node:
                             index+=1
                     
                     elif z_ij == float('-inf'):
-                        if t_kj>t_ij:
-                            if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #30Flavio')
-                            while index<config.layer_number and self.item['auction_id'][index] == z_kj:
-                                index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
-                            rebroadcast = True 
-                            
-                        else:
-                            if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #30elseFlavio')
-                            index+=1
-                        
-                        # OLD
-                        # if config.enable_logging:
-                        #     logging.log(TRACE, 'NODEID:'+str(self.id) +  '#30')
-                        # index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
-                        # rebroadcast = True
+                        if config.enable_logging:
+                            logging.log(TRACE, 'NODEID:'+str(self.id) +  '#30')
+                        index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])
+                        rebroadcast = True
 
                     elif z_ij!=i and z_ij!=k and z_ij!=z_kj:
                         if y_kj>y_ij and t_kj>=t_ij:
@@ -605,22 +633,51 @@ class node:
             # tmp_local['bid'] != self.bids[self.item['job_id']]['bid'] and \
             # tmp_local['timestamp'] != self.bids[self.item['job_id']]['timestamp']:
             fail = False
-            
+            # self.print_node_state(f'Deconfliction checked pass {self.id}', True)
+
             if tmp_bw > 0:
                 if release_to_client:
-                    config.net_t.release_bandwidth_node_and_client(self.id, tmp_bw)
-                else:
-                    config.net_t.release_bandwidth_between_nodes(previous_winner_id, self.id, tmp_bw)
+                    config.net_t.release_bandwidth_node_and_client(self.id, tmp_bw, self.item['job_id'])
+                elif previous_winner_id != float('-inf'):
+                    config.net_t.release_bandwidth_between_nodes(previous_winner_id, self.id, tmp_bw, self.item['job_id'])
             else:
-                for i in range(len(previous_bet['auction_id'])):
-                    if previous_bet['auction_id'][i] == self.id:
-                        if i != 0 and tmp_local['auction_id'][i] == self.id and previous_bet['auction_id'][i-1] != tmp_local['auction_id'][i-1]:
-                            if not config.net_t.consume_bandwidth_between_nodes(self.id, tmp_local['auction_id'][i-1], self.item['NN_data_size'][i]):
+                # print(previous_bet['auction_id'])
+                # for i in range(len(previous_bet['auction_id'])):
+                #     if previous_bet['auction_id'][i] == self.id and previous_bet['auction_id'][i-1] != float('-inf'):
+                #         if i != 0 and tmp_local['auction_id'][i] == self.id and previous_bet['auction_id'][i] == self.id:
+                #             if previous_bet['auction_id'][i-1] != tmp_local['auction_id'][i-1] and tmp_local['auction_id'][i-1] != float('-inf'):
+                #                 if not config.net_t.consume_bandwidth_between_nodes(self.id, tmp_local['auction_id'][i-1], self.item['NN_data_size'][i], self.item['job_id']):
+                #                     fail = True
+                #                 config.net_t.release_bandwidth_between_nodes(self.id, previous_bet['auction_id'][i-1], self.item['NN_data_size'][i], self.item['job_id'])
+                #                 break
+                #             elif tmp_local['auction_id'][i-1] == float('-inf'):
+                #                 config.net_t.release_bandwidth_between_nodes(self.id, previous_bet['auction_id'][i-1], self.item['NN_data_size'][i], self.item['job_id'])
+                #                 break
+                #     else:
+                #         pass
+                for i in range(1, len(previous_bet['auction_id'])):
+                    # if i won a layer and if I still win the same layer after the deconfliction
+                    if previous_bet['auction_id'][i] == self.id and tmp_local['auction_id'][i] == self.id:
+                        # check if there is the same node for the previous layer after the deconfliction
+                        if previous_bet['auction_id'][i-1] != tmp_local['auction_id'][i-1]:
+                            # consume resources with the current node after deoncfliction and release the previously reserved ones
+                            if not config.net_t.consume_bandwidth_between_nodes(self.id, tmp_local['auction_id'][i-1], self.item['NN_data_size'][i], self.item['job_id']):
+                                self.print_node_state(f"Node {self.id} -- Failed to reserve bw between node {self.id} and {tmp_local['auction_id'][i-1]}", True)
                                 fail = True
-                            config.net_t.release_bandwidth_between_nodes(self.id, previous_bet['auction_id'][i-1], self.item['NN_data_size'][i])
+                            config.net_t.release_bandwidth_between_nodes(self.id, previous_bet['auction_id'][i-1], self.item['NN_data_size'][i], self.item['job_id'])
+                            break
+                    # if I won a lawer but now after the deconfliction the layer has been assigned tome someone else
+                    elif previous_bet['auction_id'][i] == self.id and tmp_local['auction_id'][i] != self.id:
+                        config.net_t.release_bandwidth_between_nodes(self.id, previous_bet['auction_id'][i-1], self.item['NN_data_size'][i], self.item['job_id'])
                         break
-
+                    elif previous_bet['auction_id'][i] != self.id and tmp_local['auction_id'][i] == self.id:
+                        if not config.net_t.consume_bandwidth_between_nodes(self.id, tmp_local['auction_id'][i-1], self.item['NN_data_size'][i], self.item['job_id']):
+                            self.print_node_state(f"Node {self.id} --- Failed to reserve bw between node {self.id} and {tmp_local['auction_id'][i-1]}", True)
+                            fail = True
+                        break
+                            
             if not fail:
+                # self.print_node_state(f'Not fail {self.id}', True)
                 self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
                 # print(tmp_local['auction_id'])
                 self.updated_gpu += tmp_gpu
@@ -629,20 +686,31 @@ class node:
                 if rebroadcast:
                     self.forward_to_neighbohors()
 
-                return rebroadcast
+                return rebroadcast, copy.deepcopy(tmp_local)
             else:
-                self.print_node_state('ktm', True)
+                update_cpu = 0
+                update_gpu = 0
+                index = 0
+                reset_by = []
                 while index < config.layer_number:
                     if tmp_local['auction_id'][index] == self.id:
-                        index = self.reset(tmp_local, index)
-                        
+                        update_cpu += self.item['NN_cpu'][index]
+                        update_gpu += self.item['NN_gpu'][index]
+                        reset_by.append(self.id)
+                        index = self.reset(tmp_local, index, with_auction_id=True)
+                    else:
+                        index += 1
+                        reset_by.append(float('-inf'))
+
+                b = tmp_local['auction_id']
+                self.print_node_state(f'ktm {b}', True)
                 self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
-                self.updated_gpu += tmp_gpu
-                self.updated_cpu += tmp_cpu
-                self.forward_to_neighbohors()
-                return False
+                self.updated_gpu += update_gpu 
+                self.updated_cpu += update_cpu
+                self.forward_to_neighbohors(reset_by=reset_by)
+                return False, None
         else:
-            return False            
+            return False, None            
        
     def update_bid(self):
 
@@ -665,11 +733,16 @@ class node:
             else:
                 if config.enable_logging:
                     self.print_node_state('BEFORE', True)
-                rebroadcast = self.deconfliction()
+                rebroadcast, prev_bet = self.deconfliction()
 
                 if self.id not in self.bids[self.item['job_id']]['auction_id'] and float('-inf') in self.bids[self.item['job_id']]['auction_id']:
                     self.bid()
-                elif rebroadcast:
+                
+                if rebroadcast and \
+                    prev_bet is not None and\
+                    prev_bet['auction_id']!=self.bids[self.item['job_id']]['auction_id'] and \
+                    prev_bet['bid'] != self.bids[self.item['job_id']]['bid'] and \
+                    prev_bet['timestamp'] != self.bids[self.item['job_id']]['timestamp']:
                     self.forward_to_neighbohors()
 
         else:
@@ -737,37 +810,40 @@ class node:
     def work(self, event):
         while True:
             try: 
-                self.item = self.q.get(timeout=2)
+                self.item = self.q.get(timeout=5)
                 config.counter += 1
 
                 if self.item['job_id'] not in self.bids:
                     self.init_null()
-                
+                                
                 # check msg type
                 if self.item['edge_id'] is not None and self.item['user'] in self.user_requests:
-                    if config.enable_logging:
+                    if config.enable_logging_2:
                         self.print_node_state('IF1 q:' + str(self.q.qsize())) # edge to edge request
                     self.new_msg()
 
                 elif self.item['edge_id'] is None and self.item['user'] not in self.user_requests:
-                    if config.enable_logging:
+                    if config.enable_logging_2:
                         self.print_node_state('IF2 q:' + str(self.q.qsize())) # brand new request from client
                     self.user_requests.append(self.item['user'])
                     self.bid()
 
                 elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
-                    if config.enable_logging:
+                    if config.enable_logging_2:
                         self.print_node_state('IF3 q:' + str(self.q.qsize())) # edge anticipated client request
                     self.user_requests.append(self.item['user'])
                     self.new_msg()
 
                 elif self.item['edge_id'] is None and self.item['user'] in self.user_requests:
-                    if config.enable_logging:
+                    if config.enable_logging_2:
                         self.print_node_state('IF4 q:' + str(self.q.qsize())) # client after edge request
                     self.bid()
+                else:
+                    self.print_node_state('perche') # client after edge request
+
 
                 self.q.task_done()
-            except:
+            except Empty:
                 # the exception is raised if the timeout in the queue.get() expires.
                 # the break statement must be executed only if the event has been set 
                 # by the main thread (i.e., no more task will be submitted)

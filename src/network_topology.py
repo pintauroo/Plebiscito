@@ -313,30 +313,54 @@ class NetworkTopology:
                          1][self.__n_nodes+self.__group_number] = 1
 
     def get_available_bandwidth_between_nodes(self, id1, id2):
+        if id1 == float('-inf') and id2 == float('-inf'):
+            print("Something wrong happened. Trying to get the available bw between non existing nodes. Exiting...")
+            sys.exit(1)
+        
         with self.__lock:
-            edges = self.__path[id1][id2]
-            min_bw = float('inf')
-            for e_id in edges:
-                if self.__edges[e_id].get_bw() < min_bw:
-                    min_bw = self.__edges[e_id].get_bw()
+            # if one of the node is inf, return the minimum bw value from the other 
+            # Note: could be changed with the average
+            if id1 == float('-inf') or id2 == float('-inf'):
+                index = id1 if id1 != float('-inf') else id2
+                min_bw = float('inf')
+                for i in range(self.__n_nodes):
+                    if i != index:
+                        edges = self.__path[index][i]
+                        for e_id in edges:
+                            if self.__edges[e_id].get_bw() < min_bw:
+                                min_bw = self.__edges[e_id].get_bw()
+            else:
+                edges = self.__path[id1][id2]
+                min_bw = float('inf')
+                for e_id in edges:
+                    if self.__edges[e_id].get_bw() < min_bw:
+                        min_bw = self.__edges[e_id].get_bw()
             return min_bw
 
-    def consume_bandwidth_between_nodes(self, id1, id2, bw):
-        print(f"Consuming bw between {id1} and {id2}")
+    def consume_bandwidth_between_nodes(self, id1, id2, bw, job_id):
+        # print(f"Consuming bw between {id1} and {id2}", flush=True)
         with self.__lock:
-            # key = 
-            # self.__node_operations
+            if job_id not in self.__node_operations:
+                self.__node_operations[job_id] = {}                
             edges = self.__path[id1][id2]
             for e_id in edges:
                 if self.__edges[e_id].get_bw() < bw:
                     return False
             for e_id in edges:
                 self.__edges[e_id].consume_bw(bw)
+            
+            key = str(min(id1, id2)) + "_" + str(max(id1, id2))
+            if key not in self.__node_operations[job_id]:
+                self.__node_operations[job_id][key] = 1
+            else:
+                self.__node_operations[job_id][key] += 1
             return True
 
-    def release_bandwidth_between_nodes(self, id1, id2, bw):
-        print(f"Releasing bw between {id1} and {id2}")
+    def release_bandwidth_between_nodes(self, id1, id2, bw, job_id):
+        # print(f"Releasing bw between {id1} and {id2}", flush=True)
         with self.__lock:
+            key = str(min(id1, id2)) + "_" + str(max(id1, id2))
+            self.__node_operations[job_id][key] -= 1
             edges = self.__path[id1][id2]
             for e_id in edges:
                 self.__edges[e_id].release_bw(bw)
@@ -350,20 +374,29 @@ class NetworkTopology:
                     min_bw = self.__edges[e_id].get_bw()
             return min_bw
 
-    def consume_bandwidth_node_and_client(self, id1, bw):
-        print(f"Consuming bw between {id1} and Client")
+    def consume_bandwidth_node_and_client(self, id1, bw, job_id):
+        # print(f"Consuming bw between {id1} and Client", flush=True)
         with self.__lock:
+            if job_id not in self.__client_operations:
+                self.__client_operations[job_id] = {}
+                
             edges = self.__path[len(self.__path)-1][id1]
             for e_id in edges:
                 if self.__edges[e_id].get_bw() < bw:
                     return False
             for e_id in edges:
                 self.__edges[e_id].consume_bw(bw)
+                
+            if str(id1) not in self.__client_operations[job_id]:
+                self.__client_operations[job_id][str(id1)] = 1
+            else:
+                self.__client_operations[job_id][str(id1)] += 1
             return True
 
-    def release_bandwidth_node_and_client(self, id1, bw):
-        print(f"Releasing bw between {id1} and Client")
+    def release_bandwidth_node_and_client(self, id1, bw, job_id):
+        # print(f"Releasing bw between {id1} and Client", flush=True)
         with self.__lock:
+            self.__client_operations[job_id][str(id1)] -= 1
             edges = self.__path[len(self.__path)-1][id1]
             for e_id in edges:
                 self.__edges[e_id].release_bw(bw)
@@ -372,6 +405,39 @@ class NetworkTopology:
         with self.__lock:
             return self.__edges[self.__direct_edge_id[id]].get_bw()
         
+    def check_network_consistency(self, bids):
+        print("Performing consistency check on network topology...")
+        
+        for key, bid in bids.items():
+            expected_node_allocation = 0
+            client_allocations = 0
+            val = bid[0]
+            for b in bid:
+                if val != b:
+                    val = b
+                    expected_node_allocation += 1 
+            
+            for key2 in self.__node_operations[key]:
+                expected_node_allocation -= self.__node_operations[key][key2]
+                
+            if expected_node_allocation != 0:
+                print("Too many bandwidth reservation requests between nodes")
+                print("There's a problem with job {key}")
+                print(self.__node_operations[key])
+                sys.exit(1)
+                
+            for key2 in self.__client_operations[key]:
+                client_allocations += self.__client_operations[key][key2]
+                
+            if client_allocations != 1:
+                print("Too many bandwidth reservation requests between node and client")
+                print("There's a problem with job {key}")
+                print(self.__client_operations[key])
+                sys.exit(1)
+            
+        print("The network topology is consistent with the final allocation scheme")
+        return 
+                    
     def __print_topology(self):
         for i in range(self.__n_nodes):
             print(f"Node {i}: ", end="")

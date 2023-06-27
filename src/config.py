@@ -27,6 +27,7 @@ num_edges = int(sys.argv[3]) #Nodes number
 filename = str(sys.argv[4])
 
 enable_logging = True 
+enable_logging_2 = True 
 
 #NN model
 layer_number = 6 
@@ -64,9 +65,9 @@ print('bw: ' +str(tot_bw))
 cpu_gpu_ratio = tot_cpu / tot_gpu
 print('cpu_gpu_ratio: ' +str(cpu_gpu_ratio))
 
-node_gpu=float(tot_gpu/num_edges)*30
-node_cpu=float(tot_cpu/num_edges)*30 
-node_bw=float(tot_bw/num_edges)*30
+node_gpu=float(tot_gpu/num_edges)*10
+node_cpu=float(tot_cpu/num_edges)*10
+node_bw=float(tot_bw/num_edges)*10
 # node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
 # node_gpu = 10000000000

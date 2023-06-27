@@ -17,7 +17,7 @@ DEBUG = logging.DEBUG
 INFO = logging.INFO
 
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
+logging.basicConfig(filename='debug.log', level=TRACE, format='%(message)s', filemode='w')
 # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))
@@ -95,7 +95,7 @@ for _, job in c.df_jobs.iterrows():
             ' used_tot_cpu: ' + str(c.nodes[i].initial_cpu)+' - ' +str(c.nodes[i].updated_cpu)  + ' = ' +str(c.nodes[i].initial_cpu - c.nodes[i].updated_cpu) + 
             ' used_tot_bw: '  + str(c.nodes[i].initial_bw)+' - '  +str(c.nodes[i].updated_bw) + ' = '  +str(c.nodes[i].initial_bw  - c.nodes[i].updated_bw))
 
-u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, job_ids, c.a)
+u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, job_ids, c.a, c.net_t)
 c.net_t.dump_to_file(c.filename)
 
 logging.info('Tot messages: '+str(c.counter))

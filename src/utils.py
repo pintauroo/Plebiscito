@@ -10,7 +10,7 @@ import math
 
 
 
-def wrong_bids_calc(nodes, job):
+def wrong_bids_calc(nodes, job, network_topology):
     
     j = job['job_id']
     print('\n[WRONG BID]' + str(j))
@@ -43,9 +43,25 @@ def wrong_bids_calc(nodes, job):
             # print('\nAlready in wrong bids req: ' + str(j))
             # for i in range(0, c.num_edges):
             #     print(nodes[i].bids[j]['auction_id'])
+    
+    # release network resources between client and node        
+    for curr_node in range(0, c.num_edges):
+        for i, n_id in enumerate(nodes[curr_node].bids[j]['auction_id']):
+            if i == 0 and n_id == curr_node:
+                network_topology.release_bandwidth_node_and_client(curr_node, float(job['read_count']) / float(c.min_layer_number), j)
+                
+    # release network resources between nodes        
+    for curr_node in range(0, c.num_edges):
+        prev_val = nodes[curr_node].bids[j]['auction_id'][0]
+        for i, n_id in enumerate(nodes[curr_node].bids[j]['auction_id']):
+            if i != 0:
+                if prev_val != n_id and n_id == curr_node:
+                    network_topology.release_bandwidth_between_nodes(curr_node, prev_val, float(job['read_count']) / float(c.min_layer_number), j)
+                prev_val = nodes[curr_node].bids[j]['auction_id'][i]
+            
 
 
-def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
+def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha, network_topology):
 
     if len(job_ids) != len(set(job_ids)):
         raise ValueError("Duplicate job IDs found!")
@@ -73,6 +89,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     count = 0 
     count_broken = 0 
     assigned_jobs = []
+    valid_bids = {}
+    
     for _, job in c.df_jobs.iterrows():
         count += 1
         flag = True
@@ -81,11 +99,11 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         equal_values = True 
         print('job_id: ' +str(j))
         
-        for i in range(0, c.num_edges):
-            print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
-            print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
-            print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
-            print('')
+        # for i in range(0, c.num_edges):
+        #     print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
+        #     print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
+        #     print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
+        #     print('')
         for i in range(1, c.num_edges):
             if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
                 count_broken += 1
@@ -98,12 +116,13 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                 if all(x == float('-inf') for x in nodes[i].bids[j]['auction_id']):
                     print('Unassigned')
                     flag = False # all unassigned
-                elif float('-inf') in nodes[i].bids[j]['x']: #check if there is a value not assigned 
+                elif float('-inf') in nodes[i].bids[j]['auction_id']: #check if there is a value not assigned 
                     # print('matching with -inf: ' +str(c.nodes[i].bids[j]['auction_id']))
                     flag = False
-                    wrong_bids_calc(nodes, job)
+                    wrong_bids_calc(nodes, job, network_topology)
                 else:
                     print('MATCH')
+                    valid_bids[j] = nodes[i].bids[j]['auction_id']
                     pass
                     # for i in range(0, c.num_edges):
                     #     print('matching: ' +str(c.nodes[i].bids[j]['auction_id']))
@@ -111,7 +130,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         else: # unmatching auctions
             # print('NON matching: ' +str(c.nodes[i].bids[j]['auction_id']))
             flag = False
-            wrong_bids_calc(nodes, job)
+            wrong_bids_calc(nodes, job, network_topology)
 
 
         if flag:
@@ -125,6 +144,9 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
             unassigned_sum_cpu += float(job['num_cpu'])
             unassigned_sum_gpu += float(job['num_gpu'])
             unassigned_sum_bw += float(job['read_count']) 
+    
+    print()
+    network_topology.check_network_consistency(valid_bids)
             
     print()
     print('ASSIGNED jobs: ' +str(count_assigned))
