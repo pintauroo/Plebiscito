@@ -256,9 +256,12 @@ class node:
                 self.bids[self.item['job_id']]['count'] = job_id_counter
                 
                 self.forward_to_neighbohors()
+                
+                return True
         else:
             if config.enable_logging:
                 self.print_node_state('Value not in dict (first_msg)', type='error')
+            return False
 
 
     def lost_bid(self, index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw):
@@ -464,6 +467,7 @@ class node:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #19else')
                             index+=1
+                            rebroadcast = True
 
                     elif z_ij==k:
                         
@@ -606,10 +610,11 @@ class node:
                     self.print_node_state('BEFORE', True)
                 rebroadcast = self.deconfliction()
 
+                success = False
                 if self.id not in self.bids[self.item['job_id']]['auction_id'] and float('-inf') in self.bids[self.item['job_id']]['auction_id']:
-                    self.bid()
+                    success = self.bid()
                     
-                elif rebroadcast:
+                if not success and rebroadcast:
                     self.forward_to_neighbohors()
 
         else:
