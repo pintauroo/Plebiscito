@@ -3,6 +3,7 @@ This module impelments the behavior of a node
 '''
 
 import queue
+from queue import Empty
 import sys
 import time
 import src.config as config
@@ -45,6 +46,7 @@ class node:
     def set_queues(self, q, use_queue):
         self.q = q
         self.use_queue = use_queue
+        self.use_queue[self.id].clear()
 
     def utility_function(self):
         def f(x, alpha, beta):
@@ -90,24 +92,37 @@ class node:
             return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw/config.tot_bw)) # GPU vs BW
 
 
-    def forward_to_neighbohors(self):
+    def forward_to_neighbohors(self, custom_dict=None):
         if config.enable_logging:
             self.print_node_state('FORWARD', True)
-        
-        msg = {
-                    "job_id": self.item['job_id'], 
-                    "user": self.item['user'],
-                    "edge_id": self.id, 
-                    "auction_id": copy.deepcopy(self.bids[self.item['job_id']]['auction_id']), 
-                    "NN_gpu": self.item['NN_gpu'],
-                    "NN_cpu": self.item['NN_cpu'],
-                    "NN_data_size": self.item['NN_data_size'], 
-                    "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
-                    "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
-                    "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
-                    }
+        if custom_dict == None:
+            msg = {
+                        "job_id": self.item['job_id'], 
+                        "user": self.item['user'],
+                        "edge_id": self.id, 
+                        "auction_id": copy.deepcopy(self.bids[self.item['job_id']]['auction_id']), 
+                        "NN_gpu": self.item['NN_gpu'],
+                        "NN_cpu": self.item['NN_cpu'],
+                        "NN_data_size": self.item['NN_data_size'], 
+                        "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
+                        "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
+                        "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
+                        }
+        else:
+            msg = {
+                        "job_id": self.item['job_id'], 
+                        "user": self.item['user'],
+                        "edge_id": self.id, 
+                        "auction_id": copy.deepcopy(custom_dict['auction_id']), 
+                        "NN_gpu": self.item['NN_gpu'],
+                        "NN_cpu": self.item['NN_cpu'],
+                        "NN_data_size": self.item['NN_data_size'], 
+                        "bid": copy.deepcopy(custom_dict['bid']), 
+                        "x": copy.deepcopy(custom_dict['x']), 
+                        "timestamp": copy.deepcopy(custom_dict['timestamp'])
+                        }
         for i in range(config.num_edges):
-            if config.t.to()[i][self.id] and self.id != i and self.use_queue[i].is_set():
+            if config.t.to()[i][self.id] and self.id != i:
                 self.q[i].put(msg)
                 # logging.debug("FORWARD NODEID:" + str(self.id) + " to " + str(i) + " " + str(self.bids[self.item['job_id']]['auction_id']))
 
@@ -283,6 +298,7 @@ class node:
         self.bids[self.item['job_id']]['deconflictions']+=1
         
         tmp_local = copy.deepcopy(self.bids[self.item['job_id']])
+        prev_bet = copy.deepcopy(self.bids[self.item['job_id']])
         tmp_gpu = 0 
         tmp_cpu = 0 
         tmp_bw = 0
@@ -334,7 +350,7 @@ class node:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#4')
                             index = self.update_local_val(tmp_local, index, k, self.item['bid'][index], t_kj)
-
+                            rebroadcast = True
                         else:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #4else')
@@ -452,7 +468,12 @@ class node:
                 elif z_kj!=i or z_kj!=k:   
                                      
                     if z_ij==i:
-                        if (y_kj>y_ij) or (y_kj==y_ij and z_kj<z_ij):
+                        if (y_kj>y_ij):
+                            if config.enable_logging:
+                                logging.log(TRACE, 'NODEID:'+str(self.id) +  '#17')
+                            rebroadcast = True
+                            index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
+                        elif (y_kj==y_ij and z_kj<z_ij):
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#17')
                             rebroadcast = True
@@ -579,16 +600,43 @@ class node:
             self.updated_cpu += tmp_cpu
             self.updated_bw += tmp_bw
 
-            return rebroadcast
+            return rebroadcast, False
         else:
-            return False            
+            self.forward_to_neighbohors(custom_dict=copy.deepcopy(self.item))
 
-
+            cpu = 0
+            gpu = 0
+            bw = 0
+            first = False
+            
+            for id, b in enumerate(self.item["auction_id"]):
+                if b == self.id:
+                    cpu -= self.item['NN_cpu'][id]
+                    gpu -= self.item['NN_gpu'][id]
+                    if not first:
+                        bw -= self.item['NN_data_size'][id]
+                    first = True
+            
+            first = False
+            for id, b in enumerate(prev_bet["auction_id"]):
+                if b == self.id:
+                    cpu += self.item['NN_cpu'][id]
+                    gpu += self.item['NN_gpu'][id]
+                    if not first:
+                        bw += self.item['NN_data_size'][id]
+                    first = True    
+                    
+            self.updated_cpu += cpu
+            self.updated_gpu += gpu
+            self.updated_bw += bw
+            
+            for key in self.item:
+                self.bids[self.item['job_id']][key] = copy.deepcopy(self.item[key])
+                    
+            return False, True       
 
        
     def update_bid(self):
-
-
         if self.item['job_id'] in self.bids:
         
             # Consensus check
@@ -608,10 +656,10 @@ class node:
             else:
                 if config.enable_logging:
                     self.print_node_state('BEFORE', True)
-                rebroadcast = self.deconfliction()
+                rebroadcast, integrity_fail = self.deconfliction()
 
                 success = False
-                if self.id not in self.bids[self.item['job_id']]['auction_id'] and float('-inf') in self.bids[self.item['job_id']]['auction_id']:
+                if not integrity_fail and self.id not in self.bids[self.item['job_id']]['auction_id'] and float('-inf') in self.bids[self.item['job_id']]['auction_id']:
                     success = self.bid()
                     
                 if not success and rebroadcast:
@@ -730,6 +778,8 @@ class node:
                     if self.item['job_id'] not in self.bids:
                         self.init_null()
                     
+                    self.use_queue[self.id].set()
+                    
                     #print(self.item)
                     #print(self.item['user'] not in self.user_requests)
                     #print(self.item['edge_id'] is None)
@@ -758,15 +808,19 @@ class node:
 
                     self.q[self.id].task_done()
                     
-            except Exception as e:
+            except Empty:
                 # the exception is raised if the timeout in the queue.get() expires.
                 # the break statement must be executed only if the event has been set 
                 # by the main thread (i.e., no more task will be submitted)
                 self.use_queue[self.id].clear()
-                try: 
-                    self.item = self.q[self.id].get(timeout=timeout)
-                    self.q[self.id].put(self.item)
-                except Exception as e2:
+                
+                all_finished = True
+                for id, e in enumerate(self.use_queue):
+                    if e.is_set():
+                        all_finished = False
+                        # print(f"Waiting for node {id} to finish")
+                        
+                if all_finished:
                     if event.is_set():
                         with self.last_bid_timestamp_lock:
                             ret_val["id"] = self.id
@@ -782,9 +836,7 @@ class node:
                         # t.join()
                         if self.updated_cpu > self.initial_cpu:
                             print(f"Node {self.id} -- Mannaggia", flush=True)
-                        break
-
-                
+                        break               
 
                 # print(str(self.q.qsize()) +" polpetta - user:"+ str(self.id) + " job_id: "  + str(self.item['job_id'])  + " from " + str(self.item['user']))
 
