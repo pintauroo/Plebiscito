@@ -44,6 +44,22 @@ def wrong_bids_calc(nodes, job):
             # print('\nAlready in wrong bids req: ' + str(j))
             # for i in range(0, c.num_edges):
             #     print(nodes[i].bids[j]['auction_id'])
+            
+    if c.use_net_topology:
+        # release network resources between client and node        
+        for curr_node in range(0, c.num_edges):
+            for i, n_id in enumerate(nodes[curr_node].bids[j]['auction_id']):
+                if i == 0 and n_id == curr_node:
+                    c.network_t.release_bandwidth_node_and_client(curr_node, float(job['read_count']) / float(c.min_layer_number), j)
+                    
+        # release network resources between nodes        
+        for curr_node in range(0, c.num_edges):
+            prev_val = nodes[curr_node].bids[j]['auction_id'][0]
+            for i, n_id in enumerate(nodes[curr_node].bids[j]['auction_id']):
+                if i != 0:
+                    if prev_val != n_id and n_id == curr_node:
+                        c.network_t.release_bandwidth_between_nodes(curr_node, prev_val, float(job['read_count']) / float(c.min_layer_number), j)
+                    prev_val = nodes[curr_node].bids[j]['auction_id'][i]
 
 
 def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
@@ -74,6 +90,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     count = 0 
     count_broken = 0 
     assigned_jobs = []
+    valid_bids = {}
+    
     for job in c.job_list_instance.job_list:
         count += 1
         flag = True
@@ -105,6 +123,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     wrong_bids_calc(nodes, job)
                 else:
                     print('MATCH')
+                    valid_bids[j] = nodes[i].bids[j]['auction_id']
                     pass
                     # for i in range(0, c.num_edges):
                     #     print('matching: ' +str(c.nodes[i].bids[j]['auction_id']))
@@ -126,6 +145,10 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
             unassigned_sum_cpu += float(job['num_cpu'])
             unassigned_sum_gpu += float(job['num_gpu'])
             unassigned_sum_bw += float(job['read_count']) 
+            
+    if c.use_net_topology:
+        print()
+        c.network_t.check_network_consistency(valid_bids)
             
     print()
     print('ASSIGNED jobs: ' +str(count_assigned))

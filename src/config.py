@@ -8,6 +8,7 @@ import numpy as np
 import datetime
 import sys
 from src.dataset import JobList
+from src.network_topology import NetworkTopology, TopologyType
 from src.topology import topo
 import pandas as pd
 
@@ -32,6 +33,7 @@ if len(sys.argv) == 6:
     random.seed(seed)
 
 enable_logging = False 
+use_net_topology = False
 
 #NN model
 layer_number = 6 
@@ -74,7 +76,7 @@ else:
     
 node_gpu=float(tot_gpu/num_edges)*0.5
 node_cpu=float(tot_cpu/num_edges)*0.5
-node_bw=float(tot_bw/num_edges)
+node_bw=float(tot_bw/num_edges)*0.5
 # node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
 # node_gpu = 10000000000
@@ -85,8 +87,9 @@ num_clients=len(set(d["user"] for d in job_list_instance.job_list))
 
 #Build Topolgy
 t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
+network_t = NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
 
-nodes = [node(row, random.randint(1,1000)) for row in range(num_edges)]
+nodes = [node(row, random.randint(1,1000), network_t, use_net_topology=use_net_topology) for row in range(num_edges)]
 
 
 def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time, gpu_type, num_inst, size, bandwidth):

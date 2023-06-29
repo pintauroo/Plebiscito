@@ -83,7 +83,7 @@ job_ids=[]
 print('request_number: ' +str(c.req_number))
 
 for job in c.job_list_instance.job_list:
-    time.sleep(3)
+    time.sleep(0.2)
     data = c.message_data(
                 job['job_id'],
                 job['user'],
@@ -141,6 +141,9 @@ for j in job_ids:
             ' used_tot_bw: '  + str(c.nodes[i].initial_bw)+' - '  +str(c.nodes[i].updated_bw) + ' = '  +str(c.nodes[i].initial_bw  - c.nodes[i].updated_bw))
 
 u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, job_ids, c.a)
+
+if c.use_net_topology:
+    c.network_t.dump_to_file(c.filename)
 
 logging.info('Tot messages: '+str(c.counter))
 print('Tot messages: '+str(c.counter))

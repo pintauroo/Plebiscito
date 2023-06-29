@@ -14,23 +14,35 @@ import math
 import threading
 from threading import Event
 import random
+import numpy
 
 TRACE = 5    
 
 class node:
 
-    def __init__(self, id, seed):
+    def __init__(self, id, seed, network_topology, use_net_topology=False):
         random.seed(seed)
         self.id = id    # unique edge node id
         self.initial_gpu = float(config.node_gpu) * random.choice([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
         self.updated_gpu = self.initial_gpu# * random.uniform(0.7, 1)
         self.initial_cpu = float(config.node_cpu) * random.choice([0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
         self.updated_cpu = self.initial_cpu
-        self.initial_bw = config.t.b
-        self.updated_bw = self.initial_bw# * random.uniform(0.7, 1)
+        
+        if use_net_topology:
+            self.network_topology = network_topology
+        else:
+            self.initial_bw = network_topology.get_node_direct_link_bw(self.id)
+            self.updated_bw = self.initial_bw
+           
+            
+        self.use_net_topology = use_net_topology
         
         self.last_bid_timestamp = {}
         self.last_bid_timestamp_lock = threading.Lock()
+        
+        self.__layer_bid_lock = threading.Lock()
+        self.__layer_bid = {}
+        self.__layer_bid_events = {}
         
         if self.initial_gpu != 0:
             print(f"Node {self.id} CPU/GPU ratio: {self.initial_cpu/self.initial_gpu}")
@@ -48,7 +60,7 @@ class node:
         self.use_queue = use_queue
         self.use_queue[self.id].clear()
 
-    def utility_function(self):
+    def utility_function(self, avail_bw):
         def f(x, alpha, beta):
             if beta == 0 and x == 0:
                 return 1
@@ -76,20 +88,20 @@ class node:
                 beta = self.updated_cpu/self.updated_gpu
                 
             return f(x, config.a, beta)
-        # elif config.filename == 'alpha_BW_CPU':
-        #     return (config.a*(self.updated_bw/self.initial_bw))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #BW vs CPU
-        # elif config.filename == 'alpha_GPU_CPU':
-        #     return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #GPU vs CPU
-        # elif config.filename == 'alpha_GPU_BW':
-        #     return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_bw/self.initial_bw)) # GPU vs BW
-
-
         elif config.filename == 'alpha_BW_CPU':
-            return (config.a*(self.updated_bw/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
+            return (config.a*(self.updated_bw/avail_bw))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #BW vs CPU
         elif config.filename == 'alpha_GPU_CPU':
-            return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #GPU vs CPU
+            return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #GPU vs CPU
         elif config.filename == 'alpha_GPU_BW':
-            return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw/config.tot_bw)) # GPU vs BW
+            return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_bw/avail_bw)) # GPU vs BW
+
+
+        # elif config.filename == 'alpha_BW_CPU':
+        #     return (config.a*(self.updated_bw/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
+        # elif config.filename == 'alpha_GPU_CPU':
+        #     return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #GPU vs CPU
+        # elif config.filename == 'alpha_GPU_BW':
+        #     return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw/config.tot_bw)) # GPU vs BW
 
 
     def forward_to_neighbohors(self, custom_dict=None):
@@ -194,11 +206,19 @@ class node:
             self.bids[self.item['job_id']]['auction_id'].append(float('-inf'))
             self.bids[self.item['job_id']]['timestamp'].append(datetime.now() - timedelta(days=1))
 
-    def bid(self):
+    def bid(self, enable_forward=True):
+        proceed = True
+        if self.use_net_topology:
+            proceed == self.__layer_bid_events[self.item["job_id"]].is_set()
+        if not proceed:
+            return True
 
         sequence = True
         NN_len = len(self.item['NN_gpu'])
-        avail_bw = self.updated_bw
+        if self.use_net_topology:
+            avail_bw = None
+        else:
+            avail_bw = self.updated_bw
         tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])
         tmp_layer_bid_already = self.layer_bid_already[self.item['job_id']]
         first = True
@@ -207,6 +227,8 @@ class node:
         job_id_counter = 0
         first_index = None
         layers = 0
+        bw_with_client = False
+        previous_winner_id = 0
 
         if self.item['job_id'] in self.bids:
             
@@ -217,10 +239,19 @@ class node:
             for i in range(0, NN_len):
                 if tmp_bid['auction_id'][i] == float('-inf') and not tmp_layer_bid_already[i]:
 
-                    if first:
+                    if i == 0:
+                        if avail_bw == None:
+                            avail_bw = self.network_topology.get_available_bandwidth_with_client(self.id)
                         NN_data_size = self.item['NN_data_size'][i]
                         first_index = i
-                        first = False
+                        bw_with_client = True
+                    else:
+                        if first and not bw_with_client:
+                            previous_winner_id = tmp_bid['auction_id'][i-1]
+                            NN_data_size = self.item['NN_data_size'][i]
+                            if avail_bw == None:
+                                avail_bw = self.network_topology.get_available_bandwidth_between_nodes(self.id, tmp_bid['auction_id'][i-1])
+                            first = False
                     
                     if  sequence==True and \
                         self.item['NN_gpu'][i] <= self.updated_gpu - gpu_ and \
@@ -228,7 +259,7 @@ class node:
                         NN_data_size <= avail_bw and \
                         tmp_bid['auction_id'].count(self.id)<config.max_layer_number:
                             
-                            tmp_bid['bid'][i] = self.utility_function()
+                            tmp_bid['bid'][i] = self.utility_function(avail_bw=avail_bw)
                             tmp_bid['bid_gpu'][i] = self.updated_gpu
                             tmp_bid['bid_cpu'][i] = self.updated_cpu
                             tmp_bid['bid_bw'][i] = self.updated_bw
@@ -251,28 +282,44 @@ class node:
             if self.id in tmp_bid['auction_id'] and \
                 self.updated_cpu - cpu_ >= 0 and \
                 self.updated_gpu - gpu_ >= 0 and \
-                (first_index is None or self.updated_bw - self.item['NN_data_size'][first_index] >= 0) and \
+                (first_index is None or avail_bw - self.item['NN_data_size'][first_index] >= 0) and \
                 tmp_bid['auction_id'].count(self.id)>=config.min_layer_number and \
                 tmp_bid['auction_id'].count(self.id)<=config.max_layer_number and \
                 self.integrity_check(tmp_bid['auction_id'], 'bid'):
                 # print(tmp_bid['auction_id'])
                 # logging.log(TRACE, "BID NODEID:" + str(self.id) + ", auction: " + str(tmp_bid['auction_id']))
                 
-                self.layer_bid_already[self.item['job_id']] = tmp_layer_bid_already
-                first_index = tmp_bid['auction_id'].index(self.id)
-
-                self.bids[self.item['job_id']] = copy.deepcopy(tmp_bid)
-
-                self.updated_bw -= self.item['NN_data_size'][first_index]  
-                self.updated_gpu -= gpu_
-                self.updated_cpu -= cpu_
-
-                job_id_counter += 1
-                self.bids[self.item['job_id']]['count'] = job_id_counter
+                success = False
+                if self.use_net_topology:
+                    if bw_with_client and self.network_topology.consume_bandwidth_node_and_client(self.id, self.item['NN_data_size'][0], self.item['job_id']):
+                        success = True
+                    elif not bw_with_client and self.network_topology.consume_bandwidth_between_nodes(self.id, previous_winner_id, self.item['NN_data_size'][0], self.item['job_id']):
+                        success = True
+                else:
+                    success = True
                 
-                self.forward_to_neighbohors()
-                
-                return True
+                if success:
+                    self.layer_bid_already[self.item['job_id']] = tmp_layer_bid_already
+                    first_index = tmp_bid['auction_id'].index(self.id)
+                    self.updated_bw -= self.item['NN_data_size'][first_index] 
+
+                    self.bids[self.item['job_id']] = copy.deepcopy(tmp_bid)
+
+                    self.updated_gpu -= gpu_
+                    self.updated_cpu -= cpu_
+
+                    job_id_counter += 1
+                    self.bids[self.item['job_id']]['count'] = job_id_counter
+                    
+                    if enable_forward:
+                        self.forward_to_neighbohors()
+                    
+                    if self.use_net_topology:
+                        self.__layer_bid_events[self.item["job_id"]].clear()
+                    
+                    return True
+                else:
+                    return False
         else:
             if config.enable_logging:
                 self.print_node_state('Value not in dict (first_msg)', type='error')
@@ -296,6 +343,8 @@ class node:
         k = self.item['edge_id'] # sender
         i = self.id # receiver
         self.bids[self.item['job_id']]['deconflictions']+=1
+        release_to_client = False
+        previous_winner_id = None
         
         tmp_local = copy.deepcopy(self.bids[self.item['job_id']])
         prev_bet = copy.deepcopy(self.bids[self.item['job_id']])
@@ -328,11 +377,19 @@ class node:
                             rebroadcast = True
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #1-#2')
+                            if index == 0:
+                                release_to_client = True
+                            else:
+                                previous_winner_id = prev_bet['auction_id'][index-1]
                             index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
                         elif (y_kj==y_ij and z_kj<z_ij):
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3')
                             rebroadcast = True
+                            if index == 0:
+                                release_to_client = True
+                            else:
+                                previous_winner_id = prev_bet['auction_id'][index-1]
                             index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)           
                         elif (y_kj<y_ij):
                             rebroadcast = True
@@ -416,7 +473,8 @@ class node:
                     elif z_ij==k:
                         if config.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #14')
-                        index = self.reset(index)                        
+                        index = self.reset(index)
+                        rebroadcast = True                        
 
                     elif z_ij == float('-inf'):
                         if config.enable_logging:
@@ -472,11 +530,19 @@ class node:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#17')
                             rebroadcast = True
+                            if index == 0:
+                                release_to_client = True
+                            else:
+                                previous_winner_id = prev_bet['auction_id'][index-1]
                             index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
                         elif (y_kj==y_ij and z_kj<z_ij):
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#17')
                             rebroadcast = True
+                            if index == 0:
+                                release_to_client = True
+                            else:
+                                previous_winner_id = prev_bet['auction_id'][index-1]
                             index, tmp_gpu, tmp_cpu, tmp_bw = self.lost_bid(index, z_kj, tmp_local, tmp_gpu, tmp_cpu, tmp_bw)
                         elif (y_kj<y_ij):
                             if config.enable_logging:
@@ -556,7 +622,7 @@ class node:
                             while index<config.layer_number and self.item['auction_id'][index] == z_kj:
                                 index = self.update_local_val(tmp_local, index, z_kj, self.item['bid'][index], self.item['timestamp'][index])                   
                             rebroadcast = True
-                        elif y_kj==y_ij :
+                        elif y_kj==y_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#27')
                             index+=1
@@ -593,15 +659,31 @@ class node:
             # tmp_local['auction_id']!=self.bids[self.item['job_id']]['auction_id']:
             # tmp_local['bid'] != self.bids[self.item['job_id']]['bid'] and \
             # tmp_local['timestamp'] != self.bids[self.item['job_id']]['timestamp']:
+            # self.print_node_state(f'Deconfliction checked pass {self.id}', True)
+            
+            if self.use_net_topology:
+                if tmp_bw > 0:
+                    if release_to_client:
+                        self.network_topology.release_bandwidth_node_and_client(self.id, tmp_bw, self.item['job_id'])
+                    elif previous_winner_id != float('-inf'):
+                        self.network_topology.release_bandwidth_between_nodes(previous_winner_id, self.id, tmp_bw, self.item['job_id'])  
+            else:
+                # if type(self.updated_bw) == numpy.ndarray:
+                #     print("aaaaaaaaaaaaaaaaaaaaaaa3", flush=True)
+                self.updated_bw += tmp_bw                  
+                # if type(self.updated_bw) == numpy.ndarray:
+                #     print("aaaaaaaaaaaaaaaaaaaaaaa4", flush=True)
 
             self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
-            # print(tmp_local['auction_id'])
             self.updated_gpu += tmp_gpu
             self.updated_cpu += tmp_cpu
-            self.updated_bw += tmp_bw
 
             return rebroadcast, False
         else:
+            if self.use_net_topology:
+                print(f"Failure in node {self.id}. Deconfliction failed. Exiting ...")
+                sys.exit(1)
+            
             self.forward_to_neighbohors(custom_dict=copy.deepcopy(self.item))
 
             cpu = 0
@@ -628,7 +710,11 @@ class node:
                     
             self.updated_cpu += cpu
             self.updated_gpu += gpu
+            # if type(self.updated_bw) == numpy.ndarray:
+            #     print("aaaaaaaaaaaaaaaaaaaaaaa5", flush=True)
             self.updated_bw += bw
+            # if type(self.updated_bw) == numpy.ndarray:
+            #     print("aaaaaaaaaaaaaaaaaaaaaaa6", flush=True)
             
             for key in self.item:
                 self.bids[self.item['job_id']][key] = copy.deepcopy(self.item[key])
@@ -659,7 +745,10 @@ class node:
                 rebroadcast, integrity_fail = self.deconfliction()
 
                 success = False
-                if not integrity_fail and self.id not in self.bids[self.item['job_id']]['auction_id'] and float('-inf') in self.bids[self.item['job_id']]['auction_id']:
+                proceed = True
+                if self.use_net_topology:
+                    proceed == self.__layer_bid_events[self.item["job_id"]].is_set()
+                if not integrity_fail and self.id not in self.bids[self.item['job_id']]['auction_id'] and float('-inf') in self.bids[self.item['job_id']]['auction_id'] and proceed:
                     success = self.bid()
                     
                 if not success and rebroadcast:
@@ -756,7 +845,17 @@ class node:
                                 self.bids[key]['auction_id'][id] = float('-inf')
                                 self.bids[key]['x'][index] = float('-inf')
             
-
+    def progress_bid_rounds(self, item):     
+        while True:
+            time.sleep(5)
+            with self.__layer_bid_lock:
+                if self.__layer_bid[item["job_id"]] < len(item["auction_id"]):
+                    self.q[self.id].put(item)
+                    self.__layer_bid_events[self.item["job_id"]].set()
+                else:
+                    break
+        
+    
     def work(self, event, notify_start, ret_val):
         notify_start.set()
         timeout = 5
@@ -774,37 +873,40 @@ class node:
                     #     "timestamp": datetime.now(),
                     #     "item": copy.deepcopy(self.item)
                     # }
-
-                    if self.item['job_id'] not in self.bids:
-                        self.init_null()
-                    
-                    self.use_queue[self.id].set()
+                    self.use_queue[self.id].set()                    
+                        
                     
                     #print(self.item)
                     #print(self.item['user'] not in self.user_requests)
                     #print(self.item['edge_id'] is None)
                     # check msg type
-                    if self.item['edge_id'] is not None and self.item['user'] in self.user_requests:
+                    flag = False
+                    # new request from client
+                    if self.item['edge_id'] is None:
+                        flag = True
+
+                    if self.item['job_id'] not in self.bids:
+                        self.init_null()
+                        
+                        if self.use_net_topology:    
+                            with self.__layer_bid_lock:
+                                self.__layer_bid[self.item["job_id"]] = 0
+
+                            e = Event()
+                            e.set()
+                            self.__layer_bid_events[self.item["job_id"]] = e 
+                        
+                            threading.Thread(target=self.progress_bid_rounds, args=(copy.deepcopy(self.item))).start()
+                            
                         if config.enable_logging:
-                            self.print_node_state('IF1 q:' + str(self.q[self.id].qsize())) # edge to edge request
-                        self.new_msg()
+                            self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
+                        
+                        self.bid(flag)
                     
-                    elif self.item['edge_id'] is None and self.item['user'] not in self.user_requests:
+                    if not flag:
                         if config.enable_logging:
-                            self.print_node_state('IF2 q:' + str(self.q[self.id].qsize())) # brand new request from client
-                        self.user_requests.append(self.item['user'])
-                        self.bid()
-
-                    elif self.item['edge_id'] is not None and self.item['user'] not in self.user_requests:
-                        if config.enable_logging:
-                            self.print_node_state('IF3 q:' + str(self.q[self.id].qsize())) # edge anticipated client request
-                        self.user_requests.append(self.item['user'])
-                        self.new_msg()
-
-                    elif self.item['edge_id'] is None and self.item['user'] in self.user_requests:
-                        if config.enable_logging:
-                            self.print_node_state('IF4 q:' + str(self.q[self.id].qsize())) # client after edge request
-                        self.bid()
+                            self.print_node_state('IF2 q:' + str(self.q[self.id].qsize()))
+                        self.update_bid()
 
                     self.q[self.id].task_done()
                     
