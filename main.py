@@ -8,6 +8,7 @@ import logging
 import signal
 import os
 
+
 TRACE = 5
 DEBUG = logging.DEBUG
 INFO = logging.INFO
@@ -82,8 +83,13 @@ start_time = time.time()
 job_ids=[]
 print('request_number: ' +str(c.req_number))
 
+if c.use_net_topology:
+    timeout = 3 # don't change it
+else:
+    timeout = 0.2
+
 for job in c.job_list_instance.job_list:
-    time.sleep(0.2)
+    time.sleep(timeout)
     data = c.message_data(
                 job['job_id'],
                 job['user'],

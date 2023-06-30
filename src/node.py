@@ -23,13 +23,14 @@ class node:
     def __init__(self, id, seed, network_topology, use_net_topology=False):
         random.seed(seed)
         self.id = id    # unique edge node id
-        self.initial_gpu = float(config.node_gpu) * random.choice([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
+        self.initial_gpu = float(config.node_gpu) * random.choice([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
         self.updated_gpu = self.initial_gpu# * random.uniform(0.7, 1)
         self.initial_cpu = float(config.node_cpu) * random.choice([0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
         self.updated_cpu = self.initial_cpu
         
         if use_net_topology:
             self.network_topology = network_topology
+            self.initial_bw = network_topology.get_node_direct_link_bw(self.id)
         else:
             self.initial_bw = network_topology.get_node_direct_link_bw(self.id)
             self.updated_bw = self.initial_bw
@@ -89,11 +90,11 @@ class node:
                 
             return f(x, config.a, beta)
         elif config.filename == 'alpha_BW_CPU':
-            return (config.a*(self.updated_bw/avail_bw))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #BW vs CPU
+            return (config.a*(avail_bw/self.initial_bw))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #BW vs CPU
         elif config.filename == 'alpha_GPU_CPU':
             return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_cpu/self.initial_cpu)) #GPU vs CPU
         elif config.filename == 'alpha_GPU_BW':
-            return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(self.updated_bw/avail_bw)) # GPU vs BW
+            return (config.a*(self.updated_gpu/self.initial_gpu))+((1-config.a)*(avail_bw/self.initial_bw)) # GPU vs BW
 
 
         # elif config.filename == 'alpha_BW_CPU':
@@ -151,8 +152,8 @@ class node:
                     " available GPU:" + str(self.updated_gpu) +
                     " initial CPU:" + str(self.initial_cpu) +
                     " available CPU:" + str(self.updated_cpu) +
-                    " initial BW:" + str(self.initial_bw) +
-                    " available BW:" + str(self.updated_bw) +
+                    #" initial BW:" + str(self.initial_bw) if hasattr(self, 'initial_bw') else str(0) +
+                    #" available BW:" + str(self.updated_bw) if hasattr(self, 'updated_bw') else str(0)  +
                     (("\n"+str(self.bids[self.item['job_id']]['auction_id']) if bid else "") +
                     ("\n" + str(self.item.get('auction_id')) if bid and self.item.get('auction_id') is not None else "\n"))
                     )
@@ -209,9 +210,9 @@ class node:
     def bid(self, enable_forward=True):
         proceed = True
         if self.use_net_topology:
-            proceed == self.__layer_bid_events[self.item["job_id"]].is_set()
+            proceed = self.__layer_bid_events[self.item["job_id"]].is_set()
         if not proceed:
-            return True
+            return False
 
         sequence = True
         NN_len = len(self.item['NN_gpu'])
@@ -230,12 +231,7 @@ class node:
         bw_with_client = False
         previous_winner_id = 0
 
-        if self.item['job_id'] in self.bids:
-            
-            for i in range(0, NN_len):
-                if tmp_bid['auction_id'][i] == self.id:
-                    layers = layers + 1
-                    
+        if self.item['job_id'] in self.bids:                  
             for i in range(0, NN_len):
                 if tmp_bid['auction_id'][i] == float('-inf') and not tmp_layer_bid_already[i]:
 
@@ -262,7 +258,7 @@ class node:
                             tmp_bid['bid'][i] = self.utility_function(avail_bw=avail_bw)
                             tmp_bid['bid_gpu'][i] = self.updated_gpu
                             tmp_bid['bid_cpu'][i] = self.updated_cpu
-                            tmp_bid['bid_bw'][i] = self.updated_bw
+                            tmp_bid['bid_bw'][i] = avail_bw
                             tmp_layer_bid_already[i] = True
                             
                             gpu_ += self.item['NN_gpu'][i]
@@ -271,6 +267,7 @@ class node:
                             tmp_bid['x'][i]=(1)
                             tmp_bid['auction_id'][i]=(self.id)
                             tmp_bid['timestamp'][i] = datetime.now()
+                            layers += 1
                     else:
                         sequence = False
                         tmp_bid['x'][i]=(float('-inf'))
@@ -301,7 +298,8 @@ class node:
                 if success:
                     self.layer_bid_already[self.item['job_id']] = tmp_layer_bid_already
                     first_index = tmp_bid['auction_id'].index(self.id)
-                    self.updated_bw -= self.item['NN_data_size'][first_index] 
+                    if not self.use_net_topology:
+                        self.updated_bw -= self.item['NN_data_size'][first_index] 
 
                     self.bids[self.item['job_id']] = copy.deepcopy(tmp_bid)
 
@@ -316,6 +314,8 @@ class node:
                     
                     if self.use_net_topology:
                         self.__layer_bid_events[self.item["job_id"]].clear()
+                        with self.__layer_bid_lock:
+                            self.__layer_bid[self.item["job_id"]] += layers
                     
                     return True
                 else:
@@ -344,7 +344,7 @@ class node:
         i = self.id # receiver
         self.bids[self.item['job_id']]['deconflictions']+=1
         release_to_client = False
-        previous_winner_id = None
+        previous_winner_id = float('-inf')
         
         tmp_local = copy.deepcopy(self.bids[self.item['job_id']])
         prev_bet = copy.deepcopy(self.bids[self.item['job_id']])
@@ -352,6 +352,12 @@ class node:
         tmp_cpu = 0 
         tmp_bw = 0
         index = 0
+        
+        if self.use_net_topology:
+            initial_count = 0
+            for j in tmp_local["auction_id"]:
+                if j != float('-inf'):
+                    initial_count += 1
 
         while index < config.layer_number:
             if self.item['job_id'] in self.bids:
@@ -662,21 +668,26 @@ class node:
             # self.print_node_state(f'Deconfliction checked pass {self.id}', True)
             
             if self.use_net_topology:
-                if tmp_bw > 0:
-                    if release_to_client:
-                        self.network_topology.release_bandwidth_node_and_client(self.id, tmp_bw, self.item['job_id'])
-                    elif previous_winner_id != float('-inf'):
-                        self.network_topology.release_bandwidth_between_nodes(previous_winner_id, self.id, tmp_bw, self.item['job_id'])  
+                if release_to_client:
+                    self.network_topology.release_bandwidth_node_and_client(self.id, tmp_bw, self.item['job_id'])
+                elif previous_winner_id != float('-inf'):
+                    self.network_topology.release_bandwidth_between_nodes(previous_winner_id, self.id, tmp_bw, self.item['job_id'])  
             else:
-                # if type(self.updated_bw) == numpy.ndarray:
-                #     print("aaaaaaaaaaaaaaaaaaaaaaa3", flush=True)
                 self.updated_bw += tmp_bw                  
-                # if type(self.updated_bw) == numpy.ndarray:
-                #     print("aaaaaaaaaaaaaaaaaaaaaaa4", flush=True)
 
             self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
             self.updated_gpu += tmp_gpu
             self.updated_cpu += tmp_cpu
+            
+            if self.use_net_topology:
+                count = 0
+                for i in tmp_local["auction_id"]:
+                    if i != float('-inf'):
+                        count += 1
+                if initial_count != count:
+                    self.__layer_bid_events[self.item["job_id"]].clear()
+                    with self.__layer_bid_lock:
+                        self.__layer_bid[self.item["job_id"]] = count
 
             return rebroadcast, False
         else:
@@ -710,11 +721,7 @@ class node:
                     
             self.updated_cpu += cpu
             self.updated_gpu += gpu
-            # if type(self.updated_bw) == numpy.ndarray:
-            #     print("aaaaaaaaaaaaaaaaaaaaaaa5", flush=True)
             self.updated_bw += bw
-            # if type(self.updated_bw) == numpy.ndarray:
-            #     print("aaaaaaaaaaaaaaaaaaaaaaa6", flush=True)
             
             for key in self.item:
                 self.bids[self.item['job_id']][key] = copy.deepcopy(self.item[key])
@@ -845,20 +852,34 @@ class node:
                                 self.bids[key]['auction_id'][id] = float('-inf')
                                 self.bids[key]['x'][index] = float('-inf')
             
-    def progress_bid_rounds(self, item):     
+    def progress_bid_rounds(self, item): 
+        prev_n_bet = 0    
+        item['edge_id'] = float('-inf')
+        item['auction_id'] = [float('-inf') for _ in range(len(item["NN_gpu"]))]
+        item['bid'] = [float('-inf') for _ in range(len(item["NN_gpu"]))]
+        item['timestamp'] = [datetime.now() - timedelta(days=1) for _ in range(len(item["NN_gpu"]))]
+        
         while True:
-            time.sleep(5)
+            time.sleep(13)
             with self.__layer_bid_lock:
-                if self.__layer_bid[item["job_id"]] < len(item["auction_id"]):
-                    self.q[self.id].put(item)
+                if self.__layer_bid[item["job_id"]] == prev_n_bet:
+                    break
+                
+                prev_n_bet = self.__layer_bid[item["job_id"]]
+                
+                if self.__layer_bid[item["job_id"]] < len(item["NN_gpu"]):
                     self.__layer_bid_events[self.item["job_id"]].set()
+                    self.q[self.id].put(item)
                 else:
                     break
         
     
     def work(self, event, notify_start, ret_val):
         notify_start.set()
-        timeout = 5
+        if self.use_net_topology:
+            timeout = 15
+        else:
+            timeout = 5
         terminate_garbage_collect = Event()
         # t = threading.Thread(target=self.garbage_collection, args=(terminate_garbage_collect,))
         # t.start()
@@ -896,7 +917,7 @@ class node:
                             e.set()
                             self.__layer_bid_events[self.item["job_id"]] = e 
                         
-                            threading.Thread(target=self.progress_bid_rounds, args=(copy.deepcopy(self.item))).start()
+                            threading.Thread(target=self.progress_bid_rounds, args=(copy.deepcopy(self.item),)).start()
                             
                         if config.enable_logging:
                             self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
@@ -906,6 +927,7 @@ class node:
                     if not flag:
                         if config.enable_logging:
                             self.print_node_state('IF2 q:' + str(self.q[self.id].qsize()))
+                        
                         self.update_bid()
 
                     self.q[self.id].task_done()
@@ -925,6 +947,9 @@ class node:
                 if all_finished:
                     if event.is_set():
                         with self.last_bid_timestamp_lock:
+                            if self.use_net_topology:
+                                self.updated_bw = self.network_topology.get_node_direct_link_bw(self.id)
+                                
                             ret_val["id"] = self.id
                             ret_val["bids"] = copy.deepcopy(self.bids)
                             ret_val["counter"] = self.counter

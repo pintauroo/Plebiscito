@@ -11,6 +11,11 @@ from src.dataset import JobList
 from src.network_topology import NetworkTopology, TopologyType
 from src.topology import topo
 import pandas as pd
+from multiprocessing.managers import SyncManager
+
+class MyManager(SyncManager): pass
+
+MyManager.register('NetworkTopology', NetworkTopology)
 
 # Alibaba datacenter servers
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -74,20 +79,23 @@ if tot_gpu != 0:
 else:
     print('cpu_gpu_ratio: <inf>')
     
-node_gpu=float(tot_gpu/num_edges)*0.5
-node_cpu=float(tot_cpu/num_edges)*0.5
-node_bw=float(tot_bw/num_edges)*0.5
+node_gpu=float(tot_gpu/num_edges)
+node_cpu=float(tot_cpu/num_edges)
+node_bw=float(tot_bw/num_edges)
 # node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
 # node_gpu = 10000000000
 # node_cpu = 10000000000
-node_bw = 10000000000
+# node_bw = 10000000000
 
 num_clients=len(set(d["user"] for d in job_list_instance.job_list))
 
+manager = MyManager()
+manager.start()
+
 #Build Topolgy
 t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
-network_t = NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
+network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
 
 nodes = [node(row, random.randint(1,1000), network_t, use_net_topology=use_net_topology) for row in range(num_edges)]
 
