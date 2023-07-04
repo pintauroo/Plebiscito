@@ -8,6 +8,8 @@ res/
 
 # C extensions
 *.so
+*.dot
+out
 
 # Distribution / packaging
 .Python

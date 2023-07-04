@@ -18,7 +18,12 @@ def clean_data_as_dataframe(filename):
     
     return df
 
-filenames = ['stefano', 'alpha_GPU_CPU']
+# filenames = ['stefano', 'alpha_GPU_CPU']
+
+basepath = '/home/andrea/Documents/Plebiscito/'
+folder = ''
+filenames = ['stefano', 'alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'zioalessandro_GPU_CPU']
+
 res = []
 
 # for filename_ in filenames:
@@ -56,66 +61,52 @@ res = []
     
 #     pd.DataFrame(norm).to_csv(filename_+"_norm_processed.csv")
 
-# fig, ax = plt.subplots()
-# colors = ["red", "green", "orange", "yellow", "black"]
-    
-# for id, filename_ in enumerate(filenames):
-#     filename = os.path.join('stefano-data', '', str(filename_)+'.csv') 
-#     df = clean_data_as_dataframe(filename)
-    
-#     jini = {}
-    
-#     for index, row in df.iterrows():
-#         sum_cpu = 0
-#         sum_cpu_square = 0
-#         sum_gpu = 0
-#         sum_gpu_square = 0
-        
-#         if "jini_cpu" not in jini:
-#             jini["jini_cpu"] = []
-#             jini["jini_gpu"] = []
-        
-#         for i in range(int(row["n_nodes"])):
-#             sum_cpu += float(row["node_" + str(i) + "_updated_cpu"])
-#             sum_cpu_square += float(row["node_" + str(i) + "_updated_cpu"])**2
-#             sum_gpu += float(row["node_" + str(i) + "_updated_gpu"])
-#             sum_gpu_square += float(row["node_" + str(i) + "_updated_gpu"])**2
-            
-#         jini["jini_cpu"].append(sum_cpu**2 / (int(row["n_nodes"])* sum_cpu_square))
-#         jini["jini_gpu"].append(sum_gpu**2 / (int(row["n_nodes"])* sum_gpu_square))
-        
-#     df = pd.DataFrame(jini)
-#     lower_cpu = df["jini_cpu"].quantile(0.05)
-#     higher_cpu = df["jini_cpu"].quantile(0.95)
-#     lower_gpu = df["jini_gpu"].quantile(0.05)
-#     higher_gpu = df["jini_gpu"].quantile(0.95)
-    
-#     print(f"({lower_cpu},{lower_gpu}), {higher_cpu - lower_cpu}, {higher_gpu- lower_gpu}")
-#     ax.add_patch(Rectangle((lower_cpu, lower_gpu), higher_cpu - lower_cpu, higher_gpu - lower_gpu, alpha=0.4, label=filename_, facecolor=colors[id]))
-    
-# fig.legend()
-# fig.savefig("prova.png")
-
 fig, ax = plt.subplots()
 colors = ["red", "green", "orange", "yellow", "black"]
     
 for id, filename_ in enumerate(filenames):
-    filename = os.path.join('stefano-data', '', str(filename_)+'.csv') 
+    filename = os.path.join(basepath, folder, str(filename_)+'.csv') 
     df = clean_data_as_dataframe(filename)
-    
-    jini = []
+    # df = df[df['alpha'] == 1]
+    a=0.75
+    if filename_ == 'stefano' and a == 0 :
+        print('ktm')
+        df = df[df['alpha'] == 0.1]
+    else:
+        df = df[df['alpha'] == a]
+
+    jini = {}
     
     for index, row in df.iterrows():
-        sum_jini = 0
-        sum_jini_square = 0
+        sum_cpu = 0
+        sum_cpu_square = 0
+        sum_gpu = 0
+        sum_gpu_square = 0
+        
+        if "jini_cpu" not in jini:
+            jini["jini_cpu"] = []
+            jini["jini_gpu"] = []
         
         for i in range(int(row["n_nodes"])):
-            if float(row["node_" + str(i) + "_initial_gpu"]) != 0 and float(row["node_" + str(i) + "_updated_gpu"]) != 0:
-                sum_jini += ((float(row["node_" + str(i) + "_initial_cpu"])/float(row["node_" + str(i) + "_initial_gpu"])) - (float(row["node_" + str(i) + "_updated_cpu"])/float(row["node_" + str(i) + "_updated_gpu"])))
-                sum_jini_square += ((float(row["node_" + str(i) + "_initial_cpu"])/float(row["node_" + str(i) + "_initial_gpu"])) - (float(row["node_" + str(i) + "_updated_cpu"])/float(row["node_" + str(i) + "_updated_gpu"])))**2
+            sum_cpu += float(row["node_" + str(i) + "_updated_cpu"])
+            sum_cpu_square += float(row["node_" + str(i) + "_updated_cpu"])**2
+            sum_gpu += float(row["node_" + str(i) + "_updated_gpu"])
+            sum_gpu_square += float(row["node_" + str(i) + "_updated_gpu"])**2
             
-        jini.append(sum_jini**2 / (int(row["n_nodes"])* sum_jini_square))
+        jini["jini_cpu"].append(sum_cpu**2 / (int(row["n_nodes"])* sum_cpu_square))
+        jini["jini_gpu"].append(sum_gpu**2 / (int(row["n_nodes"])* sum_gpu_square))
         
     df = pd.DataFrame(jini)
+    lower_cpu = df["jini_cpu"].quantile(0.25)
+    higher_cpu = df["jini_cpu"].quantile(0.75)
+    lower_gpu = df["jini_gpu"].quantile(0.25)
+    higher_gpu = df["jini_gpu"].quantile(0.75)
     
-    print(df)
+    print(f"({lower_cpu},{lower_gpu}), {higher_cpu - lower_cpu}, {higher_gpu- lower_gpu}")
+    ax.add_patch(Rectangle((lower_cpu, lower_gpu), higher_cpu - lower_cpu, higher_gpu - lower_gpu, alpha=0.2, label=filename_, color=colors[id], fill=True))
+    ax.set_ylabel('gpu')
+    ax.set_xlabel('cpu')
+
+
+fig.legend()
+fig.savefig("jini_"+str(a)+".pdf")

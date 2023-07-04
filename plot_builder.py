@@ -96,8 +96,6 @@ def clean_data_as_dataframe(filename):
     df = pd.read_csv(filename)
     print(f'Row count of {filename} before clean is: {len(df.index)}')
     
-    #print(df)
-    
     for column in df:
         df.loc[df[column] == -0.0, column] = 0.0
         df = df[df[column]>=0]
@@ -579,9 +577,9 @@ def plot_gpu_cpu_res(df):
 
 
     # Calculate the heights and errors for the bar
-    height_assigned_gpu = np.array(df_lower['tot_gpu']) 
+    height_assigned_gpu = np.array(df_lower['tot_gpu_jobs']) 
     height_unassigned_gpu = np.array(output_used_gpu_lower) 
-    errors_assigned_gpu = (np.array(df_upper['tot_gpu']) - np.array(df_lower['tot_gpu'])) 
+    errors_assigned_gpu = (np.array(df_upper['tot_gpu_jobs']) - np.array(df_lower['tot_gpu_jobs'])) 
     errors_unassigned_gpu = (np.array(output_used_gpu_upper) - np.array(output_used_gpu_lower))
 
     height_assigned_cpu = np.array(tot_cpu_lower) 
@@ -623,34 +621,42 @@ def plot_gpu_cpu_res(df):
 # Main function to run the script
 def main():
     
+    basepath = '/home/andrea/Documents/Plebiscito/'
+    folder = ''
     # Define line styles and colors
     line_styles = ['dotted', 'dashed', 'dashdot', 'dotted', 'dashdot']
     colors = ['blue', 'green', 'red', 'purple', 'orange']
     color_cycle = itertools.cycle(colors)
 
     # Read the data from the CSV file
-    filenames = ['stefano', 'alpha_GPU_CPU']
-    fig, axes = plt.subplots(1, len(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']), figsize=(20, 5))
-    
-    res = {}
+    # filenames = ['alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'stefano_CPU_GPU']
+    filenames = ['stefano', 'alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'zioalessandro_GPU_CPU']
+    fig, axes = plt.subplots(len(filenames), len(['count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']), figsize=(20, 10))
 
     for file_index, filename_ in enumerate(filenames):
         print('ktm')
-        filename = os.path.join('', '', str(filename_)+'.csv') 
+        # filename = os.path.join('risorse_illimitate', 'results', str(filename_)+'.csv') 
+        filename = os.path.join(basepath, folder, str(filename_)+'.csv') 
         resources = filename_.split("_")
         df = clean_data_as_dataframe(filename)
         req = df['alpha'].unique()
         cdf_df = pd.DataFrame()
         
-        color = next(color_cycle)
-        
-        for label_index, label in enumerate(['count_unassigned', 'count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_used_bw']):
-            ax = axes[label_index]
+        for label_index, label in enumerate(['count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_used_bw']):
+            ax = axes[file_index, label_index]
 
             for i in range(len(req)):
-                df_selected = df[df['alpha'] == req[i]]
+                if filename == 'stefano' and req[i] == 0 :
+                    df_selected = df[df['alpha'] == 0.01]
+                else:
+                    df_selected = df[df['alpha'] == req[i]]
                 if 'tot' in label:
-                    column_values = df_selected[label] / df_selected[label.replace("_used", "")]
+                    if 'gpu' in label:
+                        column_values = df_selected['tot_used_gpu'] / df_selected['tot_gpu_nodes'] * 100
+                    elif 'cpu' in label:
+                        column_values = df_selected['tot_used_cpu'] /  df_selected['tot_cpu_nodes'] * 100
+                    elif 'bw' in label:
+                        column_values = df_selected['tot_used_bw'] / df_selected['tot_bw_nodes'] * 100
                 else:
                     column_values = df_selected[label]
 
@@ -658,31 +664,30 @@ def main():
                 cdf = np.arange(1, len(sorted_values) + 1) / len(sorted_values)
 
                 # Create a new DataFrame with the CDF values and corresponding column values
-                cdf_df_ = pd.DataFrame({'CDF': cdf, str(filename_): sorted_values})
+                cdf_df_ = pd.DataFrame({'CDF': cdf, 'Column Values': sorted_values})
 
-                # lbl = None
-                # if req[i] == 0:
-                #     lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[2])
-                # elif req[i] == 1:
-                #     lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[1])
-                # else:
-                #     lbl = '\u03B1=' + str(req[i])
+                lbl = None
+                if filename_ == 'stefano':
+                    lbl = str(req[i]) 
+                elif req[i] == 0:
+                    lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[2])
+                elif req[i] == 1:
+                    lbl = '\u03B1=' + str(req[i]) + ' ' + str(resources[1])
+                else:
+                    lbl = '\u03B1=' + str(req[i])
 
                 # Get the next color from the color cycle
-                
+                color = next(color_cycle)
 
                 # Plotting code with different line styles and colors
-                ax.plot(cdf_df_[filename_], cdf_df_['CDF'], linestyle=line_styles[i % len(line_styles)],
-                        color=color, label=filename_)
-                
-                #print(cdf_df_)
+                ax.plot(cdf_df_['Column Values'], cdf_df_['CDF'], linestyle=line_styles[i % len(line_styles)],
+                        color=color, label=lbl)
 
                 ax.set_xlabel(label)
                 ax.set_ylabel('CDF')
-                ax.grid(True)
-                ax.legend(fontsize=10, loc='upper right')
-        
-        
+                # ax.grid(True)
+                ax.legend(fontsize=10, loc='best')
+
         plt.tight_layout()
 
     # Save the figure with the desired size
@@ -713,5 +718,82 @@ def main():
     # plot_data(df)
 
 
+
+def main2():
+    print('--- Same alpha')
+    basepath = '/home/andrea/Documents/Plebiscito/'
+    folder = ''
+    line_styles = ['-', '--', '-.', ':', '-.']
+    colors = ['blue', 'green', 'red', 'purple', 'orange']
+    filenames = ['stefano', 'alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'zioalessandro_GPU_CPU']
+
+    alfa = {}
+    # filenames = ['stefano']
+    alpha = [0, 0.25, 0.5, 0.75, 1]
+    color_cycle = itertools.cycle(colors)
+
+    for i, a in enumerate(alpha):
+        fig, axes = plt.subplots(1, len(['count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']), figsize=(20, 3))
+
+        print(a)
+        for file_index, filename in enumerate(filenames):
+            color = next(color_cycle)
+
+
+            print(filename)
+    
+            filename_ = os.path.join(basepath, folder, str(filename)+'.csv') 
+
+            df = pd.read_csv(filename_)
+
+            for label_index, label in enumerate(['count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_used_bw']):
+
+                ax = axes[label_index]
+                if filename == 'stefano' and a == 0 :
+                    df_selected = df[df['alpha'] == 0.1]
+                else:
+                    df_selected = df[df['alpha'] == a]
+                
+                if 'tot' in label:
+                    # column_values = df_selected[label] / df_selected[label.replace("_used", "")] * 100
+                    if 'gpu' in label:
+                        column_values = df_selected['tot_used_gpu'] / df_selected['tot_gpu_nodes'] * 100
+                    elif 'cpu' in label:
+                        column_values = df_selected['tot_used_cpu'] /  df_selected['tot_cpu_nodes'] * 100
+                    elif 'bw' in label:
+                        column_values = df_selected['tot_used_bw'] / df_selected['tot_bw_nodes'] * 100
+                else:
+                    column_values = df_selected[label]
+
+                sorted_values = np.sort(column_values)
+                cdf = np.arange(1, len(sorted_values) + 1) / len(sorted_values)
+
+                cdf_df_ = pd.DataFrame({'CDF': cdf, str(filename): sorted_values})
+
+                if a == 0 and filename != 'stefano':
+                    resources = filename.split("_")
+                    ax.plot(cdf_df_[filename], cdf_df_['CDF'], linestyle=line_styles[file_index % len(line_styles)], color=color, label=str(resources[2]))
+
+                elif a == 1 and filename != 'stefano':
+                    resources = filename.split("_")
+                    ax.plot(cdf_df_[filename], cdf_df_['CDF'], linestyle=line_styles[file_index % len(line_styles)], color=color, label=str(resources[1]))
+                else:
+                    ax.plot(cdf_df_[filename], cdf_df_['CDF'], linestyle=line_styles[file_index % len(line_styles)], color=color, label=filename)
+                
+
+
+                ax.set_xlabel(label)
+                ax.set_ylabel('CDF')
+                ax.legend(fontsize=10, loc='best')
+        
+        
+            plt.tight_layout()
+
+        fig.savefig(str(alpha[i])+'.pdf', dpi=900)
+
+
+
+
+
 if __name__ == '__main__':
-    main()
+    main2()
