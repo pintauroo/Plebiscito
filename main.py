@@ -1,6 +1,8 @@
 from multiprocessing import Process, Event, Manager, JoinableQueue
 import src.config as c
 import src.utils as u
+import src.jobs_handler as job
+
 import time
 import sys
 import time
@@ -32,7 +34,7 @@ signal.signal(signal.SIGINT, sigterm_handler)
 main_pid = os.getpid()
 
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
+logging.basicConfig(filename='debug.log', level=TRACE, format='%(message)s', filemode='w')
 # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))
@@ -83,31 +85,8 @@ start_time = time.time()
 job_ids=[]
 print('request_number: ' +str(c.req_number))
 
-if c.use_net_topology:
-    timeout = 3 # don't change it
-else:
-    timeout = 0.2
+job_ids = job.dispatch_job(c.dataset, queues)
 
-for job in c.job_list_instance.job_list:
-    time.sleep(timeout)
-    data = c.message_data(
-                job['job_id'],
-                job['user'],
-                job['num_gpu'],
-                job['num_cpu'],
-                job['duration'],
-                job['job_name'],
-                job['submit_time'],
-                job['gpu_type'],
-                job['num_inst'],
-                job['size'],
-                job['read_count']
-            )
-    #print(data)
-    job_ids.append(job['job_id'])
-    for q in queues:
-        q.put(data)
-    #time.sleep(0.1)
     
 for e in events:
     e.set()

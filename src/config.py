@@ -12,6 +12,7 @@ from src.network_topology import NetworkTopology, TopologyType
 from src.topology import topo
 import pandas as pd
 from multiprocessing.managers import SyncManager
+from src.dataset_builder import generate_dataset
 
 class MyManager(SyncManager): pass
 
@@ -37,7 +38,7 @@ if len(sys.argv) == 6:
     seed = int(sys.argv[5]) + 1
     random.seed(seed)
 
-enable_logging = False 
+enable_logging = True 
 use_net_topology = False
 
 #NN model
@@ -46,12 +47,14 @@ min_layer_number = 3 #Min number of layers per node
 max_layer_number = 3 #Max number of layers per node
 
 
-dataset='./df_dataset.csv'
+# dataset='./df_dataset.csv'
+
+dataset = generate_dataset(req_number)
 
 #Data analisys
-job_list_instance = JobList(dataset, num_jobs_limit=req_number, seed=random.randint(1, 1000))
-job_list_instance.select_jobs()
-job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find jobs by id
+# job_list_instance = JobList(dataset, num_jobs_limit=req_number)
+# job_list_instance.select_jobs()
+# job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find jobs by id
 
 #df_jobs = pd.read_csv(dataset)
 
@@ -65,10 +68,15 @@ job_dict = {job['job_id']: job for job in job_list_instance.job_list} # to find 
 tot_gpu = 0 
 tot_cpu = 0 
 tot_bw = 0 
-for d in job_list_instance.job_list:
+for index, d in dataset.iterrows():
     tot_gpu += d["num_gpu"] 
     tot_cpu += d["num_cpu"] 
-    tot_bw += float(d['read_count'])
+    tot_bw += float(d['bw'])
+
+
+node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges
+node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges
+node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges
 
 print('cpu: ' +str(tot_cpu))
 print('gpu: ' +str(tot_gpu))
@@ -79,16 +87,16 @@ if tot_gpu != 0:
 else:
     print('cpu_gpu_ratio: <inf>')
     
-node_gpu=float(tot_gpu/num_edges)
-node_cpu=float(tot_cpu/num_edges)
-node_bw=float(tot_bw/num_edges)
+# node_gpu=float(tot_gpu/num_edges)
+# node_cpu=float(tot_cpu/num_edges)
+# node_bw=float(tot_bw/num_edges)
 # node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
 # node_gpu = 10000000000
 # node_cpu = 10000000000
 # node_bw = 10000000000
 
-num_clients=len(set(d["user"] for d in job_list_instance.job_list))
+num_clients=3
 
 manager = MyManager()
 manager.start()
@@ -97,49 +105,6 @@ manager.start()
 t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
 network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
 
+
+
 nodes = [node(row, random.randint(1,1000), network_t, use_net_topology=use_net_topology) for row in range(num_edges)]
-
-
-def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time, gpu_type, num_inst, size, bandwidth):
-    
-    gpu = round(num_gpu / layer_number, 2)
-    cpu = round(num_cpu / layer_number, 2)
-    bw = round(float(bandwidth) / 2, 2)
-    # bw = round(float(bandwidth) / min_layer_number, 2)
-
-    NN_gpu = np.ones(layer_number) * gpu
-    NN_cpu = np.ones(layer_number) * cpu
-    NN_data_size = np.ones(layer_number) * bw
-    
-    data = {
-        "job_id": int(),
-        "user": int(),
-        "num_gpu": int(),
-        "num_cpu": int(),
-        "duration": int(),
-        "job_name": int(),
-        "submit_time": int(),
-        "gpu_type": int(),
-        "num_inst": int(),
-        "size": int(),
-        "edge_id":int(),
-        "NN_gpu": NN_gpu,
-        "NN_cpu": NN_cpu,
-        "NN_data_size": NN_data_size
-        }
-
-
-    data['edge_id']=None
-    data['job_id']=job_id
-    data['user']=user
-    data['num_gpu']=num_gpu
-    data['num_cpu']=num_cpu
-    data['duration']=duration
-    data['job_name']=job_name
-    data['submit_time']=submit_time
-    data['gpu_type']=gpu_type
-    data['num_inst']=num_inst
-    data['size']=size
-    data['job_id']=job_id
-
-    return data
