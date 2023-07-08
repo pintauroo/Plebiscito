@@ -38,14 +38,8 @@ if len(sys.argv) == 6:
     seed = int(sys.argv[5]) + 1
     random.seed(seed)
 
-enable_logging = True 
+enable_logging = False 
 use_net_topology = False
-
-#NN model
-layer_number = 6 
-min_layer_number = 3 #Min number of layers per node
-max_layer_number = 3 #Max number of layers per node
-
 
 # dataset='./df_dataset.csv'
 
@@ -74,9 +68,9 @@ for index, d in dataset.iterrows():
     tot_bw += float(d['bw'])
 
 
-node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges
-node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges
-node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges
+node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges *40
+node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges *40
+node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges *40
 
 print('cpu: ' +str(tot_cpu))
 print('gpu: ' +str(tot_gpu))

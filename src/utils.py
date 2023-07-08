@@ -31,12 +31,12 @@ def wrong_bids_calc(nodes, job):
                     wrong_ids.append(curr_node)
                     first_time = True
                     index=0
-                    while index<c.layer_number:
+                    while index<len(nodes[curr_node].bids[j]['auction_id']):
                         if nodes[curr_node].bids[j]['auction_id'][index] == curr_node and id != float('-inf'):
-                            nodes[curr_node].updated_cpu += float(job['num_cpu']) / float(c.layer_number)
-                            nodes[curr_node].updated_gpu += float(job['num_gpu']) / float(c.layer_number)
+                            nodes[curr_node].updated_cpu += float(job['num_cpu']) / float(len(nodes[curr_node].bids[j]['auction_id']))
+                            nodes[curr_node].updated_gpu += float(job['num_gpu']) / float(len(nodes[curr_node].bids[j]['auction_id']))
                             if first_time:
-                                nodes[curr_node].updated_bw += float(job['bw']) / float(c.min_layer_number)
+                                nodes[curr_node].updated_bw += float(job['bw']) / float(len(nodes[curr_node].bids[j]['auction_id']))
                                 first_time = False
                         index += 1
         else:

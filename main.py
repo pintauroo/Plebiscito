@@ -34,7 +34,7 @@ signal.signal(signal.SIGINT, sigterm_handler)
 main_pid = os.getpid()
 
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=TRACE, format='%(message)s', filemode='w')
+logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
 # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))

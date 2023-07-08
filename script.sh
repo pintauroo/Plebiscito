@@ -2,7 +2,7 @@
 max_rep=30
 num_edges=10
 req_number=100
-timeout=100  # Set a timeout of 300 seconds (5 minutes)
+timeout=200  # Set a timeout of 300 seconds (5 minutes)
 pid=0
 
 trap on_sigint SIGINT
@@ -26,7 +26,7 @@ mkdir -p "res" > /dev/null 2>&1
 
 for filename in "${strings[@]}"; do
     echo $filename
-    for i in $(seq 0.0 0.25 1); do
+    for i in $(seq 0.0 0.5 1); do
 
         mkdir -p ./"res"/"$filename"/"$i"/
         for b in `seq 0 $max_rep`; do

@@ -1,3 +1,4 @@
+import random
 import time
 import src.config as c
 import numpy as np
@@ -38,14 +39,18 @@ def dispatch_job(dataset, queues):
 # def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time, gpu_type, num_inst, size, bandwidth):
 def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
     
-    gpu = round(num_gpu / c.layer_number, 2)
-    cpu = round(num_cpu / c.layer_number, 2)
+    min_l = 3
+    max_l = 6
+    layer_number = random.randint(min_l, max_l)
+    
+    gpu = round(num_gpu / layer_number, 2)
+    cpu = round(num_cpu / layer_number, 2)
     bw = round(float(bandwidth) / 2, 2)
     # bw = round(float(bandwidth) / min_layer_number, 2)
 
-    NN_gpu = np.ones(c.layer_number) * gpu
-    NN_cpu = np.ones(c.layer_number) * cpu
-    NN_data_size = np.ones(c.layer_number) * bw
+    NN_gpu = np.ones(layer_number) * gpu
+    NN_cpu = np.ones(layer_number) * cpu
+    NN_data_size = np.ones(layer_number) * bw
     
     data = {
         "job_id": int(),
@@ -53,6 +58,9 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
         "num_gpu": int(),
         "num_cpu": int(),
         "duration": int(),
+        "N_layer": len(NN_gpu),
+        "N_layer_min": 1, # Do not change!! This could be either 1 or = to N_layer_max
+        "N_layer_max": layer_number - random.randint(0, min_l),
         # "job_name": int(),
         # "submit_time": int(),
         # "gpu_type": int(),
