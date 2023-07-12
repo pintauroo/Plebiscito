@@ -2,6 +2,7 @@ import random
 import time
 import src.config as c
 import numpy as np
+import sys
 
 def dispatch_job(dataset, queues):
     job_ids=[]
@@ -41,7 +42,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
     
     min_l = 3
     max_l = 6
-    layer_number = random.randint(min_l, max_l)
+    layer_number = int(sys.argv[5]) #  c.num_edges #random.randint(min_l, max_l)
     
     gpu = round(num_gpu / layer_number, 2)
     cpu = round(num_cpu / layer_number, 2)
@@ -60,7 +61,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
         "duration": int(),
         "N_layer": len(NN_gpu),
         "N_layer_min": 1, # Do not change!! This could be either 1 or = to N_layer_max
-        "N_layer_max": layer_number - random.randint(0, min_l),
+        "N_layer_max": 1, # layer_number - random.randint(0, min_l),
         # "job_name": int(),
         # "submit_time": int(),
         # "gpu_type": int(),

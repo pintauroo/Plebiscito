@@ -34,11 +34,12 @@ num_edges = int(sys.argv[3]) #Nodes number
 filename = str(sys.argv[4])
 
 seed = None
-if len(sys.argv) == 6:
-    seed = int(sys.argv[5]) + 1
-    random.seed(seed)
+# if len(sys.argv) == 6:
+#     seed = int(sys.argv[5]) + 1
+#     random.seed(seed)
 
-enable_logging = False 
+enable_logging = True 
+# enable_logging = False 
 use_net_topology = False
 
 # dataset='./df_dataset.csv'
@@ -68,9 +69,13 @@ for index, d in dataset.iterrows():
     tot_bw += float(d['bw'])
 
 
-node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges *40
-node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges *40
-node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges *40
+# node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges *40
+# node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges *40
+# node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges *40
+
+node_cpu = tot_cpu * 10
+node_gpu = tot_gpu * 10
+node_bw =  tot_bw * 10
 
 print('cpu: ' +str(tot_cpu))
 print('gpu: ' +str(tot_gpu))
@@ -96,9 +101,9 @@ manager = MyManager()
 manager.start()
 
 #Build Topolgy
-t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
-network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
-
+t = topo(func_name='complete_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
+# network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
+network_t=None
 
 
 nodes = [node(row, random.randint(1,1000), network_t, use_net_topology=use_net_topology) for row in range(num_edges)]

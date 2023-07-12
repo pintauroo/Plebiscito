@@ -73,6 +73,11 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     
     field_names = ['n_nodes', 'n_req', 'n_msg', 'exec_time', 'alpha', 'tot_utility', 'jaini']
     dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'n_msg' : msg_count, 'exec_time': time, 'alpha': alpha}
+    for i in range(num_edges):
+        for _, job in c.dataset.iterrows():
+            j = job['job_id']
+            field_names.append('node_'+str(i)+'_job_'+str(int(j))+'_count')
+            dictionary['node_'+str(i)+'_job_'+str(int(j))+'_count'] = nodes[i].bids[j]['count']
 
     # ---------------------------------------------------------
     # calculate assigned jobs, update resources if job not assigned
@@ -98,17 +103,26 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         j = job['job_id']
         # Check correctness of all bids
         equal_values = True 
+        print('------------------------------------------------------------------')
         print('job_id: ' +str(j))
         
-        # for i in range(0, c.num_edges):
-        #     print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
-        #     print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
-        #     print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
-        #     print('')
+        for i in range(0, c.num_edges):
+            # print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
+            print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
+            print('nodeid: ' + str(i) + ' count: ' +str(c.nodes[i].bids[j]['count']))
+            # print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
+            # print('')
         for i in range(1, c.num_edges):
+            
+            if nodes[i].bids[j]['bid'] != nodes[i-1].bids[j]['bid']:
+                print('BROKEN BID id: ' + str(j))
+
+            if nodes[i].bids[j]['timestamp'] != nodes[i-1].bids[j]['timestamp']:
+                print('BROKEN TIMESTAMP id: ' + str(j))
+
             if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
                 count_broken += 1
-                print('BROKEN BID id: ' + str(j))
+                print('BROKEN AUCTION id: ' + str(j))
                 equal_values = False
                 break
         

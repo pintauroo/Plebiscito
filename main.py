@@ -34,7 +34,9 @@ signal.signal(signal.SIGINT, sigterm_handler)
 main_pid = os.getpid()
 
 logging.addLevelName(TRACE, "TRACE")
-logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
+# trace_level = INFO
+trace_level = TRACE
+logging.basicConfig(filename='debug.log', level=trace_level, format='%(message)s', filemode='w')
 # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 logging.debug('Clients number: ' + str(c.num_clients))
@@ -118,8 +120,12 @@ for j in job_ids:
             print(c.nodes[i].bids)
             print(str(c.nodes[i].id) + ' ' +str(j))
         # print('ktm')
+        time_strings = [nodets.strftime('%M:%S.%f')[:-3] for nodets in c.nodes[i].bids[j]['timestamp']]
+
         logging.info(
-            str(c.nodes[i].bids[j]['auction_id']) + 
+            str(c.nodes[i].bids[j]['auction_id']) + '; ' +
+            str(' '.join(time_strings)) +  '; ' +
+            str(c.nodes[i].bids[j]['bid']) +  '; ' +
             ' id: ' + str(c.nodes[i].id) + 
             ' used_tot_gpu: ' + str(c.nodes[i].initial_gpu)+' - ' +str(c.nodes[i].updated_gpu)  + ' = ' +str(c.nodes[i].initial_gpu - c.nodes[i].updated_gpu) + 
             ' used_tot_cpu: ' + str(c.nodes[i].initial_cpu)+' - ' +str(c.nodes[i].updated_cpu)  + ' = ' +str(c.nodes[i].initial_cpu - c.nodes[i].updated_cpu) + 

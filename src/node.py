@@ -32,7 +32,7 @@ class node:
             self.network_topology = network_topology
             self.initial_bw = network_topology.get_node_direct_link_bw(self.id)
         else:
-            self.initial_bw = network_topology.get_node_direct_link_bw(self.id)
+            self.initial_bw = 10000000 #network_topology.get_node_direct_link_bw(self.id)
             self.updated_bw = self.initial_bw
            
             
@@ -106,6 +106,8 @@ class node:
 
 
     def forward_to_neighbohors(self, custom_dict=None):
+        self.bids[self.item['job_id']]['forward_count']+=1
+
         if config.enable_logging:
             self.print_node_state('FORWARD', True)
         if custom_dict == None:
@@ -118,7 +120,6 @@ class node:
                         "NN_cpu": self.item['NN_cpu'],
                         "NN_data_size": self.item['NN_data_size'], 
                         "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
-                        "x": copy.deepcopy(self.bids[self.item['job_id']]['x']), 
                         "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp']),
                         "N_layer": self.item["N_layer"],
                         "N_layer_min": self.item["N_layer_min"],
@@ -134,7 +135,6 @@ class node:
                         "NN_cpu": self.item['NN_cpu'],
                         "NN_data_size": self.item['NN_data_size'], 
                         "bid": copy.deepcopy(custom_dict['bid']), 
-                        "x": copy.deepcopy(custom_dict['x']), 
                         "timestamp": copy.deepcopy(custom_dict['timestamp']),
                         "N_layer": self.item["N_layer"],
                         "N_layer_min": self.item["N_layer_min"],
@@ -167,14 +167,12 @@ class node:
     def update_local_val(self, tmp, index, id, bid, timestamp):
         tmp['job_id'] = self.item['job_id']
         tmp['auction_id'][index] = id
-        tmp['x'][index] = 1
         tmp['bid'][index] = bid
         tmp['timestamp'][index] = timestamp
         return index + 1
     
     def reset(self, index, dict):
         dict['auction_id'][index] = float('-inf')
-        dict['x'][index] = 0
         dict['bid'][index]= float('-inf')
         dict['timestamp'][index]=datetime.now() - timedelta(days=1)
         return index + 1
@@ -183,10 +181,10 @@ class node:
     def init_null(self):
         #print("hello")
         self.bids[self.item['job_id']]={
-            "count":int(),
-            "consensus_count":int(),
-            "forward_count":int(),
-            "deconflictions":int(),
+            "count":0,
+            "consensus_count":0,
+            "forward_count":0,
+            "deconflictions":0,
             "job_id": self.item['job_id'], 
             "user": int(), 
             "auction_id": list(), 
@@ -205,7 +203,6 @@ class node:
         NN_len = len(self.item['NN_gpu'])
         
         for _ in range(0, NN_len):
-            self.bids[self.item['job_id']]['x'].append(float('-inf'))
             self.bids[self.item['job_id']]['bid'].append(float('-inf'))
             self.bids[self.item['job_id']]['bid_gpu'].append(float('-inf'))
             self.bids[self.item['job_id']]['bid_cpu'].append(float('-inf'))
@@ -231,7 +228,6 @@ class node:
         first = True
         gpu_=0
         cpu_=0
-        job_id_counter = 0
         first_index = None
         layers = 0
         bw_with_client = False
@@ -270,13 +266,11 @@ class node:
                             gpu_ += self.item['NN_gpu'][i]
                             cpu_ += self.item['NN_cpu'][i]
 
-                            tmp_bid['x'][i]=(1)
                             tmp_bid['auction_id'][i]=(self.id)
                             tmp_bid['timestamp'][i] = datetime.now()
                             layers += 1
                     else:
                         sequence = False
-                        tmp_bid['x'][i]=(float('-inf'))
                         tmp_bid['bid'][i]=(float('-inf'))
                         tmp_bid['auction_id'][i]=(float('-inf'))
                         tmp_bid['timestamp'][i] = (datetime.now() - timedelta(days=1))
@@ -311,8 +305,7 @@ class node:
                     self.updated_gpu -= gpu_
                     self.updated_cpu -= cpu_
 
-                    job_id_counter += 1
-                    self.bids[self.item['job_id']]['count'] = job_id_counter
+                    # self.bids[self.item['job_id']]['count'] += 1
                     
                     if enable_forward:
                         self.forward_to_neighbohors()
@@ -757,9 +750,9 @@ class node:
                         float('-inf') in self.bids[self.item['job_id']]['auction_id']:
                             self.bid()
                     else:
+                        self.bids[self.item['job_id']]['consensus_count']+=1
                         if config.enable_logging:
                             self.print_node_state('Consensus -', True)
-                            self.bids[self.item['job_id']]['consensus_count']+=1
                             # pass
                     
             else:
@@ -860,13 +853,11 @@ class node:
                                     self.updated_cpu += self.last_bid_timestamp[key]["item"]['NN_cpu'][index]
                                     self.updated_gpu += self.last_bid_timestamp[key]["item"]['NN_gpu'][index]
                                 self.bids[key]['auction_id'][index] = float('-inf')
-                                self.bids[key]['x'][index] = float('-inf')
                                 
                             self.updated_bw += self.last_bid_timestamp[key]["item"]['NN_data_size'][0]
                         elif inf_found:
                             for id in range(len(self.bids[key]['auction_id'])):
                                 self.bids[key]['auction_id'][id] = float('-inf')
-                                self.bids[key]['x'][index] = float('-inf')
             
     def progress_bid_rounds(self, item): 
         prev_n_bet = 0    
@@ -910,7 +901,8 @@ class node:
                     #     "timestamp": datetime.now(),
                     #     "item": copy.deepcopy(self.item)
                     # }
-                    self.use_queue[self.id].set()                    
+                    self.use_queue[self.id].set()        
+            
                         
                     
                     #print(self.item)
@@ -945,6 +937,8 @@ class node:
                             self.print_node_state('IF2 q:' + str(self.q[self.id].qsize()))
                         
                         self.update_bid()
+
+                    self.bids[self.item['job_id']]['count'] += 1
 
                     self.q[self.id].task_done()
                     
