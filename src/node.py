@@ -763,7 +763,7 @@ class node:
                 if tmp_local["auction_id"][i] == self.id and prev_bet["auction_id"][i] == self.id:
                     pass
                 elif tmp_local["auction_id"][i] == self.id and prev_bet["auction_id"][i] != self.id:
-                    self.release_reserved_resources(self.item['job_id'], i)
+                    # self.release_reserved_resources(self.item['job_id'], i)
                     cpu -= self.item['NN_cpu'][i]
                     gpu -= self.item['NN_gpu'][i]
                     if not first_1:
@@ -835,7 +835,7 @@ class node:
                 if self.item["auction_id"][i] == self.id and prev_bet["auction_id"][i] == self.id:
                     pass
                 elif self.item["auction_id"][i] == self.id and prev_bet["auction_id"][i] != self.id:
-                    self.release_reserved_resources(self.item['job_id'], i)
+                    # self.release_reserved_resources(self.item['job_id'], i)
                     cpu -= self.item['NN_cpu'][i]
                     gpu -= self.item['NN_gpu'][i]
                     if not first_1:

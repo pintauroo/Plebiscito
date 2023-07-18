@@ -38,7 +38,7 @@ if len(sys.argv) == 6:
     seed = int(sys.argv[5]) + 1
     random.seed(seed)
 
-enable_logging = True 
+enable_logging = False 
 use_net_topology = False
 
 # dataset='./df_dataset.csv'
