@@ -40,15 +40,15 @@ def dispatch_job(dataset, queues):
 # def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time, gpu_type, num_inst, size, bandwidth):
 def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
     
-    min_l = 4
+    min_l = 3
     max_l = 6
-    # layer_number = random.randint(min_l, max_l)
-    layer_number = int(sys.argv[5])
+    layer_number = random.randint(min_l, max_l)
+    # layer_number = int(sys.argv[5])
 
     
-    gpu = round(num_gpu / layer_number, 2)
-    cpu = round(num_cpu / layer_number, 2)
-    bw = round(float(bandwidth) / 2, 2)
+    gpu = round(num_gpu / layer_number, 6)
+    cpu = round(num_cpu / layer_number, 6)
+    bw = round(float(bandwidth) / 2, 6)
     # bw = round(float(bandwidth) / min_layer_number, 2)
 
     NN_gpu = np.ones(layer_number) * gpu
@@ -63,7 +63,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
         "duration": int(),
         "N_layer": len(NN_gpu),
         "N_layer_min": 1, # Do not change!! This could be either 1 or = to N_layer_max
-        "N_layer_max": 1, # random.randint(1, min_l),
+        "N_layer_max": layer_number - random.randint(0, min_l-1),
         # "job_name": int(),
         # "submit_time": int(),
         # "gpu_type": int(),

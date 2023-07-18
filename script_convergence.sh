@@ -5,6 +5,8 @@ max_rep=10
 timeout=300  # Set a timeout of 300 seconds (5 minutes)
 pid=0
 
+export LANG=en_US
+
 trap on_sigint SIGINT
 on_sigint() { 
     kill "-INT" "$pid"

@@ -21,7 +21,7 @@ def wrong_bids_calc(nodes, job):
         if nodes[curr_node].bids[j]['auction_id'] not in wrong_bids:
             print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
             # print('Unmatching x: ' +str(c.nodes[curr_node].bids[j]['x']))
-            if all(x == float('-inf') for x in nodes[curr_node].bids[j]['x']):
+            if all(x == float('-inf') for x in nodes[curr_node].bids[j]['auction_id']):
                 continue
             else:
                 # print('(wrong_bids_calc) NON matching: ' +str(wrong_ids))
