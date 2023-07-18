@@ -42,8 +42,8 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
     
     min_l = 4
     max_l = 6
-    layer_number = random.randint(min_l, max_l)
-    # layer_number = int(sys.argv[5])
+    # layer_number = random.randint(min_l, max_l)
+    layer_number = int(sys.argv[5])
 
     
     gpu = round(num_gpu / layer_number, 2)
@@ -63,7 +63,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
         "duration": int(),
         "N_layer": len(NN_gpu),
         "N_layer_min": 1, # Do not change!! This could be either 1 or = to N_layer_max
-        "N_layer_max": random.randint(1, min_l),
+        "N_layer_max": 1, # random.randint(1, min_l),
         # "job_name": int(),
         # "submit_time": int(),
         # "gpu_type": int(),

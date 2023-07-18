@@ -97,8 +97,8 @@ manager.start()
 
 #Build Topolgy
 t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
-network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
+# network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
 
 
 
-nodes = [node(row, random.randint(1,1000), network_t, use_net_topology=use_net_topology) for row in range(num_edges)]
+nodes = [node(row, random.randint(1,1000), None, use_net_topology=use_net_topology) for row in range(num_edges)]
