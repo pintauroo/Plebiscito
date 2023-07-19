@@ -948,9 +948,11 @@ class node:
                 self.bids[self.item['job_id']]['bid'] == self.item['bid'] and \
                 self.bids[self.item['job_id']]['timestamp'] == self.item['timestamp']:
                     
-                    if  self.id not in self.bids[self.item['job_id']]['auction_id'] and \
-                        float('-inf') in self.bids[self.item['job_id']]['auction_id']:
+                    if float('-inf') in self.bids[self.item['job_id']]['auction_id']:
+                        if self.id not in self.bids[self.item['job_id']]['auction_id']: 
                             self.bid()
+                        else:
+                            self.forward_to_neighbohors()
                     else:
                         if config.enable_logging:
                             self.print_node_state('Consensus -', True)
@@ -1170,7 +1172,8 @@ class node:
                         if config.enable_logging:
                             self.print_node_state('IF2 q:' + str(self.q[self.id].qsize()))
                         
-                        self.bid(False)
+                        if self.id not in self.item['auction_id']:
+                            self.bid(False)
                         self.update_bid()
 
                     self.q[self.id].task_done()
