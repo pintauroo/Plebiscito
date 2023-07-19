@@ -36,9 +36,9 @@ class node:
         self.resource_remind = {}
 
         # it is not possible to have NN with more than 50 layers
-        self.cum_cpu_reserved = [0.0 for _ in range(25)]
-        self.cum_gpu_reserved = [0.0 for _ in range(25)]
-        self.cum_bw_reserved = [0.0 for _ in range(25)]
+        self.cum_cpu_reserved = 0
+        self.cum_gpu_reserved = 0
+        self.cum_bw_reserved = 0
         
         # if use_net_topology:
         #     self.network_topology = network_topology
@@ -892,9 +892,9 @@ class node:
         self.resource_remind[job_id]["idx"] += idx
 
         for id in idx:
-            self.cum_cpu_reserved[id] += cpu
-            self.cum_gpu_reserved[id] += gpu
-            self.cum_bw_reserved[id] += bw
+            self.cum_cpu_reserved += cpu
+            self.cum_gpu_reserved += gpu
+            self.cum_bw_reserved += bw
 
         # self.resource_remind[job_id]["idx"] = list(set(self.resource_remind[job_id]["idx"]))
 
@@ -912,7 +912,7 @@ class node:
         if found == 0:
             return 0, 0, 0
 
-        return math.ceil(self.cum_cpu_reserved[index]), math.ceil(self.cum_gpu_reserved[index]), math.ceil(self.cum_bw_reserved[index])
+        return math.ceil(self.cum_cpu_reserved), math.ceil(self.cum_gpu_reserved), math.ceil(self.cum_bw_reserved)
 
     def release_reserved_resources(self, job_id, index):
         if job_id not in self.resource_remind:
@@ -925,12 +925,10 @@ class node:
                 self.updated_gpu += self.resource_remind[job_id]["gpu"]
                 self.updated_bw += self.resource_remind[job_id]["bw"]
 
-                self.cum_cpu_reserved[index] -= self.resource_remind[job_id]["cpu"]
-                self.cum_gpu_reserved[index] -= self.resource_remind[job_id]["gpu"]
-                self.cum_bw_reserved[index] -= self.resource_remind[job_id]["bw"]
+                self.cum_cpu_reserved -= self.resource_remind[job_id]["cpu"]
+                self.cum_gpu_reserved -= self.resource_remind[job_id]["gpu"]
+                self.cum_bw_reserved -= self.resource_remind[job_id]["bw"]
 
-                if self.cum_cpu_reserved[index] < 0:
-                    print(self.cum_cpu_reserved[index])
                 found += 1
                 
         if found > 0:
