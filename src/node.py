@@ -1220,7 +1220,7 @@ class node:
                             
                             self.update_bid()
                         
-                        if progress_flag:
+                        if config.progress_flag:
                             self.progress_time()
                         self.bids[self.item['job_id']]['count'] += 1               
                         
