@@ -72,6 +72,46 @@ class node:
         self.q = q
         self.use_queue = use_queue
         self.use_queue[self.id].clear()
+    
+    def init_null(self):
+        # print(self.item['duration'])
+        self.bids[self.item['job_id']]={
+            "count":0,
+            "consensus_count":0,
+            "forward_count":0,
+            "deconflictions":0,
+            "job_id": self.item['job_id'], 
+            "user": int(), 
+            "auction_id": list(), 
+            "NN_gpu": self.item['NN_gpu'], 
+            "NN_cpu": self.item['NN_cpu'], 
+            "bid": list(), 
+            "bid_gpu": list(), 
+            "bid_cpu": list(), 
+            "bid_bw": list(), 
+            "timestamp": list(),
+            "start_time": 0, #datetime.now(),
+            "progress_time": 0, #datetime.now(),
+            "duration": random.randint(100, 10000), #self.item['duration'],
+            "complete":False
+            }
+        
+        self.layer_bid_already[self.item['job_id']] = [False] * self.item["N_layer"]
+
+        self.available_gpu_per_task[self.item['job_id']] = self.updated_gpu
+        self.available_cpu_per_task[self.item['job_id']] = self.updated_cpu
+        if not self.use_net_topology:
+            self.available_bw_per_task[self.item['job_id']] = self.updated_bw
+        
+        NN_len = len(self.item['NN_gpu'])
+        
+        for _ in range(0, NN_len):
+            self.bids[self.item['job_id']]['bid'].append(float('-inf'))
+            self.bids[self.item['job_id']]['bid_gpu'].append(float('-inf'))
+            self.bids[self.item['job_id']]['bid_cpu'].append(float('-inf'))
+            self.bids[self.item['job_id']]['bid_bw'].append(float('-inf'))
+            self.bids[self.item['job_id']]['auction_id'].append(float('-inf'))
+            self.bids[self.item['job_id']]['timestamp'].append(datetime.now() - timedelta(days=1))
 
     def utility_function(self, avail_bw, avail_cpu, avail_gpu):
         def f(x, alpha, beta):
@@ -223,42 +263,7 @@ class node:
         return index + 1
 
 
-    def init_null(self):
-        #print("hello")
-        self.bids[self.item['job_id']]={
-            "count":int(),
-            "consensus_count":int(),
-            "forward_count":int(),
-            "deconflictions":int(),
-            "job_id": self.item['job_id'], 
-            "user": int(), 
-            "auction_id": list(), 
-            "NN_gpu": self.item['NN_gpu'], 
-            "NN_cpu": self.item['NN_cpu'], 
-            "bid": list(), 
-            "bid_gpu": list(), 
-            "bid_cpu": list(), 
-            "bid_bw": list(), 
-            "x": list(), 
-            "timestamp": list()
-            }
-        
-        self.layer_bid_already[self.item['job_id']] = [False] * self.item["N_layer"]
 
-        self.available_gpu_per_task[self.item['job_id']] = self.updated_gpu
-        self.available_cpu_per_task[self.item['job_id']] = self.updated_cpu
-        if not self.use_net_topology:
-            self.available_bw_per_task[self.item['job_id']] = self.updated_bw
-        
-        NN_len = len(self.item['NN_gpu'])
-        
-        for _ in range(0, NN_len):
-            self.bids[self.item['job_id']]['bid'].append(float('-inf'))
-            self.bids[self.item['job_id']]['bid_gpu'].append(float('-inf'))
-            self.bids[self.item['job_id']]['bid_cpu'].append(float('-inf'))
-            self.bids[self.item['job_id']]['bid_bw'].append(float('-inf'))
-            self.bids[self.item['job_id']]['auction_id'].append(float('-inf'))
-            self.bids[self.item['job_id']]['timestamp'].append(datetime.now() - timedelta(days=1))
 
     def bid(self, enable_forward=True):
         proceed = True
@@ -377,8 +382,6 @@ class node:
                     # if self.available_cpu_per_task[self.item['job_id']] < 0 or self.available_gpu_per_task[self.item['job_id']] < 0:
                     #     print("mannaggia la miseria")
 
-                    job_id_counter += 1
-                    self.bids[self.item['job_id']]['count'] = job_id_counter
                     
                     if enable_forward:
                         self.forward_to_neighbohors()
@@ -971,6 +974,9 @@ class node:
                     
                 if not success and rebroadcast:
                     self.forward_to_neighbohors()
+                elif float('-inf') in self.bids[self.item['job_id']]['auction_id']:
+                    self.forward_to_neighbohors()
+
 
         else:
             if config.enable_logging:
@@ -1113,7 +1119,34 @@ class node:
                     self.q[self.id].put(item)
                 else:
                     break
-        
+
+    def progress_time(self):
+
+        for job in self.bids:
+                
+            if ((float('-inf') not in self.bids[job]['auction_id'] and self.bids[job]['count'] > config.num_edges*len(self.bids[job]['auction_id'])) or self.q[self.id].qsize()<=1) and \
+                not self.bids[job]['complete']:
+                
+                self.bids[job]['progress_time'] = self.bids[job]['progress_time'] + 1 # timedelta(seconds=1)
+                if int((self.bids[job]['progress_time'] - self.bids[job]['start_time'])) >= int(self.bids[job]['duration']):
+                    print('node:' + str(self.id) + ' DONE ' + str(job) + ' count:' + str(self.bids[job]['count']) + ' q:' + str(self.q[self.id].qsize()))
+                    self.bids[job]['complete']=True
+
+                    if self.id in self.bids[job]['auction_id']:
+                        for ind, id in enumerate(self.bids[job]['auction_id']):
+                            if self.id==id:
+                                print('before node:' + str(self.id) + ' available GPU:' + str(self.updated_gpu)+ ' initial CPU:' + str(self.initial_gpu) +' available CPU:' + str(self.updated_cpu)+' initial CPU:' + str(self.initial_cpu) )
+
+                                self.updated_gpu+=self.bids[job]['NN_gpu'][ind]
+                                self.updated_cpu+=self.bids[job]['NN_cpu'][ind]
+
+                                print('after node:' + str(self.id) + ' available GPU:' + str(self.updated_gpu)+ ' initial CPU:' + str(self.initial_gpu) +' available CPU:' + str(self.updated_cpu)+' initial CPU:' + str(self.initial_cpu) )
+
+
+                else:
+                    if self.q[self.id].qsize()<=1:
+                        self.q[self.id].put({'progress_time':True})
+
     
     def work(self, event, notify_start, ret_val):
         notify_start.set()
@@ -1126,55 +1159,73 @@ class node:
         # t.start()
         
         while True:
+
+            
             try: 
-                self.item = self.q[self.id].get(timeout=timeout)
-                self.counter += 1
                 
-                with self.last_bid_timestamp_lock:
-                    # self.last_bid_timestamp[self.item['job_id']] = {
-                    #     "timestamp": datetime.now(),
-                    #     "item": copy.deepcopy(self.item)
-                    # }
-                    self.use_queue[self.id].set()                    
-                        
+                self.item = self.q[self.id].get(timeout=timeout)
+                if 'progress_time' in self.item:
+                    # print(str(self.id)+str('\n'))
+                    self.progress_time()
+                else:
+                    self.counter += 1
                     
-                    #print(self.item)
-                    #print(self.item['user'] not in self.user_requests)
-                    #print(self.item['edge_id'] is None)
-                    # check msg type
-                    
-                    flag = False
-                    # new request from client
-                    if self.item['edge_id'] is None:
-                        flag = True
+                    with self.last_bid_timestamp_lock:
+                        # self.last_bid_timestamp[self.item['job_id']] = {
+                        #     "timestamp": datetime.now(),
+                        #     "item": copy.deepcopy(self.item)
+                        # }
+                        self.use_queue[self.id].set()     
 
-                    if self.item['job_id'] not in self.bids:
-                        self.init_null()
-                        
-                        if self.use_net_topology:    
-                            with self.__layer_bid_lock:
-                                self.__layer_bid[self.item["job_id"]] = 0
-
-                            e = Event()
-                            e.set()
-                            self.__layer_bid_events[self.item["job_id"]] = e 
-                        
-                            threading.Thread(target=self.progress_bid_rounds, args=(copy.deepcopy(self.item),)).start()
                             
-                        if config.enable_logging:
-                            self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
                         
-                        self.bid(flag)
-                    
-                    if not flag:
-                        if config.enable_logging:
-                            self.print_node_state('IF2 q:' + str(self.q[self.id].qsize()))
+                        #print(self.item)
+                        #print(self.item['user'] not in self.user_requests)
+                        #print(self.item['edge_id'] is None)
+                        # check msg type
                         
-                        if self.id not in self.item['auction_id']:
-                            self.bid(False)
-                        self.update_bid()
+                        flag = False
+                        # new request from client
+                        if self.item['edge_id'] is None:
+                            flag = True
 
-                    self.q[self.id].task_done()
+                        if self.item['job_id'] not in self.bids:
+                            if config.enable_logging:
+                                self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
+
+                            self.init_null()
+                            
+                            if self.use_net_topology:    
+                                with self.__layer_bid_lock:
+                                    self.__layer_bid[self.item["job_id"]] = 0
+
+                                e = Event()
+                                e.set()
+                                self.__layer_bid_events[self.item["job_id"]] = e 
+                            
+                                threading.Thread(target=self.progress_bid_rounds, args=(copy.deepcopy(self.item),)).start()
+                                
+                            self.bid(flag)
+
+                        
+                        if not flag:
+                            if config.enable_logging:
+                                self.print_node_state('IF2 q:' + str(self.q[self.id].qsize()))
+                            
+
+
+                            if self.id not in self.item['auction_id']:
+                                self.bid(False)
+
+                            
+                            self.update_bid()
+                        
+                        if progress_flag:
+                            self.progress_time()
+                        self.bids[self.item['job_id']]['count'] += 1               
+                        
+
+                        self.q[self.id].task_done()
                     
             except Empty:
                 # the exception is raised if the timeout in the queue.get() expires.
@@ -1206,13 +1257,15 @@ class node:
                             ret_val["updated_cpu"] = self.updated_cpu
                             ret_val["updated_gpu"] = self.updated_gpu
                             ret_val["updated_bw"] = self.updated_bw
+                            print('\nnode:' + str(self.id) + ' available GPU:' + str(self.updated_gpu)+ ' initial CPU:' + str(self.initial_gpu) +' available CPU:' + str(self.updated_cpu)+' initial CPU:' + str(self.initial_cpu) )
+
                             
                         print(f"Node {self.id}: received end processing signal", flush=True)
                         
                         terminate_garbage_collect.set()
                         # t.join()
 
-                        if self.updated_cpu > self.initial_cpu:
+                        if int(self.updated_cpu) > int(self.initial_cpu):
                             print(f"Node {self.id} -- Mannaggia updated={self.updated_cpu} initial={self.initial_cpu}", flush=True)
                         break               
 
