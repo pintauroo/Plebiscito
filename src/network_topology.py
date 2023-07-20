@@ -317,6 +317,9 @@ class NetworkTopology:
             print("Something wrong happened. Trying to get the available bw between non existing nodes. Exiting...")
             sys.exit(1)
         
+        if id1 == id2:
+            return float('inf')
+
         with self.__lock:
             # if one of the node is inf, return the minimum bw value from the other 
             # Note: could be changed with the average
@@ -339,9 +342,12 @@ class NetworkTopology:
 
     def consume_bandwidth_between_nodes(self, id1, id2, bw, job_id):
         # print(f"Consuming bw between {id1} and {id2} -- Job {job_id}", flush=True)
+
         with self.__lock:
             if job_id not in self.__node_operations:
-                self.__node_operations[job_id] = {}                
+                self.__node_operations[job_id] = {}
+            if id1 == id2:
+                return True                
             edges = self.__path[id1][id2]
             for e_id in edges:
                 if self.__edges[e_id].get_bw() < bw:
@@ -358,6 +364,9 @@ class NetworkTopology:
 
     def release_bandwidth_between_nodes(self, id1, id2, bw, job_id):
         # print(f"Releasing bw between {id1} and {id2} -- Job {job_id}", flush=True)
+        if id1 == id2:
+            return
+
         with self.__lock:
             key = str(min(id1, id2)) + "_" + str(max(id1, id2))
             self.__node_operations[job_id][key] -= 1
@@ -417,19 +426,20 @@ class NetworkTopology:
                     val = b
                     expected_node_allocation += 1 
             
-            for key2 in self.__node_operations[key]:
-                if key in self.__node_operations:
-                    expected_node_allocation -= self.__node_operations[key][key2]
+            if key in self.__node_operations:
+                for key2 in self.__node_operations[key]:
+                    if key in self.__node_operations:
+                        expected_node_allocation -= self.__node_operations[key][key2]
                 
             if expected_node_allocation != 0:
                 print("Too many bandwidth reservation requests between nodes")
                 print(f"There's a problem with job {key}")
                 print(self.__node_operations[key])
                 sys.exit(1)
-                
-            for key2 in self.__client_operations[key]:
-                if key in self.__client_operations:
-                    client_allocations += self.__client_operations[key][key2]
+            if key in self.__client_operations:    
+                for key2 in self.__client_operations[key]:
+                    if key in self.__client_operations:
+                        client_allocations += self.__client_operations[key][key2]
                 
             if client_allocations != 1:
                 print("Too many bandwidth reservation requests between node and client")

@@ -38,9 +38,9 @@ if len(sys.argv) == 6:
     seed = int(sys.argv[5]) + 1
     random.seed(seed)
 
-enable_logging = True 
+enable_logging = False 
 use_net_topology = False
-progress_flag = True
+progress_flag = False
 # dataset='./df_dataset.csv'
 
 dataset = generate_dataset(req_number)
@@ -68,9 +68,12 @@ for index, d in dataset.iterrows():
     tot_bw += float(d['bw'])
 
 
-# node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges *20
-# node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges *20
-# node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges *40000
+node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges *5
+node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges *5
+if use_net_topology:
+    node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges *40
+else:
+    node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges *40000
 
 print('cpu: ' +str(tot_cpu))
 print('gpu: ' +str(tot_gpu))
@@ -86,9 +89,9 @@ else:
 # node_bw=float(tot_bw/num_edges)
 # node_bw=float(tot_bw/(num_edges*layer_number/min_layer_number))
 
-node_gpu = 100
-node_cpu = 1000
-node_bw = 10000000000
+# node_gpu = 100
+# node_cpu = 1000
+# node_bw = 10000000000
 
 num_clients=3
 
@@ -97,8 +100,6 @@ manager.start()
 
 #Build Topolgy
 t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
-# network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
+network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=3, seed=4, topology_type=TopologyType.FAT_TREE)
 
-
-
-nodes = [node(row, random.randint(1,1000), None, use_net_topology=use_net_topology) for row in range(num_edges)]
+nodes = [node(row, random.randint(1,1000), network_t, use_net_topology=use_net_topology) for row in range(num_edges)]

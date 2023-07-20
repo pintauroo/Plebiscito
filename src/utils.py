@@ -50,7 +50,7 @@ def wrong_bids_calc(nodes, job):
         for curr_node in range(0, c.num_edges):
             for i, n_id in enumerate(nodes[curr_node].bids[j]['auction_id']):
                 if i == 0 and n_id == curr_node:
-                    c.network_t.release_bandwidth_node_and_client(curr_node, float(job['bw']) / float(c.min_layer_number), j)
+                    c.network_t.release_bandwidth_node_and_client(curr_node, float(job['bw']) / float(len(nodes[curr_node].bids[j]['auction_id'])), j)
                     
         # release network resources between nodes        
         for curr_node in range(0, c.num_edges):
@@ -58,7 +58,7 @@ def wrong_bids_calc(nodes, job):
             for i, n_id in enumerate(nodes[curr_node].bids[j]['auction_id']):
                 if i != 0:
                     if prev_val != n_id and n_id == curr_node:
-                        c.network_t.release_bandwidth_between_nodes(curr_node, prev_val, float(job['bw']) / float(c.min_layer_number), j)
+                        c.network_t.release_bandwidth_between_nodes(curr_node, prev_val, float(job['bw']) / float(len(nodes[curr_node].bids[j]['auction_id'])), j)
                     prev_val = nodes[curr_node].bids[j]['auction_id'][i]
 
 

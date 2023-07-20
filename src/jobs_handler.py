@@ -8,9 +8,9 @@ def dispatch_job(dataset, queues):
     job_ids=[]
 
     if c.use_net_topology:
-        timeout = 3 # don't change it
+        timeout = 5 # don't change it
     else:
-        timeout = 0.01
+        timeout = 0.1
 
     for index, job in dataset.iterrows():
         time.sleep(timeout)
@@ -34,17 +34,10 @@ def dispatch_job(dataset, queues):
     #time.sleep(0.1)
     return job_ids
 
-
-
-
 # def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time, gpu_type, num_inst, size, bandwidth):
 def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
     
-    min_l = 3
-    max_l = 6
-    layer_number = random.randint(min_l, max_l)
-    # layer_number = int(sys.argv[5])
-
+    layer_number = random.choice([2, 4, 6, 8, 10])
     
     gpu = round(num_gpu / layer_number, 6)
     cpu = round(num_cpu / layer_number, 6)
@@ -54,6 +47,9 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
     NN_gpu = np.ones(layer_number) * gpu
     NN_cpu = np.ones(layer_number) * cpu
     NN_data_size = np.ones(layer_number) * bw
+
+    max_layer_bid = random.choice([i for i in range(layer_number, 11, 2)])
+    bundle_size = 2
     
     data = {
         "job_id": int(),
@@ -63,7 +59,8 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
         "duration": int(),
         "N_layer": len(NN_gpu),
         "N_layer_min": 1, # Do not change!! This could be either 1 or = to N_layer_max
-        "N_layer_max": layer_number - random.randint(0, min_l-1),
+        "N_layer_max": max_layer_bid,
+        "N_layer_bundle": bundle_size, 
         # "job_name": int(),
         # "submit_time": int(),
         # "gpu_type": int(),

@@ -1,8 +1,8 @@
 #!/bin/bash
-max_rep=30
+max_rep=5
 num_edges=10
 req_number=100
-timeout=100  # Set a timeout of 300 seconds (5 minutes)
+timeout=50  # Set a timeout of 300 seconds (5 minutes)
 pid=0
 
 export LANG=en_US
@@ -13,7 +13,7 @@ on_sigint() {
     exit
 }
 
-strings=("alpha_GPU_CPU" "alpha_BW_CPU" "alpha_GPU_BW" "stefano")
+strings=("alpha_GPU_CPU" "stefano")
 # strings=("zio_alessandro" "alpha_BW_CPU" "alpha_GPU_BW" "stefano")
 # strings=("stefano")
 
