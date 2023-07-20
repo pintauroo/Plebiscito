@@ -395,7 +395,7 @@ class node:
                     success = True
                 
                 if success:
-                    if config.enable_logging
+                    if config.enable_logging:
                         self.print_node_state(f"Bid succesful {tmp_bid['auction_id']}")
                     first_index = tmp_bid['auction_id'].index(self.id)
                     if not self.use_net_topology:
