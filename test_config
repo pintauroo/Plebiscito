@@ -31,7 +31,7 @@ BW * 1
 enable_logging = False 
 use_net_topology = True
 progress_flag = False
-network_aware = False
+network_aware = True
 
 TOPOLOGY UNAWARE
 alpha_GPU_BW 
@@ -44,4 +44,4 @@ BW * 1
 enable_logging = False 
 use_net_topology = True
 progress_flag = False
-network_aware = True
+network_aware = False
