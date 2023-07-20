@@ -299,9 +299,11 @@ class node:
         bid_ids = []
         bid_ids_fail = []
         bid_round = 0
+        i = 0
+        bid_time = datetime.now()
 
         if self.item['job_id'] in self.bids:                  
-            for i in range(0, NN_len):
+            while i < NN_len:
                 if self.use_net_topology:
                     with self.__layer_bid_lock:
                         if bid_round >= self.__layer_bid_events[self.item["job_id"]]:
@@ -312,10 +314,6 @@ class node:
                 
                 if i == 0:
                     if self.use_net_topology:
-                        if tmp_bid['auction_id'][i] == self.id:
-                            if self.item["N_layer_bundle"] is not None:
-                                i += self.item["N_layer_bundle"] - 1
-                                continue
                         avail_bw = self.bw_with_client[self.item['job_id']]
                         res_bw = 0
                     first_index = i
@@ -349,7 +347,7 @@ class node:
                             cpu_ += self.item['NN_cpu'][i]
 
                             tmp_bid['auction_id'][i]=(self.id)
-                            tmp_bid['timestamp'][i] = datetime.now()
+                            tmp_bid['timestamp'][i] = bid_time
                             layers += 1
 
                             bid_ids.append(i)
@@ -358,22 +356,24 @@ class node:
 
                             if layers >= self.item["N_layer_bundle"]:
                                 break
+                            
+                            i += 1
                         else:
                             bid_ids_fail.append(i)
                             if self.use_net_topology or self.item["N_layer_bundle"] is not None:
-                                i += self.item["N_layer_bundle"] - 1 
+                                i += self.item["N_layer_bundle"]
                                 bid_round += 1
                                 first = False                           
                     else:
                         if self.use_net_topology or self.item["N_layer_bundle"] is not None:
-                            i += self.item["N_layer_bundle"] - 1
+                            i += self.item["N_layer_bundle"]
                             bid_round += 1
                             first = False            
                 else:
                     if bid_on_layer:
                         break
                     if self.use_net_topology or self.item["N_layer_bundle"] is not None:
-                        i += self.item["N_layer_bundle"] - 1
+                        i += self.item["N_layer_bundle"]
                         bid_round += 1
                         first = False
 
@@ -382,7 +382,7 @@ class node:
                 tmp_bid['auction_id'].count(self.id)>=self.item["N_layer_min"] and \
                 tmp_bid['auction_id'].count(self.id)<=self.item["N_layer_max"] and \
                 self.integrity_check(tmp_bid['auction_id'], 'bid') and \
-                self.item['N_layer_bundle'] is None or (self.item['N_layer_bundle'] is not None and layers == self.item['N_layer_bundle']):
+                (self.item['N_layer_bundle'] is None or (self.item['N_layer_bundle'] is not None and (layers == self.item['N_layer_bundle'] or layers == 0))):
 
                 # logging.log(TRACE, "BID NODEID:" + str(self.id) + ", auction: " + str(tmp_bid['auction_id']))
                 success = False
@@ -459,6 +459,7 @@ class node:
         index = 0
         reset_flag = False
         reset_ids = []
+        bid_time = datetime.now()
         
         if self.use_net_topology:
             initial_count = 0
@@ -511,7 +512,7 @@ class node:
                             rebroadcast = True
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #2')
-                            index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], datetime.now(), self.item)
+                            index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], bid_time, self.item)
                         
                         else:
                             if config.enable_logging:
@@ -681,7 +682,7 @@ class node:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#19')
                             rebroadcast = True
-                            index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], datetime.now(), self.item)
+                            index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], bid_time, self.item)
                         else:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #19else')
