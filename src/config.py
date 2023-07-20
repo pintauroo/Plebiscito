@@ -40,7 +40,7 @@ if len(sys.argv) == 6:
 
 enable_logging = False 
 use_net_topology = False
-progress_flag = False
+progress_flag = True
 # dataset='./df_dataset.csv'
 
 dataset = generate_dataset(req_number)
@@ -63,8 +63,12 @@ tot_gpu = 0
 tot_cpu = 0 
 tot_bw = 0 
 for index, d in dataset.iterrows():
-    tot_gpu += d["num_gpu"] 
-    tot_cpu += d["num_cpu"] 
+    # tot_gpu += d["num_gpu"] 
+    # tot_cpu += d["num_cpu"] 
+    if tot_gpu<d["num_gpu"] :
+         tot_gpu = d["num_gpu"] 
+    if tot_cpu<d["num_cpu"] :
+        tot_cpu = d["num_cpu"] 
     tot_bw += float(d['bw'])
 
 
@@ -92,6 +96,10 @@ else:
 # node_gpu = 100
 # node_cpu = 1000
 # node_bw = 10000000000
+
+node_gpu = tot_gpu
+node_cpu = tot_cpu
+node_bw = 10000000000
 
 num_clients=3
 

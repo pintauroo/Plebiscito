@@ -10,7 +10,7 @@ def dispatch_job(dataset, queues):
     if c.use_net_topology:
         timeout = 1 # don't change it
     else:
-        timeout = 0.1
+        timeout = 0.5
 
     for _, job in dataset.iterrows():
         time.sleep(timeout)

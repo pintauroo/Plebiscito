@@ -121,6 +121,9 @@ for j in job_ids:
         logging.info(
             str(c.nodes[i].bids[j]['auction_id']) + 
             ' id: ' + str(c.nodes[i].id) + 
+            ' complete: ' + str(c.nodes[i].bids[j]['complete']) +
+            ' complete_tiemstamp' + str(c.nodes[i].bids[j]['complete_timestamp'])+
+            ' count' + str(c.nodes[i].bids[j]['count'])+
             ' used_tot_gpu: ' + str(c.nodes[i].initial_gpu)+' - ' +str(c.nodes[i].updated_gpu)  + ' = ' +str(c.nodes[i].initial_gpu - c.nodes[i].updated_gpu) + 
             ' used_tot_cpu: ' + str(c.nodes[i].initial_cpu)+' - ' +str(c.nodes[i].updated_cpu)  + ' = ' +str(c.nodes[i].initial_cpu - c.nodes[i].updated_cpu) + 
             ' used_tot_bw: '  + str(c.nodes[i].initial_bw)+' - '  +str(c.nodes[i].updated_bw) + ' = '  +str(c.nodes[i].initial_bw  - c.nodes[i].updated_bw))

@@ -16,6 +16,16 @@ def wrong_bids_calc(nodes, job):
     print('\n[WRONG BID]' + str(j))
     wrong_bids=[] # used to not replicate same action over different nodes
     wrong_ids=[]
+    equal_values=True
+    for curr_node in range(0, c.num_edges):
+        if nodes[curr_node].bids[j]['auction_id'] not in wrong_bids:
+            for i in range(1, c.num_edges):
+                if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
+                    equal_values = False
+                    break
+            if not equal_values:
+                print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
+
 
     for curr_node in range(0, c.num_edges):
         if nodes[curr_node].bids[j]['auction_id'] not in wrong_bids:
