@@ -1,0 +1,47 @@
+RISORSE ABBONDANTI
+alpha_GPU_CPU stefano
+CPU/GPU * 15
+BW inf
+100 job
+10 nodi
+150 s timeout
+enable_logging = False 
+use_net_topology = False
+progress_flag = False
+
+RISORSE LIMITATE
+alpha_GPU_CPU stefano
+CPU/GPU * 2
+BW inf
+100 job
+10 nodi
+150 s timeout
+enable_logging = False 
+use_net_topology = False
+progress_flag = False
+
+TOPOLOGY AWARE
+alpha_GPU_BW 
+alpha_BW_CPU
+CPU/GPU * 50
+BW * 1
+100 job
+10 nodi
+300 s timeout
+enable_logging = False 
+use_net_topology = True
+progress_flag = False
+network_aware = False
+
+TOPOLOGY UNAWARE
+alpha_GPU_BW 
+alpha_BW_CPU
+CPU/GPU * 50
+BW * 1
+100 job
+10 nodi
+300 s timeout
+enable_logging = False 
+use_net_topology = True
+progress_flag = False
+network_aware = True

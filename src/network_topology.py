@@ -352,9 +352,12 @@ class NetworkTopology:
             if id1 == id2:
                 return True                
             edges = self.__path[id1][id2]
-            for e_id in edges:
-                if self.__edges[e_id].get_bw() < bw:
-                    return False
+            
+            if network_aware:
+                for e_id in edges:
+                    if self.__edges[e_id].get_bw() < bw:
+                        return False
+            
             for e_id in edges:
                 self.__edges[e_id].consume_bw(bw)
             
@@ -396,9 +399,11 @@ class NetworkTopology:
                 self.__client_operations[job_id] = {}
                 
             edges = self.__path[len(self.__path)-1][id1]
-            for e_id in edges:
-                if self.__edges[e_id].get_bw() < bw:
-                    return False
+
+            if network_aware:
+                for e_id in edges:
+                    if self.__edges[e_id].get_bw() < bw:
+                        return False
             for e_id in edges:
                 self.__edges[e_id].consume_bw(bw)
                 
