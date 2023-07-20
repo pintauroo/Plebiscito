@@ -8,11 +8,11 @@ def dispatch_job(dataset, queues):
     job_ids=[]
 
     if c.use_net_topology:
-        timeout = 5 # don't change it
+        timeout = 1 # don't change it
     else:
         timeout = 0.1
 
-    for index, job in dataset.iterrows():
+    for _, job in dataset.iterrows():
         time.sleep(timeout)
         data = message_data(
                     job['job_id'],
@@ -48,7 +48,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
     NN_cpu = np.ones(layer_number) * cpu
     NN_data_size = np.ones(layer_number) * bw
 
-    max_layer_bid = random.choice([i for i in range(layer_number, 11, 2)])
+    max_layer_bid = random.choice([i for i in range(2, layer_number+1, 2)])
     bundle_size = 2
     
     data = {

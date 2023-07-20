@@ -48,6 +48,8 @@ class node:
         if use_net_topology:
             self.network_topology = network_topology
             self.initial_bw = network_topology.get_node_direct_link_bw(self.id)
+            self.bw_with_nodes = {}
+            self.bw_with_client = {}
         else:
             self.initial_bw = 100000000000
             self.updated_bw = self.initial_bw
@@ -108,7 +110,10 @@ class node:
         if not self.use_net_topology:
             self.available_bw_per_task[self.item['job_id']] = self.updated_bw
         else:
-            self.available_bw_per_task[self.item['job_id']] = self.network_topology.get_node_direct_link_bw(self.id)
+            self.bw_with_nodes[self.item['job_id']] = {}
+            for i in range(config.num_edges):
+                self.bw_with_nodes[self.item['job_id']][i] = self.network_topology.get_available_bandwidth_between_nodes(self.id, i)
+            self.bw_with_client[self.item['job_id']] = self.network_topology.get_available_bandwidth_with_client(self.id)
         
         NN_len = len(self.item['NN_gpu'])
         
@@ -282,7 +287,7 @@ class node:
         if self.use_net_topology:
             avail_bw = None
         else:
-            avail_bw = self.updated_bw
+            avail_bw = self.available_bw_per_task[self.item['job_id']]
         tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])
         gpu_=0
         cpu_=0
@@ -311,13 +316,13 @@ class node:
                             if self.item["N_layer_bundle"] is not None:
                                 i += self.item["N_layer_bundle"] - 1
                                 continue
-                        avail_bw = self.network_topology.get_available_bandwidth_with_client(self.id)
+                        avail_bw = self.bw_with_client[self.item['job_id']]
                         res_bw = 0
                     first_index = i
                 else:
                     if self.use_net_topology and not bw_with_client and not first:
                         previous_winner_id = tmp_bid['auction_id'][i-1]
-                        avail_bw = self.network_topology.get_available_bandwidth_between_nodes(self.id, tmp_bid['auction_id'][i-1])
+                        avail_bw = self.bw_with_nodes[self.item['job_id']][tmp_bid['auction_id'][i-1]]
                         res_bw = 0
                     first = True
                 
@@ -329,7 +334,7 @@ class node:
 
                     if tmp_bid['auction_id'].count(self.id) == 0 or \
                         (tmp_bid['auction_id'].count(self.id) != 0 and i != 0 and tmp_bid['auction_id'][i-1] == self.id):
-                        bid = self.utility_function(self.available_bw_per_task[self.item['job_id']], self.available_cpu_per_task[self.item['job_id']], self.available_gpu_per_task[self.item['job_id']])
+                        bid = self.utility_function(avail_bw, self.available_cpu_per_task[self.item['job_id']], self.available_gpu_per_task[self.item['job_id']])
                         # if (bid > tmp_bid['bid'][i] and tmp_bid["auction_id"][i] != self.id) or \
                         #     (bid >= tmp_bid['bid'][i] and tmp_bid["auction_id"][i] == self.id):
                         if bid > tmp_bid['bid'][i] or (bid == tmp_bid['bid'][i] and self.id < tmp_bid['auction_id'][i]):
@@ -390,7 +395,8 @@ class node:
                     success = True
                 
                 if success:
-                    self.print_node_state(f"Bid succesful {tmp_bid['auction_id']}")
+                    if config.enable_logging
+                        self.print_node_state(f"Bid succesful {tmp_bid['auction_id']}")
                     first_index = tmp_bid['auction_id'].index(self.id)
                     if not self.use_net_topology:
                         self.updated_bw -= self.item['NN_data_size'][first_index] 
@@ -1093,7 +1099,7 @@ class node:
                     self.__layer_bid_events[item["job_id"]] += 1
                     self.q[self.id].put(item)
                     job_id = item["job_id"]
-                    print(f"Push {job_id} node {self.id}")
+                    # print(f"Push {job_id} node {self.id}")
                 else:
                     break
 

@@ -3,7 +3,7 @@ import os
 import random
 import threading
 import sys
-import pygraphviz as pgv
+# import pygraphviz as pgv
 import sys
 from collections import deque
 from enum import Enum
@@ -161,7 +161,7 @@ class NetworkTopology:
                     self.__path)-1].append(self.__edge_id[shortest_path[k]][shortest_path[k+1]])
             # print()
 
-        self.__export_as_dot()
+        #self.__export_as_dot()
 
     def __generate_fat_tree_topolgy(self):
         self.__edge_id = [[]
