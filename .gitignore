@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *.pdf
 *.csv
+!risorse_abbondanti/*.csv
+!risorse_limitate/*.csv
 *$py.class
 res/
 
