@@ -131,7 +131,7 @@ for j in job_ids:
 u.calculate_utility(c.nodes, c.num_edges, c.counter, exec_time, c.req_number, job_ids, c.a)
 
 if c.use_net_topology:
-    c.network_t.dump_to_file(c.filename)
+    c.network_t.dump_to_file(c.filename, c.a)
 
 logging.info('Tot messages: '+str(c.counter))
 print('Tot messages: '+str(c.counter))

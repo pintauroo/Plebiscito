@@ -38,9 +38,9 @@ if len(sys.argv) == 6:
     seed = int(sys.argv[5]) + 1
     random.seed(seed)
 
-enable_logging = False 
-use_net_topology = False
-progress_flag = True
+enable_logging = True 
+use_net_topology = True
+progress_flag = False
 # dataset='./df_dataset.csv'
 
 dataset = generate_dataset(req_number)
@@ -72,10 +72,10 @@ for index, d in dataset.iterrows():
     tot_bw += float(d['bw'])
 
 
-node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges *2
-node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges *2
+node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges *15
+node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges *15
 if use_net_topology:
-    node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges *400
+    node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges
 else:
     node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges *400000
 
@@ -97,9 +97,9 @@ else:
 # node_cpu = 1000
 # node_bw = 10000000000
 
-node_gpu = tot_gpu
-node_cpu = tot_cpu
-node_bw = 10000000000
+# node_gpu = tot_gpu
+# node_cpu = tot_cpu
+# node_bw = 10000000000
 
 num_clients=3
 

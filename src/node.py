@@ -283,10 +283,10 @@ class node:
 
         return index + 1
     
-    def reset(self, index, dict):
+    def reset(self, index, dict, bid_time):
         dict['auction_id'][index] = float('-inf')
         dict['bid'][index]= float('-inf')
-        dict['timestamp'][index]=datetime.now() # - timedelta(days=1)
+        dict['timestamp'][index] = bid_time # - timedelta(days=1)
         return index + 1
 
 
@@ -348,7 +348,7 @@ class node:
                         bid = self.utility_function(avail_bw, self.available_cpu_per_task[self.item['job_id']], self.available_gpu_per_task[self.item['job_id']])
                         # if (bid > tmp_bid['bid'][i] and tmp_bid["auction_id"][i] != self.id) or \
                         #     (bid >= tmp_bid['bid'][i] and tmp_bid["auction_id"][i] == self.id):
-                        if bid > tmp_bid['bid'][i] or (bid == tmp_bid['bid'][i] and self.id < tmp_bid['auction_id'][i]):
+                        if bid > tmp_bid['bid'][i]:# or (bid == tmp_bid['bid'][i] and self.id < tmp_bid['auction_id'][i]):
                             bid_on_layer = True
 
                             tmp_bid['bid'][i] = bid
@@ -395,7 +395,7 @@ class node:
                 tmp_bid['auction_id'].count(self.id)>=self.item["N_layer_min"] and \
                 tmp_bid['auction_id'].count(self.id)<=self.item["N_layer_max"] and \
                 self.integrity_check(tmp_bid['auction_id'], 'bid') and \
-                (self.item['N_layer_bundle'] is None or (self.item['N_layer_bundle'] is not None and (layers == self.item['N_layer_bundle'] or layers == 0))):
+                (self.item['N_layer_bundle'] is None or (self.item['N_layer_bundle'] is not None and layers == self.item['N_layer_bundle'])):
 
                 # logging.log(TRACE, "BID NODEID:" + str(self.id) + ", auction: " + str(tmp_bid['auction_id']))
                 success = False
@@ -521,17 +521,17 @@ class node:
                                 previous_winner_id = prev_bet['auction_id'][index-1]
                             index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
 
-                        elif (y_kj<y_ij):
+                        else:# (y_kj<y_ij):
                             rebroadcast = True
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #2')
                             index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], bid_time, self.item)
                         
-                        else:
-                            if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3else')
-                            index+=1
-                            rebroadcast = True
+                        # else:
+                        #     if config.enable_logging:
+                        #         logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3else')
+                        #     index+=1
+                        #     rebroadcast = True
 
                     elif z_ij==k:
                         if  t_kj>t_ij:
@@ -691,28 +691,28 @@ class node:
                             elif previous_winner_id == float('-inf'):
                                 previous_winner_id = prev_bet['auction_id'][index-1]
                             index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
-                        elif (y_kj<y_ij):
+                        else:# (y_kj<y_ij):
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#19')
                             rebroadcast = True
                             index = self.update_local_val(tmp_local, index, z_ij, tmp_local['bid'][index], bid_time, self.item)
-                        else:
-                            if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #19else')
-                            index+=1
-                            rebroadcast = True
+                        # else:
+                        #     if config.enable_logging:
+                        #         logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #19else')
+                        #     index+=1
+                        #     rebroadcast = True
 
                     elif z_ij==k:
-                        if y_kj>y_ij:
+                        if y_kj<y_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #20Flavio')
                             index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
                             rebroadcast = True 
-                        elif (y_kj==y_ij and z_kj<z_ij):
-                            if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3stefano')
-                            rebroadcast = True
-                            index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
+                        # elif (y_kj==y_ij and z_kj<z_ij):
+                        #     if config.enable_logging:
+                        #         logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3stefano')
+                        #     rebroadcast = True
+                        #     index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
                         elif t_kj>=t_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#20')
@@ -743,7 +743,7 @@ class node:
                         rebroadcast = True
 
                     elif z_ij!=i and z_ij!=k and z_ij!=z_kj:
-                        if y_kj>y_ij and t_kj>=t_ij:
+                        if y_kj>=y_ij and t_kj>=t_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#25')
                             index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])                   
@@ -753,11 +753,11 @@ class node:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#26')
                             rebroadcast = True
                             index+=1
-                        elif y_kj==y_ij and z_kj<z_ij:
-                            if config.enable_logging:
-                                logging.log(TRACE, 'NODEID:'+str(self.id) +  '#27')
-                            index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])                   
-                            rebroadcast = True
+                        # elif y_kj==y_ij:# and z_kj<z_ij:
+                        #     if config.enable_logging:
+                        #         logging.log(TRACE, 'NODEID:'+str(self.id) +  '#27')
+                        #     index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])                   
+                        #     rebroadcast = True
                         # elif y_kj==y_ij:
                         #     if config.enable_logging:
                         #         logging.log(TRACE, 'NODEID:'+str(self.id) +  '#27bis')
@@ -802,7 +802,7 @@ class node:
             if reset_flag:
                 self.forward_to_neighbohors(tmp_local)
                 for i in reset_ids:
-                    _ = self.reset(i, tmp_local)
+                    _ = self.reset(i, tmp_local, bid_time)
                 self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
                 return False, False             
 
@@ -1112,7 +1112,6 @@ class node:
                 if self.__layer_bid[item["job_id"]] < len(item["NN_gpu"]):
                     self.__layer_bid_events[item["job_id"]] += 1
                     self.q[self.id].put(item)
-                    job_id = item["job_id"]
                     # print(f"Push {job_id} node {self.id}")
                 else:
                     break
@@ -1310,9 +1309,9 @@ class node:
                             # else:
                             #     print('kitemmuorten!')
                         
-                        # if config.progress_flag:
-                        #     if 'rebid' in self.item:
-                        #         self.bids[self.item['job_id']]['arrival_time'] = datetime.now()
+                        if config.progress_flag:
+                            if 'rebid' in self.item:
+                                self.bids[self.item['job_id']]['arrival_time'] = datetime.now()
 
                             self.progress_time()
 

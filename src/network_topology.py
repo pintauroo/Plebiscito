@@ -9,7 +9,7 @@ from collections import deque
 from enum import Enum
 
 # class syntax
-
+network_aware = True
 
 class TopologyType(Enum):
     RING = 1
@@ -316,6 +316,9 @@ class NetworkTopology:
         if id1 == float('-inf') and id2 == float('-inf'):
             print("Something wrong happened. Trying to get the available bw between non existing nodes. Exiting...")
             sys.exit(1)
+
+        if not network_aware:
+            return self.get_node_direct_link_bw(id1)
         
         if id1 == id2:
             return float('inf')
@@ -375,6 +378,9 @@ class NetworkTopology:
                 self.__edges[e_id].release_bw(bw)
 
     def get_available_bandwidth_with_client(self, id1):
+        if not network_aware:
+            return self.get_node_direct_link_bw(id1)
+
         with self.__lock:
             edges = self.__path[len(self.__path)-1][id1]
             min_bw = float('inf')
@@ -461,8 +467,9 @@ class NetworkTopology:
                     print(") ", end="")
             print()
             
-    def dump_to_file(self, filename):
+    def dump_to_file(self, filename, alpha):
         ret_dict = {}
+        ret_dict["alpha"] = alpha
         
         for key in self.__edges:
             if self.__edges[key].get_initial() != float('inf'): 
