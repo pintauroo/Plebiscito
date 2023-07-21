@@ -2,10 +2,9 @@
 This module impelments the behavior of a node
 '''
 
-import queue
 from queue import Empty
-import sys
 import time
+from types import NoneType
 import src.config as config
 from src.network_topology import NetworkTopology
 from datetime import datetime, timedelta
@@ -150,6 +149,9 @@ class node:
             # if beta != 0 and x == 0 is not necessary
             return math.exp(-((alpha/100) * (x - beta))**2)
             #return math.exp(-(alpha/100)*(x-beta)**2)
+
+        if (isinstance(avail_bw, float) and avail_bw == float('inf')):
+            avail_bw = self.initial_bw
         
         # we assume that every job/node has always at least one CPU
         if config.filename == 'stefano':
@@ -164,8 +166,10 @@ class node:
                 beta = 0
             else:
                 beta = avail_cpu/avail_gpu
-                
-            return f(x, config.a, beta)
+            if config.a == 0:
+                return f(x, 0.01, beta)
+            else:
+                return f(x, config.a, beta)
         elif config.filename == 'alpha_BW_CPU':
             return (config.a*(avail_bw/self.initial_bw))+((1-config.a)*(avail_cpu/self.initial_cpu)) #BW vs CPU
         elif config.filename == 'alpha_GPU_CPU':
@@ -346,8 +350,7 @@ class node:
                     if tmp_bid['auction_id'].count(self.id) == 0 or \
                         (tmp_bid['auction_id'].count(self.id) != 0 and i != 0 and tmp_bid['auction_id'][i-1] == self.id):
                         bid = self.utility_function(avail_bw, self.available_cpu_per_task[self.item['job_id']], self.available_gpu_per_task[self.item['job_id']])
-                        # if (bid > tmp_bid['bid'][i] and tmp_bid["auction_id"][i] != self.id) or \
-                        #     (bid >= tmp_bid['bid'][i] and tmp_bid["auction_id"][i] == self.id):
+                        
                         if bid > tmp_bid['bid'][i]:# or (bid == tmp_bid['bid'][i] and self.id < tmp_bid['auction_id'][i]):
                             bid_on_layer = True
 
