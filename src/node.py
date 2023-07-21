@@ -350,6 +350,9 @@ class node:
                     if tmp_bid['auction_id'].count(self.id) == 0 or \
                         (tmp_bid['auction_id'].count(self.id) != 0 and i != 0 and tmp_bid['auction_id'][i-1] == self.id):
                         bid = self.utility_function(avail_bw, self.available_cpu_per_task[self.item['job_id']], self.available_gpu_per_task[self.item['job_id']])
+
+                        if bid == 1:
+                            bid -= self.id * 0.000000001
                         
                         if bid > tmp_bid['bid'][i]:# or (bid == tmp_bid['bid'][i] and self.id < tmp_bid['auction_id'][i]):
                             bid_on_layer = True
