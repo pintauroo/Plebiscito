@@ -123,8 +123,6 @@ class node:
             self.available_bw_per_task[self.item['job_id']] = self.updated_bw
         else:
             self.bw_with_nodes[self.item['job_id']] = {}
-            for i in range(config.num_edges):
-                self.bw_with_nodes[self.item['job_id']][i] = self.network_topology.get_available_bandwidth_between_nodes(self.id, i)
             self.bw_with_client[self.item['job_id']] = self.network_topology.get_available_bandwidth_with_client(self.id)
         
         NN_len = len(self.item['NN_gpu'])
@@ -336,6 +334,8 @@ class node:
                     first_index = i
                 else:
                     if self.use_net_topology and not bw_with_client and not first:
+                        if tmp_bid['auction_id'][i-1] not in self.bw_with_nodes[self.item['job_id']]:                            
+                            self.bw_with_nodes[self.item['job_id']][tmp_bid['auction_id'][i-1]] = self.network_topology.get_available_bandwidth_between_nodes(self.id, tmp_bid['auction_id'][i-1])
                         previous_winner_id = tmp_bid['auction_id'][i-1]
                         avail_bw = self.bw_with_nodes[self.item['job_id']][tmp_bid['auction_id'][i-1]]
                         res_bw = 0

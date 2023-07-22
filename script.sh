@@ -13,8 +13,8 @@ on_sigint() {
     exit
 }
 
-strings=("alpha_GPU_CPU" "stefano")
-# strings=("zio_alessandro" "alpha_BW_CPU" "alpha_GPU_BW" "stefano")
+# strings=("alpha_GPU_CPU" "stefano")
+strings=("alpha_BW_CPU" "alpha_GPU_BW")
 # strings=("stefano")
 
 rm -rf "res" > /dev/null 2>&1
