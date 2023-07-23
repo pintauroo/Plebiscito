@@ -117,8 +117,8 @@ class node:
         
         self.layer_bid_already[self.item['job_id']] = [False] * self.item["N_layer"]
 
-        self.available_gpu_per_task[self.item['job_id']] = self.updated_gpu
-        self.available_cpu_per_task[self.item['job_id']] = self.updated_cpu
+        self.available_gpu_per_task[self.item['job_id']] = [self.updated_gpu]
+        self.available_cpu_per_task[self.item['job_id']] = [self.updated_cpu]
         if not self.use_net_topology:
             self.available_bw_per_task[self.item['job_id']] = self.updated_bw
         else:
@@ -324,6 +324,11 @@ class node:
                         if bid_round >= self.__layer_bid_events[self.item["job_id"]]:
                             break
 
+                if len(self.available_cpu_per_task[self.item['job_id']]) <= bid_round:
+                    # for j in range(len(self.available_cpu_per_task[self.item['job_id']]), bid_round):
+                    self.available_cpu_per_task[self.item['job_id']].append(min(self.available_cpu_per_task[self.item['job_id']][bid_round-1], self.updated_cpu))
+                    self.available_gpu_per_task[self.item['job_id']].append(min(self.available_gpu_per_task[self.item['job_id']][bid_round-1], self.updated_gpu))
+
                 res_cpu, res_gpu, res_bw = self.get_reserved_resources(self.item['job_id'], i)
                 NN_data_size = self.item['NN_data_size'][i]
                 
@@ -349,7 +354,8 @@ class node:
 
                     if tmp_bid['auction_id'].count(self.id) == 0 or \
                         (tmp_bid['auction_id'].count(self.id) != 0 and i != 0 and tmp_bid['auction_id'][i-1] == self.id):
-                        bid = self.utility_function(avail_bw, self.available_cpu_per_task[self.item['job_id']], self.available_gpu_per_task[self.item['job_id']])
+                        
+                        bid = self.utility_function(avail_bw, self.available_cpu_per_task[self.item['job_id']][bid_round], self.available_gpu_per_task[self.item['job_id']][bid_round])
 
                         if bid == 1:
                             bid -= self.id * 0.000000001

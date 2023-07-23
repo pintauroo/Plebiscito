@@ -2,7 +2,7 @@
 max_rep=30
 num_edges=10
 req_number=100
-timeout=150  # Set a timeout of 300 seconds (5 minutes)
+timeout=300  # Set a timeout of 300 seconds (5 minutes)
 pid=0
 
 export LANG=en_US
