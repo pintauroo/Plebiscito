@@ -621,16 +621,16 @@ def plot_gpu_cpu_res(df):
 # Main function to run the script
 def main():
     
-    basepath = '/home/andrea/Documents/Plebiscito/'
-    folder = ''
+    basepath = ''
+    folder = 'Plebiscito_results/Topology_aware'
     # Define line styles and colors
     line_styles = ['dotted', 'dashed', 'dashdot', 'dotted', 'dashdot']
     colors = ['blue', 'green', 'red', 'purple', 'orange']
     color_cycle = itertools.cycle(colors)
 
     # Read the data from the CSV file
-    # filenames = ['alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'stefano_CPU_GPU']
-    filenames = ['stefano', 'alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'zioalessandro_GPU_CPU']
+    filenames = ['alpha_BW_CPU', 'alpha_GPU_BW']
+    # filenames = ['stefano', 'alpha_GPU_CPU']
     fig, axes = plt.subplots(len(filenames), len(['count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']), figsize=(20, 10))
 
     for file_index, filename_ in enumerate(filenames):
@@ -721,16 +721,20 @@ def main():
 
 def main2():
     print('--- Same alpha')
-    basepath = '/home/andrea/Documents/Plebiscito/'
-    folder = ''
+    basepath = ''
+    folder = 'Plebiscito_results/Topology_aware'
     line_styles = ['-', '--', '-.', ':', '-.']
     colors = ['blue', 'green', 'red', 'purple', 'orange']
-    filenames = ['stefano', 'alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'zioalessandro_GPU_CPU']
+    filenames = ['alpha_BW_CPU', 'alpha_GPU_BW']
 
     alfa = {}
     # filenames = ['stefano']
-    alpha = [0, 0.25, 0.5, 0.75, 1]
+    alpha = [0, 0.5, 1]
     color_cycle = itertools.cycle(colors)
+
+    assigned = {}
+    cpu = {}
+    gpu = {}
 
     for i, a in enumerate(alpha):
         fig, axes = plt.subplots(1, len(['count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_bw']), figsize=(20, 3))
@@ -739,6 +743,8 @@ def main2():
         for file_index, filename in enumerate(filenames):
             color = next(color_cycle)
 
+            if filename == "stefano" and a != 1:
+                continue
 
             print(filename)
     
@@ -749,10 +755,10 @@ def main2():
             for label_index, label in enumerate(['count_assigned', 'tot_used_gpu', 'tot_used_cpu', 'tot_used_bw']):
 
                 ax = axes[label_index]
-                if filename == 'stefano' and a == 0 :
-                    df_selected = df[df['alpha'] == 0.1]
-                else:
-                    df_selected = df[df['alpha'] == a]
+                # if filename == 'stefano' and a == 0 :
+                #     df_selected = df[df['alpha'] == 0.1]
+                # else:
+                df_selected = df[df['alpha'] == a]
                 
                 if 'tot' in label:
                     # column_values = df_selected[label] / df_selected[label.replace("_used", "")] * 100
@@ -769,6 +775,17 @@ def main2():
                 cdf = np.arange(1, len(sorted_values) + 1) / len(sorted_values)
 
                 cdf_df_ = pd.DataFrame({'CDF': cdf, str(filename): sorted_values})
+
+                if label == "count_assigned":
+                    assigned[filename + "_" + str(a) + "_x"] = cdf_df_[filename].to_list()
+                    assigned[filename + "_" + str(a) + "_y"] = cdf_df_["CDF"].to_list()
+                if label == "tot_used_cpu":
+                    cpu[filename + "_" + str(a) + "_x"] = cdf_df_[filename].to_list()
+                    cpu[filename + "_" + str(a) + "_y"] = cdf_df_["CDF"].to_list()
+                if label == "tot_used_gpu":
+                    gpu[filename + "_" + str(a) + "_x"] = cdf_df_[filename].to_list()
+                    gpu[filename + "_" + str(a) + "_y"] = cdf_df_["CDF"].to_list()
+                #print(cdf_df_)
 
                 if a == 0 and filename != 'stefano':
                     resources = filename.split("_")
@@ -791,8 +808,10 @@ def main2():
 
         fig.savefig(str(alpha[i])+'.pdf', dpi=900)
 
-
-
+    
+    pd.DataFrame(assigned).to_csv("count_assigned.csv", index=False)
+    pd.DataFrame(cpu).to_csv("tot_used_cpu.csv", index=False)
+    pd.DataFrame(gpu).to_csv("tot_used_gpu.csv", index=False)
 
 
 if __name__ == '__main__':

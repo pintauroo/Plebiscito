@@ -4,6 +4,8 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
+plt.rcParams.update({'font.size': 13})
+
 def clean_data_as_dataframe(filename):
     df = pd.read_csv(filename)
     print(f'Row count of {filename} before clean is: {len(df.index)}')
@@ -20,9 +22,9 @@ def clean_data_as_dataframe(filename):
 
 # filenames = ['stefano', 'alpha_GPU_CPU']
 
-basepath = '/home/andrea/Documents/Plebiscito/'
-folder = ''
-filenames = ['stefano', 'alpha_BW_CPU', 'alpha_GPU_BW', 'alpha_GPU_CPU', 'zioalessandro_GPU_CPU']
+basepath = ''
+folder = 'Plebiscito_results/Risorse_abbondanti'
+filenames = ['alpha_GPU_CPU', 'stefano']
 
 res = []
 
@@ -61,52 +63,69 @@ res = []
     
 #     pd.DataFrame(norm).to_csv(filename_+"_norm_processed.csv")
 
-fig, ax = plt.subplots()
-colors = ["red", "green", "orange", "yellow", "black"]
+fig, ax = plt.subplots()#figsize=(15, 10))
+colors = ["blue", "red", "green", "orange", "black"]
+
+count = 0
     
 for id, filename_ in enumerate(filenames):
     filename = os.path.join(basepath, folder, str(filename_)+'.csv') 
     df = clean_data_as_dataframe(filename)
     # df = df[df['alpha'] == 1]
-    a=0.75
-    if filename_ == 'stefano' and a == 0 :
-        print('ktm')
-        df = df[df['alpha'] == 0.1]
-    else:
-        df = df[df['alpha'] == a]
 
-    jini = {}
-    
-    for index, row in df.iterrows():
-        sum_cpu = 0
-        sum_cpu_square = 0
-        sum_gpu = 0
-        sum_gpu_square = 0
+    for a in [0, 0.5, 1]:
+        # if filename_ == 'stefano' and a == 0 :
+        #     print('ktm')
+        #     df = df[df['alpha'] == 0.01]
+        # else:
+        if filename_ == "stefano" and a != 1:
+            continue
         
-        if "jini_cpu" not in jini:
-            jini["jini_cpu"] = []
-            jini["jini_gpu"] = []
+        df_ = df[df['alpha'] == a]
+        # print(df_)
+
+        jini = {}
+        jini["jini_cpu"] = []
+        jini["jini_gpu"] = []
         
-        for i in range(int(row["n_nodes"])):
-            sum_cpu += float(row["node_" + str(i) + "_updated_cpu"])
-            sum_cpu_square += float(row["node_" + str(i) + "_updated_cpu"])**2
-            sum_gpu += float(row["node_" + str(i) + "_updated_gpu"])
-            sum_gpu_square += float(row["node_" + str(i) + "_updated_gpu"])**2
+        for index, row in df_.iterrows():
+            sum_cpu = 0
+            sum_cpu_square = 0
+            sum_gpu = 0
+            sum_gpu_square = 0
+                            
             
-        jini["jini_cpu"].append(sum_cpu**2 / (int(row["n_nodes"])* sum_cpu_square))
-        jini["jini_gpu"].append(sum_gpu**2 / (int(row["n_nodes"])* sum_gpu_square))
+            for i in range(int(row["n_nodes"])):
+                sum_cpu += float(row["node_" + str(i) + "_updated_cpu"])
+                sum_cpu_square += float(row["node_" + str(i) + "_updated_cpu"])**2
+                sum_gpu += float(row["node_" + str(i) + "_updated_gpu"])
+                sum_gpu_square += float(row["node_" + str(i) + "_updated_gpu"])**2
+                
+            jini["jini_cpu"].append(sum_cpu**2 / (int(row["n_nodes"])* sum_cpu_square))
+            jini["jini_gpu"].append(sum_gpu**2 / (int(row["n_nodes"])* sum_gpu_square))
         
-    df = pd.DataFrame(jini)
-    lower_cpu = df["jini_cpu"].quantile(0.25)
-    higher_cpu = df["jini_cpu"].quantile(0.75)
-    lower_gpu = df["jini_gpu"].quantile(0.25)
-    higher_gpu = df["jini_gpu"].quantile(0.75)
-    
-    print(f"({lower_cpu},{lower_gpu}), {higher_cpu - lower_cpu}, {higher_gpu- lower_gpu}")
-    ax.add_patch(Rectangle((lower_cpu, lower_gpu), higher_cpu - lower_cpu, higher_gpu - lower_gpu, alpha=0.2, label=filename_, color=colors[id], fill=True))
-    ax.set_ylabel('gpu')
-    ax.set_xlabel('cpu')
+        df_f = pd.DataFrame(jini)
+        # print(df_f)
+        lower_cpu = df_f["jini_cpu"].quantile(0.05)
+        higher_cpu = df_f["jini_cpu"].quantile(0.95)
+        lower_gpu = df_f["jini_gpu"].quantile(0.05)
+        higher_gpu = df_f["jini_gpu"].quantile(0.95)
 
+        label = ""
+        if filename_ == "stefano":
+            label = "CPU/GPU ratio"
+        elif filename_ == "alpha_GPU_CPU":
+            label = "α=" + str(a) + "<CPU GPU>"
+        
+        print(f"({lower_cpu},{lower_gpu}), {higher_cpu - lower_cpu}, {higher_gpu- lower_gpu}")
+        ax.add_patch(Rectangle((lower_cpu, lower_gpu), higher_cpu - lower_cpu, higher_gpu - lower_gpu, alpha=0.2, label=label, color=colors[count], fill=True))
+        ax.set_ylabel('GPU')
+        ax.set_xlabel('CPU')
+        ax.set_xbound(lower=0.6, upper=1)
+        ax.set_ybound(lower=0.6, upper=1)
 
-fig.legend()
-fig.savefig("jini_"+str(a)+".pdf")
+        count += 1
+
+ax.legend(loc='upper left', ncol=1)
+fig.tight_layout()
+fig.savefig("jini.pdf")
