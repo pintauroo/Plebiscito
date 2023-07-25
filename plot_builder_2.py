@@ -23,7 +23,7 @@ def clean_data_as_dataframe(filename):
 # filenames = ['stefano', 'alpha_GPU_CPU']
 
 basepath = ''
-folder = 'Plebiscito_results/Risorse_abbondanti'
+folder = 'Plebiscito_results/Risorse_limitate'
 filenames = ['alpha_GPU_CPU', 'stefano']
 
 res = []
@@ -67,11 +67,15 @@ fig, ax = plt.subplots()#figsize=(15, 10))
 colors = ["blue", "red", "green", "orange", "black"]
 
 count = 0
+
+fig2, ax2 = plt.subplots(2, figsize=(8, 8))
+count2 = 0
     
 for id, filename_ in enumerate(filenames):
     filename = os.path.join(basepath, folder, str(filename_)+'.csv') 
     df = clean_data_as_dataframe(filename)
     # df = df[df['alpha'] == 1]
+
 
     for a in [0, 0.5, 1]:
         # if filename_ == 'stefano' and a == 0 :
@@ -105,6 +109,7 @@ for id, filename_ in enumerate(filenames):
             jini["jini_gpu"].append(sum_gpu**2 / (int(row["n_nodes"])* sum_gpu_square))
         
         df_f = pd.DataFrame(jini)
+        
         # print(df_f)
         lower_cpu = df_f["jini_cpu"].quantile(0.05)
         higher_cpu = df_f["jini_cpu"].quantile(0.95)
@@ -115,17 +120,28 @@ for id, filename_ in enumerate(filenames):
         if filename_ == "stefano":
             label = "CPU/GPU ratio"
         elif filename_ == "alpha_GPU_CPU":
-            label = "α=" + str(a) + "<CPU GPU>"
+            label = "α=" + str(a)# + "<CPU GPU>"
+
+        ax2[0].boxplot(df_f["jini_cpu"], labels=[label], positions=[count2], patch_artist=True, notch=True, widths=0.35)
+        ax2[1].boxplot(df_f["jini_gpu"], labels=[label], positions=[count2], patch_artist=True, notch=True, widths=0.35)
+
+        count2 += 1
         
         print(f"({lower_cpu},{lower_gpu}), {higher_cpu - lower_cpu}, {higher_gpu- lower_gpu}")
         ax.add_patch(Rectangle((lower_cpu, lower_gpu), higher_cpu - lower_cpu, higher_gpu - lower_gpu, alpha=0.2, label=label, color=colors[count], fill=True))
         ax.set_ylabel('GPU')
         ax.set_xlabel('CPU')
-        ax.set_xbound(lower=0.6, upper=1)
-        ax.set_ybound(lower=0.6, upper=1)
+        # ax.set_xbound(lower=0.6, upper=1)
+        # ax.set_ybound(lower=0.6, upper=1)
 
         count += 1
+    
+ax2[0].set_title("CPU Jain index")
+ax2[1].set_title("GPU Jain index")
+fig2.savefig("jain_boxplot.pdf")
+
 
 ax.legend(loc='upper left', ncol=1)
 fig.tight_layout()
 fig.savefig("jini.pdf")
+
