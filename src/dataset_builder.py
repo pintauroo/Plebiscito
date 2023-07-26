@@ -8,7 +8,7 @@ dataset = path + '/dataset_stat.csv'
 
 def generate_dataset(entries_num = 100):
     df = pd.read_csv(dataset)
-    df = df[(df['num_cpu'] < 2000) & (df['num_gpu'] < 2000)]
+    df = df[(df['num_cpu'] <= 10000) & (df['num_gpu'] <= 10000)]
 
     counts = df['count'].tolist()
     cpu_values = df['num_cpu'].tolist()

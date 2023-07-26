@@ -101,6 +101,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     count_broken = 0 
     assigned_jobs = []
     valid_bids = {}
+    count_success = 0
+    found_failure = False
     
     for _, job in c.dataset.iterrows():
         count += 1
@@ -126,13 +128,17 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
 
                 if all(x == float('-inf') for x in nodes[i].bids[j]['auction_id']):
                     print('Unassigned')
+                    found_failure = True
                     flag = False # all unassigned
                 elif float('-inf') in nodes[i].bids[j]['auction_id']: #check if there is a value not assigned 
                     # print('matching with -inf: ' +str(c.nodes[i].bids[j]['auction_id']))
                     flag = False
+                    found_failure = True
                     wrong_bids_calc(nodes, job)
                 else:
                     print('MATCH')
+                    if not found_failure:
+                        count_success += 1
                     valid_bids[j] = nodes[i].bids[j]['auction_id']
                     pass
                     # for i in range(0, c.num_edges):
@@ -141,6 +147,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         else: # unmatching auctions
             # print('NON matching: ' +str(c.nodes[i].bids[j]['auction_id']))
             flag = False
+            found_failure = True
             wrong_bids_calc(nodes, job)
 
 
@@ -185,6 +192,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     field_names.append('assigned_sum_bw')
     field_names.append('tot_used_bw')
     field_names.append('unassigned_sum_bw')
+    field_names.append('first_failure_after')
 
 
     tot_used_bw = 0
@@ -287,6 +295,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
 
     dictionary['tot_utility'] = round(stats["tot_utility"],2)
     print('total utility: ' + str(stats["tot_utility"]))
+    dictionary['first_failure_after'] = count_success
 
 
     # ---------------------------------------------------------

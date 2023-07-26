@@ -27,9 +27,9 @@ class node:
     def __init__(self, id, seed, network_topology: NetworkTopology, use_net_topology=False):
         random.seed(seed)
         self.id = id    # unique edge node id
-        self.initial_gpu = float(config.node_gpu) * random.uniform(0.1, 1)
+        self.initial_gpu = float(config.node_gpu) * random.uniform(0.2, 1)
         self.updated_gpu = self.initial_gpu# * random.uniform(0.7, 1)
-        self.initial_cpu = float(config.node_cpu) * random.uniform(0.3, 0.9)
+        self.initial_cpu = float(config.node_cpu) * random.uniform(0.4, 0.9)
         self.updated_cpu = self.initial_cpu
         print(str(self.id) + ' gpu:' +str(self.initial_gpu) + ' cpu:' + str(self.initial_cpu))
 
