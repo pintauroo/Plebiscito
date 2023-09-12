@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import random
 
 path = os.getcwd()
 dataset = path + '/dataset_stat.csv'
@@ -32,10 +33,14 @@ def generate_dataset(entries_num = 100):
         gpu = gpu_values[entry_idx]
         bw = bandwidth_median[entry_idx]
         duration= duration_median[entry_idx]
-        new_dataset.append({'job_id': i, 'user': i, 'num_cpu': cpu, 'num_gpu': gpu, 'bw': bw, 'duration': duration})
+        
+        duration = random.randint(1, 2)
+        
+        # TODO: the arrival time should be modeled based on the dataset, instead of a random value
+        new_dataset.append({'job_id': i, 'user': i, 'num_cpu': cpu, 'num_gpu': gpu, 'bw': bw, 'duration': duration, 'arrival_time': random.randint(1, 2), "exec_time": -1})
         i+=1
+        
     new_dataset = pd.DataFrame(new_dataset)
-    print(new_dataset)
 
     return new_dataset
 

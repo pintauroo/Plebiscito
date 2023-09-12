@@ -4,9 +4,30 @@ import time
 import src.config as c
 import numpy as np
 
-def dispatch_job(dataset, queues):
-    job_ids=[]
+def assign_job_start_time(dataset, time_instant):
+    for _, row in dataset.iterrows():
+        row['exec_time'] = time_instant
+        
+def extract_completed_jobs(dataset, time_instant):
+    if len(dataset) == 0:
+        return []
+    ret = dataset[dataset["exec_time"] + dataset["duration"] <= time_instant]
+    dataset = dataset.drop(dataset[dataset["exec_time"] + dataset["duration"] <= time_instant].index)
+    return ret
 
+def select_jobs(dataset, time_instant):
+    return dataset[dataset['arrival_time'] == time_instant]
+
+def create_job_batch(dataset, batch_size):
+    ret = dataset.head(batch_size)
+    #print(len(ret))
+    dataset.drop(index=dataset.index[:batch_size], axis=0, inplace=True)
+    return ret
+
+def schedule_jobs(jobs):
+    return jobs
+
+def dispatch_job(dataset, queues, time_instant):
     if c.use_net_topology:
         timeout = 1 # don't change it
     else:
@@ -28,14 +49,16 @@ def dispatch_job(dataset, queues):
                     job['bw']
                 )
         #print(data)
-        job_ids.append(job['job_id'])
         for q in queues:
             q.put(data)
-    #time.sleep(0.1)
-    return job_ids
+
+def get_simulation_end_time_instant(dataset):
+    return dataset['arrival_time'].max() + dataset['duration'].max()
 
 # def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time, gpu_type, num_inst, size, bandwidth):
-def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
+def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate=False):
+    
+    random.seed(job_id)
     
     layer_number = random.choice([2, 4, 6, 8, 10])
     
@@ -61,17 +84,11 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
         "N_layer_min": 1, # Do not change!! This could be either 1 or = to N_layer_max
         "N_layer_max": max_layer_bid,
         "N_layer_bundle": bundle_size, 
-        # "job_name": int(),
-        # "submit_time": int(),
-        # "gpu_type": int(),
-        # "num_inst": int(),
-        # "size": int(),
         "edge_id":int(),
         "NN_gpu": NN_gpu,
         "NN_cpu": NN_cpu,
         "NN_data_size": NN_data_size
         }
-
 
     data['edge_id']=None
     data['job_id']=job_id
@@ -79,11 +96,9 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth):
     data['num_gpu']=num_gpu
     data['num_cpu']=num_cpu
     data['duration']=duration
-    # data['job_name']=job_name
-    # data['submit_time']=submit_time
-    # data['gpu_type']=gpu_type
-    # data['num_inst']=num_inst
-    # data['size']=size
     data['job_id']=job_id
+    
+    if deallocate:
+        data["unallocate"] = True
 
     return data

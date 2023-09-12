@@ -5,6 +5,7 @@ from csv import DictWriter
 import os
 import src.config as c
 import logging
+import pandas as pd
 
 import math
 
@@ -13,7 +14,7 @@ import math
 def wrong_bids_calc(nodes, job):
     
     j = job['job_id']
-    print('\n[WRONG BID]' + str(j))
+    #print('\n[WRONG BID]' + str(j))
     wrong_bids=[] # used to not replicate same action over different nodes
     wrong_ids=[]
     equal_values=True
@@ -24,12 +25,13 @@ def wrong_bids_calc(nodes, job):
                     equal_values = False
                     break
             if not equal_values:
-                print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
+                pass
+                #print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
 
 
     for curr_node in range(0, c.num_edges):
         if nodes[curr_node].bids[j]['auction_id'] not in wrong_bids:
-            print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
+            #print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
             # print('Unmatching x: ' +str(c.nodes[curr_node].bids[j]['x']))
             if all(x == float('-inf') for x in nodes[curr_node].bids[j]['auction_id']):
                 continue
@@ -72,10 +74,7 @@ def wrong_bids_calc(nodes, job):
                     prev_val = nodes[curr_node].bids[j]['auction_id'][i]
 
 
-def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
-
-    if len(job_ids) != len(set(job_ids)):
-        raise ValueError("Duplicate job IDs found!")
+def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, time_instant):
     
     stats = {}
     stats['nodes'] = {}
@@ -100,24 +99,30 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     count = 0 
     count_broken = 0 
     assigned_jobs = []
+    unassigned_jobs = []
+    assigned_jobs_id = []
+    unassigned_job_id = []
     valid_bids = {}
     count_success = 0
     found_failure = False
     
-    for _, job in c.dataset.iterrows():
+    for _, job in jobs.iterrows():
         count += 1
         flag = True
         j = job['job_id']
         # Check correctness of all bids
         equal_values = True 
-        print('job_id: ' +str(j))
+        #print('job_id: ' +str(j))
         
         # for i in range(0, c.num_edges):
         #     print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
         #     print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
         #     print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
         #     print('')
+        
+        
         for i in range(1, c.num_edges):
+            #print(nodes[i].bids)
             if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
                 count_broken += 1
                 print('BROKEN BID id: ' + str(j))
@@ -127,7 +132,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         if equal_values: # matching auction
 
                 if all(x == float('-inf') for x in nodes[i].bids[j]['auction_id']):
-                    print('Unassigned')
+                    #print('Unassigned')
                     found_failure = True
                     flag = False # all unassigned
                 elif float('-inf') in nodes[i].bids[j]['auction_id']: #check if there is a value not assigned 
@@ -136,7 +141,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
                     found_failure = True
                     wrong_bids_calc(nodes, job)
                 else:
-                    print('MATCH')
+                    #print('MATCH')
                     if not found_failure:
                         count_success += 1
                     valid_bids[j] = nodes[i].bids[j]['auction_id']
@@ -152,12 +157,15 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
 
 
         if flag:
-            assigned_jobs.append(j)
+            assigned_jobs.append(job)
+            assigned_jobs_id.append(j)
             count_assigned += 1
             assigned_sum_cpu += float(job['num_cpu'])
             assigned_sum_gpu += float(job['num_gpu'])
             assigned_sum_bw += float(job['bw']) 
         else:
+            unassigned_jobs.append(job)
+            unassigned_job_id.append(j)
             count_unassigned += 1
             unassigned_sum_cpu += float(job['num_cpu'])
             unassigned_sum_gpu += float(job['num_gpu'])
@@ -167,14 +175,15 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         print()
         c.network_t.check_network_consistency(valid_bids)
             
-    print()
-    print('ASSIGNED jobs: ' +str(count_assigned))
-    print('UNASSIGNED jobs: ' +str(count_unassigned))
+    print("\t-------")
+    print('\tASSIGNED jobs: ' +str(count_assigned))
+    print('\tUNASSIGNED jobs: ' +str(count_unassigned))
     field_names.append('count_assigned')
     field_names.append('count_unassigned')
+    field_names.append('time_instant')
     dictionary['count_assigned'] = round(count_assigned,2)
     dictionary['count_unassigned'] = round(count_unassigned,2)
-
+    dictionary['time_instant'] = time_instant
 
     # metrics lables
     field_names.append('tot_gpu_jobs')
@@ -251,23 +260,23 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
         #calculate node assigned count and utility
         for j, job_id in enumerate(nodes[i].bids):
             
-            if job_id in assigned_jobs and nodes[i].id in nodes[i].bids[job_id]['auction_id']:
+            if job_id in assigned_jobs_id and nodes[i].id in nodes[i].bids[job_id]['auction_id']:
                 stats['nodes'][nodes[i].id]['assigned_count'] += 1
 
             # print(nodes[i].bids[job_id])
             for k, auctioner in enumerate(nodes[i].bids[job_id]['auction_id']):
                 # print(nodes[i].id)
-                if job_id in assigned_jobs and auctioner== nodes[i].id:
+                if job_id in assigned_jobs_id and auctioner== nodes[i].id:
                     # print(nodes[i].bids[job_id]['bid'])
                     stats['nodes'][nodes[i].id]['utility'] += nodes[i].bids[job_id]['bid'][k]
 
-        print('node: ' + str(nodes[i].id) + ' utility: ' + str(stats['nodes'][nodes[i].id]['utility']))
+        #print('node: ' + str(nodes[i].id) + ' utility: ' + str(stats['nodes'][nodes[i].id]['utility']))
         dictionary['node_'+str(i)+'_utility'] = round(stats['nodes'][nodes[i].id]['utility'],2)
         stats["tot_utility"] += stats['nodes'][nodes[i].id]['utility']
 
     for i in stats['nodes']:
 
-        print('node: '+ str(i) + ' assigned jobs count: ' + str(stats['nodes'][i]['assigned_count']))
+        #print('node: '+ str(i) + ' assigned jobs count: ' + str(stats['nodes'][i]['assigned_count']))
         dictionary['node_'+str(i)+'_jobs'] = round(stats['nodes'][i]['assigned_count'],2)
 
 
@@ -294,7 +303,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     dictionary['unassigned_sum_bw'] = round(unassigned_sum_bw,2)
 
     dictionary['tot_utility'] = round(stats["tot_utility"],2)
-    print('total utility: ' + str(stats["tot_utility"]))
+    #print('total utility: ' + str(stats["tot_utility"]))
     dictionary['first_failure_after'] = count_success
 
 
@@ -303,14 +312,13 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, job_ids, alpha):
     # ---------------------------------------------------------
     dictionary['jaini'] = jaini_index(dictionary, num_edges)
 
-    print('jobs number: ' + str(len(job_ids)))
+    #print('jobs number: ' + str(len(jobs)))
 
-    print('count: ' +str(count) + ' count_broken: ' +str(count_broken))
-
-    
-
+    print('\tcount: ' +str(count) + ' count_broken: ' +str(count_broken))
 
     write_data(field_names, dictionary)
+    
+    return pd.DataFrame(assigned_jobs), pd.DataFrame(unassigned_jobs)
 
 
 def write_data(field_names, dictionary):

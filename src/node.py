@@ -4,7 +4,6 @@ This module impelments the behavior of a node
 
 from queue import Empty
 import time
-from types import NoneType
 import src.config as config
 from src.network_topology import NetworkTopology
 from datetime import datetime, timedelta
@@ -31,7 +30,7 @@ class node:
         self.updated_gpu = self.initial_gpu# * random.uniform(0.7, 1)
         self.initial_cpu = float(config.node_cpu) * random.uniform(0.4, 0.9)
         self.updated_cpu = self.initial_cpu
-        print(str(self.id) + ' gpu:' +str(self.initial_gpu) + ' cpu:' + str(self.initial_cpu))
+        #print(str(self.id) + ' gpu:' +str(self.initial_gpu) + ' cpu:' + str(self.initial_cpu))
 
         self.available_cpu_per_task = {}
         self.available_gpu_per_task = {}
@@ -65,9 +64,11 @@ class node:
         self.__layer_bid_events = {}
         
         if self.initial_gpu != 0:
-            print(f"Node {self.id} CPU/GPU ratio: {self.initial_cpu/self.initial_gpu}")
+            #print(f"Node {self.id} CPU/GPU ratio: {self.initial_cpu/self.initial_gpu}")
+            pass
         else:
-            print(f"Node {self.id} CPU/GPU ratio: <inf>")
+            #print(f"Node {self.id} CPU/GPU ratio: <inf>")
+            pass
         self.counter = 0
         
         self.user_requests = []
@@ -79,6 +80,7 @@ class node:
         self.q = q
         self.use_queue = use_queue
         self.use_queue[self.id].clear()
+    
     def init_null(self):
         # print(self.item['duration'])
         self.bids[self.item['job_id']]={
@@ -1246,12 +1248,24 @@ class node:
                             # print('push')
                             self.q[self.id].put({'progress_time':True})
 
+    def check_if_hosting_job(self):
+        if self.id in self.bids[self.item['job_id']]['auction_id'] and float('-inf') not in self.bids[self.item['job_id']]['auction_id']:
+            return True
+        return False
+    
+    def release_resources(self):
+        cpu = 0
+        gpu = 0
+        
+        for i, id in enumerate(self.bids[self.item['job_id']]['auction_id']):
+            if id == self.id:
+                cpu += self.item['NN_cpu'][i]
+                gpu += self.item['NN_gpu'][i]
+                
+        self.updated_cpu += cpu
+        self.updated_gpu += gpu
 
-
-
-
-
-    def work(self, event, notify_start, ret_val):
+    def work(self, event, notify_start, progress_bid, ret_val):
         notify_start.set()
         if self.use_net_topology:
             timeout = 15
@@ -1262,31 +1276,18 @@ class node:
         # t.start()
         
         while True:
-
-            
             try: 
-                
                 self.item = self.q[self.id].get(timeout=timeout)
-                if 'progress_time' in self.item:
-                    # print(str(self.id)+str('\n'))
-                    self.progress_time()
-                else:
-                    self.counter += 1
-                    
-                    with self.last_bid_timestamp_lock:
-                        # self.last_bid_timestamp[self.item['job_id']] = {
-                        #     "timestamp": datetime.now(),
-                        #     "item": copy.deepcopy(self.item)
-                        # }
-                        self.use_queue[self.id].set()     
 
-                            
-                        
-                        #print(self.item)
-                        #print(self.item['user'] not in self.user_requests)
-                        #print(self.item['edge_id'] is None)
-                        # check msg type
-                        
+                self.counter += 1
+                
+                with self.last_bid_timestamp_lock:
+                    self.use_queue[self.id].set() 
+                    
+                    if "unallocate" in self.item:
+                        if self.check_if_hosting_job():
+                            self.release_resources()
+                    else:   
                         flag = False
                         # new request from client
                         if self.item['edge_id'] is None:
@@ -1330,7 +1331,6 @@ class node:
                         self.bids[self.item['job_id']]['start_time'] = 0                            
                         self.bids[self.item['job_id']]['count'] += 1
                         
-
                         self.q[self.id].task_done()
                     
             except Empty:
@@ -1340,32 +1340,34 @@ class node:
                 self.use_queue[self.id].clear()
                 
                 all_finished = True
-                for id, e in enumerate(self.use_queue):
+                for _, e in enumerate(self.use_queue):
                     if e.is_set():
                         all_finished = False
+                        break
                         # print(f"Waiting for node {id} to finish")
                         
                 if all_finished:
-                    if event.is_set():
-                        for j_key in self.resource_remind:
-                            times = len(self.resource_remind[j_key]["idx"])
-                            self.updated_cpu += self.resource_remind[j_key]["cpu"] * times
-                            self.updated_gpu += self.resource_remind[j_key]["gpu"] * times
-                            self.updated_bw += self.resource_remind[j_key]["bw"]
+                    
+                    for j_key in self.resource_remind:
+                        times = len(self.resource_remind[j_key]["idx"])
+                        self.updated_cpu += self.resource_remind[j_key]["cpu"] * times
+                        self.updated_gpu += self.resource_remind[j_key]["gpu"] * times
+                        self.updated_bw += self.resource_remind[j_key]["bw"]
+                        
+                    with self.last_bid_timestamp_lock:
+                        if self.use_net_topology:
+                            self.updated_bw = self.network_topology.get_node_direct_link_bw(self.id)
                             
-                        with self.last_bid_timestamp_lock:
-                            if self.use_net_topology:
-                                self.updated_bw = self.network_topology.get_node_direct_link_bw(self.id)
-                                
-                            ret_val["id"] = self.id
-                            ret_val["bids"] = copy.deepcopy(self.bids)
-                            ret_val["counter"] = self.counter
-                            ret_val["updated_cpu"] = self.updated_cpu
-                            ret_val["updated_gpu"] = self.updated_gpu
-                            ret_val["updated_bw"] = self.updated_bw
-                            print('\nnode:' + str(self.id) + ' available GPU:' + str(self.updated_gpu)+ ' initial CPU:' + str(self.initial_gpu) +' available CPU:' + str(self.updated_cpu)+' initial CPU:' + str(self.initial_cpu) )
+                        ret_val["id"] = self.id
+                        ret_val["bids"] = copy.deepcopy(self.bids)
+                        ret_val["counter"] = self.counter
+                        ret_val["updated_cpu"] = self.updated_cpu
+                        ret_val["updated_gpu"] = self.updated_gpu
+                        ret_val["updated_bw"] = self.updated_bw
+                        
+                    progress_bid.set()
 
-                            
+                    if event.is_set():    
                         print(f"Node {self.id}: received end processing signal", flush=True)
                         
                         terminate_garbage_collect.set()
