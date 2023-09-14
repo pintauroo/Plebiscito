@@ -72,8 +72,8 @@ for index, d in dataset.iterrows():
     tot_bw += float(d['bw'])
 
 
-node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges *20
-node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges *20
+node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges *200000
+node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges *200000
 if use_net_topology:
     node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges
 else:

@@ -1005,50 +1005,6 @@ class node:
             if config.enable_logging:
                 self.print_node_state('Value not in dict (new_msg)', type='error')
 
-    def integrity_check_old(self, bid, msg):
-        curr_val = bid[0]
-        curr_count = 1
-        for i in range(1, len(bid)):
-            if curr_val != float('-inf'):
-                if bid[i] == curr_val:
-                    curr_count += 1
-                else:
-                    if curr_count < self.item["N_layer_min"] or curr_count > self.item["N_layer_max"]:
-                        self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
-                        return False
-                    
-                    curr_val = bid[i]
-                    curr_count = 1
-        
-        if curr_count < self.item["N_layer_min"] or curr_count > self.item["N_layer_max"]:
-            if config.enable_logging:
-                self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
-            return False
-        
-        return True
-    
-    # def integrity_check(self, bid, msg):
-    #     curr_val = bid[0]
-    #     curr_count = 1
-    #     for i in range(1, len(bid)):
-            
-    #         if bid[i] == curr_val:
-    #             curr_count += 1
-    #         else:
-    #             if (curr_count < self.item["N_layer_min"] or curr_count > self.item["N_layer_max"]) and curr_val != float('-inf'):
-    #                 self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
-    #                 return False
-                    
-    #             curr_val = bid[i]
-    #             curr_count = 1
-        
-    #     if curr_count < self.item["N_layer_min"] or curr_count > self.item["N_layer_max"] and curr_val != float('-inf'):
-    #         if config.enable_logging:
-    #             self.print_node_state(str(msg) + ' DISCARD BROKEN MSG ' + str(bid))
-    #         return False
-        
-    #     return True
-
     def integrity_check(self, bid, msg):
         min_ = self.item["N_layer_min"]
         max_ = self.item["N_layer_max"]
@@ -1256,11 +1212,14 @@ class node:
     def release_resources(self):
         cpu = 0
         gpu = 0
+
+        print("NODE", self.id)
         
         for i, id in enumerate(self.bids[self.item['job_id']]['auction_id']):
             if id == self.id:
                 cpu += self.item['NN_cpu'][i]
                 gpu += self.item['NN_gpu'][i]
+                print(id, gpu, cpu)
                 
         self.updated_cpu += cpu
         self.updated_gpu += gpu

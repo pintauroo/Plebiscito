@@ -199,6 +199,25 @@ if __name__ == "__main__":
                     )
                 for q in queues:
                     q.put(data)
+
+            for e in progress_bid_events:
+                e.wait()
+                e.clear()
+
+        if len(unassigned_jobs) > 0:
+            for _, j in unassigned_jobs.iterrows():
+                data = message_data(
+                        j['job_id'],
+                        j['user'],
+                        j['num_gpu'],
+                        j['num_cpu'],
+                        j['duration'],
+                        j['bw'],
+                        deallocate=True
+                    )
+                
+                for q in queues:
+                    q.put(data)
             
             for e in progress_bid_events:
                 e.wait()
@@ -207,6 +226,8 @@ if __name__ == "__main__":
         print(f"\tUnallocated {len(jobs_to_unallocate)} jobs.")
         
         time_instant += 1
+
+    collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant)
     
     
     terminate_node_processing(nodes_thread, terminate_processing_events)
