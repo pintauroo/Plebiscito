@@ -61,7 +61,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate
     random.seed(job_id)
     
     layer_number = random.choice([2, 4, 6, 8, 10])
-    layer_number = 2
+    layer_number = 8
     
     gpu = round(num_gpu / layer_number, 6)
     cpu = round(num_cpu / layer_number, 6)
@@ -73,7 +73,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate
     NN_data_size = np.ones(layer_number) * bw
 
     max_layer_bid = random.choice([4, 6, 8, 10])
-    bundle_size = 1
+    bundle_size = 2
     
     data = {
         "job_id": int(),
@@ -83,7 +83,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate
         "duration": int(),
         "N_layer": len(NN_gpu),
         "N_layer_min": 1, # Do not change!! This could be either 1 or = to N_layer_max
-        "N_layer_max": 1,
+        "N_layer_max": 2,
         "N_layer_bundle": bundle_size, 
         "edge_id":int(),
         "NN_gpu": NN_gpu,

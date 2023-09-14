@@ -884,7 +884,7 @@ class node:
                         bw -= self.item['NN_data_size'][i]
                         first_1 = True
                 elif self.item["auction_id"][i] != self.id and prev_bet["auction_id"][i] == self.id:
-                    self.remind_to_release_resources(self.item["job_id"], self.item['NN_cpu'][i], self.item['NN_gpu'][i], bw, [i])
+                    self.reserve_resources(self.item["job_id"], self.item['NN_cpu'][i], self.item['NN_gpu'][i], bw, [i])
        
             self.updated_cpu += cpu
             self.updated_gpu += gpu
@@ -898,7 +898,7 @@ class node:
             return False, True       
 
        
-    def remind_to_release_resources(self, job_id, cpu, gpu, bw, idx):
+    def reserve_resources(self, job_id, cpu, gpu, bw, idx):
         if job_id not in self.resource_remind:
             self.resource_remind[job_id] = {}
             self.resource_remind[job_id]["idx"] = []
@@ -908,7 +908,7 @@ class node:
         self.resource_remind[job_id]["bw"] = bw
         self.resource_remind[job_id]["idx"] += idx
 
-        for id in idx:
+        for _ in idx:
             self.cum_cpu_reserved += cpu
             self.cum_gpu_reserved += gpu
             self.cum_bw_reserved += bw
@@ -1086,124 +1086,6 @@ class node:
                 else:
                     break
 
-    def progress_time(self):
-
-        # print('\nKTM' + str(self.id))
-
-
-
-        for job in self.bids:
-                    #   self.q[self.id].qsize()<=1) and \
-            # print((datetime.now() - self.bids[job]['arrival_time']).total_seconds() )
-
-            equal_values=True
-
-            for i in range(1, config.num_edges):
-                # Use get() to retrieve the 'auction_id' value for the current node and the previous node
-                auction_id_i = config.nodes[i].bids.get(job, {}).get('auction_id')
-                auction_id_prev = config.nodes[i - 1].bids.get(job, {}).get('auction_id')
-
-                # Check if either 'auction_id_i' or 'auction_id_prev' is None (key not found)
-                if auction_id_i is None or auction_id_prev is None:
-                    continue  # Skip this iteration and move to the next iteration of the loop
-
-                if auction_id_i != auction_id_prev:
-                    equal_values = False
-                    break
-
-            if equal_values and float('-inf') not in self.bids[job]['auction_id'] and\
-                not self.bids[job]['complete'] and\
-                self.id in self.bids[job]['auction_id']:
-                # (self.bids[job]['count'] > config.num_edges*len(self.bids[job]['auction_id']) or self.bids[job]['consensus'])  and \
-                # (datetime.now() - self.bids[job]['arrival_time']).total_seconds() > 1 and\
-                
-                
-                # print('node:' + str(self.id) + ' TIME, job: ' + str(job) + ' auction: '+str(self.bids[job]['auction_id'])+ ' time:' + str(self.bids[job]['progress_time']) +' count:' + str(self.bids[job]['count']) + ' q:' + str(self.q[self.id].qsize()) )
-
-
-
-                
-                self.bids[job]['progress_time'] += 1 # timedelta(seconds=1)
-                self.bids[job]['clock'] = True 
-
-                if int((self.bids[job]['progress_time'])) >= int(self.bids[job]['duration']) and \
-                    not self.bids[job]['complete']:
-
-                    # print('node:' + str(self.id) + ' DONE ' + str(job) + ' count:' + str(self.bids[job]['count']) + ' q:' + str(self.q[self.id].qsize()) )
-                    self.bids[job]['complete']=True
-                    self.bids[job]['complete_timestamp']=datetime.now()
-
-
-
-                    if self.id in self.bids[job]['auction_id']:
-                        for ind, id in enumerate(self.bids[job]['auction_id']):
-                            if self.id==id:
-                                # print('node:' + str(self.id) + ' available GPU:' + str(self.updated_gpu)+ ' initial CPU:' + str(self.initial_gpu) +' available CPU:' + str(self.updated_cpu)+' initial CPU:' + str(self.initial_cpu) )
-
-                                self.updated_gpu+=self.bids[job]['NN_gpu'][ind]
-                                self.updated_cpu+=self.bids[job]['NN_cpu'][ind]
-
-                        print('node:' + str(self.id) + ' COMPLETE, job: ' + str(job) + ' available GPU:' + str(self.updated_gpu)+ ' initial CPU:' + str(self.initial_gpu) +' available CPU:' + str(self.updated_cpu)+' initial CPU:' + str(self.initial_cpu) )
-
-
-
-                    # REBIDDING
-
-                    for job_rebid in self.bids:
-
-                        if float('-inf') in self.bids[job_rebid]['auction_id'] :
-                            # not self.bids[job_rebid]['complete'] and \
-                            # not self.bids[job_rebid]['clock'] :
-                            # (datetime.now() - self.bids[job_rebid]['arrival_time']).total_seconds() > 2:
-                            
-                            # (datetime.now() - self.bids[job_rebid]['arrival_time']).total_seconds() > 1 :
-                            print('node:' + str(self.id) + ' REBIDDING, job: ' + str(job_rebid) + ' auction: '+str(self.bids[job_rebid]['auction_id'])+' count:' + str(self.bids[job_rebid]['count']) + ' q:' + str(self.q[self.id].qsize()) )
-                            # self.bids[job_rebid]['rebid']=True
-                            # for i, _ in enumerate(self.bids[job_rebid]['auction_id']):
-
-                            #     if self.bids[job_rebid]['auction_id'][i] == self.id:
-
-                            #         self.updated_gpu+=self.bids[job_rebid]['NN_gpu'][i]
-                            #         self.updated_cpu+=self.bids[job_rebid]['NN_cpu'][i]
-
-
-                            #     self.bids[job_rebid]['auction_id'][i] = float('-inf')
-                            #     self.bids[job_rebid]['bid'][i]= float('-inf')
-                            #     self.bids[job_rebid]['timestamp'][i]=datetime.now()
-                            msg = {
-                                    "job_id": self.bids[job_rebid]['job_id'], 
-                                    "user": self.bids[job_rebid]['user'],
-                                    "edge_id": self.id, 
-                                    "auction_id": copy.deepcopy(self.bids[job_rebid]['auction_id']), 
-                                    "NN_gpu": self.bids[job_rebid]['NN_gpu'],
-                                    "NN_cpu": self.bids[job_rebid]['NN_cpu'],
-                                    "NN_data_size": self.bids[job_rebid]['NN_data_size'], 
-                                    "bid": copy.deepcopy(self.bids[job_rebid]['bid']), 
-                                    "timestamp": copy.deepcopy(self.bids[job_rebid]['timestamp']),
-                                    "N_layer": self.bids[job_rebid]["N_layer"],
-                                    "N_layer_min": self.bids[job_rebid]["N_layer_min"],
-                                    "N_layer_max": self.bids[job_rebid]["N_layer_max"],
-                                    "N_layer_bundle": self.bids[job_rebid]["N_layer_bundle"],
-                                    "rebid":True
-                                    }
-
-
-                            for i in range(config.num_edges):
-                                    self.q[i].put(msg)
-                                    # break
-
-                    # self.completed_jobs[job] = self.bids[job]
-                    # self.completed_jobs[job]['completed_timestamp'] = datetime.now()
-                    # del self.bids[job]
-
-                else:
-
-
-                    if self.id in self.bids[job]['auction_id']:
-                        if self.q[self.id].qsize()<=1:
-                            # print('push')
-                            self.q[self.id].put({'progress_time':True})
-
     def check_if_hosting_job(self):
         if self.id in self.bids[self.item['job_id']]['auction_id'] and float('-inf') not in self.bids[self.item['job_id']]['auction_id']:
             return True
@@ -1213,13 +1095,13 @@ class node:
         cpu = 0
         gpu = 0
 
-        print("NODE", self.id)
+        #print("NODE", self.id)
         
         for i, id in enumerate(self.bids[self.item['job_id']]['auction_id']):
             if id == self.id:
                 cpu += self.item['NN_cpu'][i]
                 gpu += self.item['NN_gpu'][i]
-                print(id, gpu, cpu)
+                #print(id, gpu, cpu)
                 
         self.updated_cpu += cpu
         self.updated_gpu += gpu
@@ -1308,10 +1190,8 @@ class node:
                 if all_finished:
                     
                     for j_key in self.resource_remind:
-                        times = len(self.resource_remind[j_key]["idx"])
-                        self.updated_cpu += self.resource_remind[j_key]["cpu"] * times
-                        self.updated_gpu += self.resource_remind[j_key]["gpu"] * times
-                        self.updated_bw += self.resource_remind[j_key]["bw"]
+                        for id in self.resource_remind[j_key]["idx"]:
+                            self.release_reserved_resources(j_key, id)
                         
                     with self.last_bid_timestamp_lock:
                         if self.use_net_topology:
@@ -1323,7 +1203,7 @@ class node:
                         ret_val["updated_cpu"] = self.updated_cpu
                         ret_val["updated_gpu"] = self.updated_gpu
                         ret_val["updated_bw"] = self.updated_bw
-                        
+                                                
                     progress_bid.set()
 
                     if event.is_set():    
