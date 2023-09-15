@@ -1178,6 +1178,10 @@ class node:
                 # the exception is raised if the timeout in the queue.get() expires.
                 # the break statement must be executed only if the event has been set 
                 # by the main thread (i.e., no more task will be submitted)
+
+
+                progress_bid.wait()
+
                 self.use_queue[self.id].clear()
                 
                 all_finished = True
@@ -1196,15 +1200,15 @@ class node:
                     with self.last_bid_timestamp_lock:
                         if self.use_net_topology:
                             self.updated_bw = self.network_topology.get_node_direct_link_bw(self.id)
-                            
+
                         ret_val["id"] = self.id
                         ret_val["bids"] = copy.deepcopy(self.bids)
                         ret_val["counter"] = self.counter
                         ret_val["updated_cpu"] = self.updated_cpu
                         ret_val["updated_gpu"] = self.updated_gpu
                         ret_val["updated_bw"] = self.updated_bw
-                                                
-                    progress_bid.set()
+                        print(self.id, sorted(ret_val["bids"].keys()))
+                    # progress_bid.set()
 
                     if event.is_set():    
                         print(f"Node {self.id}: received end processing signal", flush=True)

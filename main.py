@@ -152,7 +152,7 @@ if __name__ == "__main__":
     collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0)
     
     time_instant = 1
-    while time_instant <= simulation_end:
+    while time_instant <= simulation_end + 1:
         start_time = time.time()
         
         print()
@@ -167,24 +167,30 @@ if __name__ == "__main__":
         jobs_to_submit = job.create_job_batch(jobs, 6)
         
         print(f"\tSubmitted jobs: {len(jobs_to_submit)}. \n\tJobs remaining in queue: {len(jobs)}.")
-                        
+        for e in progress_bid_events:
+            e.set()                    
         job.dispatch_job(jobs_to_submit, queues, time_instant)
+
+        # print(jobs_to_submit)
         
         for e in progress_bid_events:
             e.wait()
-            e.clear()
+
         
         exec_time = time.time() - start_time
             
         assigned_jobs, unassigned_jobs = collect_node_results(return_val, jobs_to_submit, exec_time, time_instant)
-        
+
+
+            
+                    
         job.assign_job_start_time(assigned_jobs, time_instant)
         
         print(f"\tAdding {len(unassigned_jobs)} unscheduled job(s) to the list.")
         jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
         running_jobs = pd.concat([running_jobs, assigned_jobs], sort=False)
         
-        jobs_to_unallocate = job.extract_completed_jobs(running_jobs, time_instant)
+        jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
         
         if len(jobs_to_unallocate) > 0:
             for _, j in jobs_to_unallocate.iterrows():

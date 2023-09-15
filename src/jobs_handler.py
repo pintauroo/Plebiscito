@@ -12,8 +12,14 @@ def extract_completed_jobs(dataset, time_instant):
     if len(dataset) == 0:
         return []
     ret = dataset[dataset["exec_time"] + dataset["duration"] <= time_instant]
+    # print("ret")
+    # print(ret)
+
     dataset = dataset.drop(dataset[dataset["exec_time"] + dataset["duration"] <= time_instant].index)
-    return ret
+    # print('DATASET')
+    # print(dataset)
+    
+    return ret, dataset
 
 def select_jobs(dataset, time_instant):
     return dataset[dataset['arrival_time'] == time_instant]

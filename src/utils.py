@@ -119,16 +119,18 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
         #     print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
         #     print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
         #     print('')
-        
-        
-        for i in range(1, c.num_edges):
-            #print(nodes[i].bids)
-            if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
-                count_broken += 1
-                print('BROKEN BID id: ' + str(j))
-                equal_values = False
-                break
-        
+        i = 0
+        try:
+
+            for i in range(1, c.num_edges):
+                #print(nodes[i].bids)
+                if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
+                    count_broken += 1
+                    print('BROKEN BID id: ' + str(j))
+                    equal_values = False
+                    break
+        except Exception as e :
+            print("bingo", e, nodes[i].bids.keys())        
         if equal_values: # matching auction
 
                 if all(x == float('-inf') for x in nodes[i].bids[j]['auction_id']):
