@@ -146,13 +146,14 @@ if __name__ == "__main__":
     job_ids=[]
     jobs = pd.DataFrame()
     running_jobs = pd.DataFrame()
+    processed_jobs = pd.DataFrame()
     print(f"Total number of jobs: {len(c.dataset)}")
     
     start_time = time.time()
     collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0)
     
     time_instant = 1
-    while time_instant <= simulation_end + 1:
+    while True:
         start_time = time.time()
         
         print()
@@ -164,31 +165,27 @@ if __name__ == "__main__":
         
         print(f"\tCurrent lenght of the job queue: {len(jobs)}.")
         jobs = job.schedule_jobs(jobs)
-        jobs_to_submit = job.create_job_batch(jobs, 6)
+        jobs_to_submit = job.create_job_batch(jobs, 20)
         
         print(f"\tSubmitted jobs: {len(jobs_to_submit)}. \n\tJobs remaining in queue: {len(jobs)}.")
-        for e in progress_bid_events:
-            e.set()                    
-        job.dispatch_job(jobs_to_submit, queues, time_instant)
-
-        # print(jobs_to_submit)
         
-        for e in progress_bid_events:
-            e.wait()
+        if len(jobs_to_submit) > 0:                   
+            job.dispatch_job(jobs_to_submit, queues)
 
-        
+            for e in progress_bid_events:
+                e.wait()
+                e.clear() 
+            
         exec_time = time.time() - start_time
             
         assigned_jobs, unassigned_jobs = collect_node_results(return_val, jobs_to_submit, exec_time, time_instant)
-
-
-            
-                    
+                   
         job.assign_job_start_time(assigned_jobs, time_instant)
         
         print(f"\tAdding {len(unassigned_jobs)} unscheduled job(s) to the list.")
         jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
         running_jobs = pd.concat([running_jobs, assigned_jobs], sort=False)
+        processed_jobs = pd.concat([processed_jobs,assigned_jobs], sort=False)
         
         jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
         
@@ -232,14 +229,13 @@ if __name__ == "__main__":
         print(f"\tUnallocated {len(jobs_to_unallocate)} jobs.")
         
         time_instant += 1
+        
+        if len(processed_jobs) == len(c.dataset) and len(running_jobs) == 0 and len(jobs) == 0:
+            break
 
     collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant)
     
-    
     terminate_node_processing(nodes_thread, terminate_processing_events)
-
-    #Calculate stats
-        
 
     if c.use_net_topology:
         c.network_t.dump_to_file(c.filename, c.a)

@@ -33,7 +33,7 @@ def create_job_batch(dataset, batch_size):
 def schedule_jobs(jobs):
     return jobs
 
-def dispatch_job(dataset, queues, time_instant):
+def dispatch_job(dataset, queues):        
     if c.use_net_topology:
         timeout = 1 # don't change it
     else:
@@ -47,14 +47,9 @@ def dispatch_job(dataset, queues, time_instant):
                     job['num_gpu'],
                     job['num_cpu'],
                     job['duration'],
-                    # job['job_name'],
-                    # job['submit_time'],
-                    # job['gpu_type'],
-                    # job['num_inst'],
-                    # job['size'],
                     job['bw']
                 )
-        #print(data)
+        
         for q in queues:
             q.put(data)
 

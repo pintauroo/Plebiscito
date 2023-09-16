@@ -78,8 +78,8 @@ class node:
         
     def set_queues(self, q, use_queue):
         self.q = q
-        self.use_queue = use_queue
-        self.use_queue[self.id].clear()
+        self.empty_queue = use_queue
+        self.empty_queue[self.id].set()
     
     def init_null(self):
         # print(self.item['duration'])
@@ -1106,7 +1106,7 @@ class node:
         self.updated_cpu += cpu
         self.updated_gpu += gpu
 
-    def work(self, event, notify_start, progress_bid, ret_val):
+    def work(self, end_processing, notify_start, progress_bid, ret_val):
         notify_start.set()
         if self.use_net_topology:
             timeout = 15
@@ -1116,6 +1116,8 @@ class node:
         # t = threading.Thread(target=self.garbage_collection, args=(terminate_garbage_collect,))
         # t.start()
         
+        self.already_finished = True
+        
         while True:
             try: 
                 self.item = self.q[self.id].get(timeout=timeout)
@@ -1123,7 +1125,8 @@ class node:
                 self.counter += 1
                 
                 with self.last_bid_timestamp_lock:
-                    self.use_queue[self.id].set() 
+                    self.empty_queue[self.id].clear() 
+                    self.already_finished = False
                     
                     if "unallocate" in self.item:
                         if self.check_if_hosting_job():
@@ -1179,20 +1182,19 @@ class node:
                 # the break statement must be executed only if the event has been set 
                 # by the main thread (i.e., no more task will be submitted)
 
-
-                progress_bid.wait()
-
-                self.use_queue[self.id].clear()
+                self.empty_queue[self.id].set()
                 
                 all_finished = True
-                for _, e in enumerate(self.use_queue):
-                    if e.is_set():
+                for _, e in enumerate(self.empty_queue):
+                    if not e.is_set():
                         all_finished = False
                         break
                         # print(f"Waiting for node {id} to finish")
                         
-                if all_finished:
+                if all_finished and not self.already_finished: 
                     
+                    self.already_finished = True   
+                        
                     for j_key in self.resource_remind:
                         for id in self.resource_remind[j_key]["idx"]:
                             self.release_reserved_resources(j_key, id)
@@ -1207,18 +1209,20 @@ class node:
                         ret_val["updated_cpu"] = self.updated_cpu
                         ret_val["updated_gpu"] = self.updated_gpu
                         ret_val["updated_bw"] = self.updated_bw
-                        print(self.id, sorted(ret_val["bids"].keys()))
-                    # progress_bid.set()
-
-                    if event.is_set():    
-                        print(f"Node {self.id}: received end processing signal", flush=True)
+                        #print(self.id, sorted(ret_val["bids"].keys()))
                         
-                        terminate_garbage_collect.set()
-                        # t.join()
+                    # notify the main process that the bidding process has completed and the result has been saved in the ret_val dictionary    
+                    progress_bid.set()
 
-                        if int(self.updated_cpu) > int(self.initial_cpu):
-                            print(f"Node {self.id} -- Mannaggia updated={self.updated_cpu} initial={self.initial_cpu}", flush=True)
-                        break               
+                if end_processing.is_set():    
+                    print(f"Node {self.id}: received end processing signal", flush=True)
+                    
+                    terminate_garbage_collect.set()
+                    # t.join()
+
+                    if int(self.updated_cpu) > int(self.initial_cpu):
+                        print(f"Node {self.id} -- Mannaggia updated={self.updated_cpu} initial={self.initial_cpu}", flush=True)
+                    break               
 
                 # print(str(self.q.qsize()) +" polpetta - user:"+ str(self.id) + " job_id: "  + str(self.item['job_id'])  + " from " + str(self.item['user']))
 
