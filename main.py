@@ -236,6 +236,8 @@ if __name__ == "__main__":
     collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant)
     
     terminate_node_processing(nodes_thread, terminate_processing_events)
+    
+    processed_jobs.to_csv("jobs_report.csv")
 
     if c.use_net_topology:
         c.network_t.dump_to_file(c.filename, c.a)

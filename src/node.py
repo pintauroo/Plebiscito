@@ -14,6 +14,7 @@ import threading
 from threading import Event
 import random
 import numpy
+import math
 
 TRACE = 5    
 
@@ -56,6 +57,15 @@ class node:
             
         self.use_net_topology = use_net_topology
         
+        #initialize random values for the power consumption
+        self.gamma_cpu = random.uniform(0.1, 10)
+        self.idle_consumption_cpu = random.uniform(0.1, 100)
+        self.max_consumption_cpu =self.power_function(self.updated_cpu, "cpu")
+        self.gamma_gpu = random.uniform(0.1, 10)
+        self.idle_consumption_gpu = random.uniform(0.1, 100)
+        self.max_consumption_gpu =self.power_function(self.updated_gpu, "gpu")
+        
+        
         self.last_bid_timestamp = {}
         self.last_bid_timestamp_lock = threading.Lock()
         
@@ -75,6 +85,18 @@ class node:
         self.item={}
         self.bids= {}
         self.layer_bid_already = {}
+        
+    def power_function(self, curr_load, res_type):
+        if res_type == "cpu": 
+            return self.gamma_cpu * math.log(curr_load + 1, 10) + self.idle_consumption_cpu
+        else:
+            return self.gamma_gpu * math.log(curr_load + 1, 10) + self.idle_consumption_gpu
+        
+    def compute_curr_cpu_power_consumption(self):
+        return self.power_function(self.initial_cpu - self.updated_cpu, "cpu")
+    
+    def compute_curr_gpu_power_consumption(self):
+        return self.power_function(self.initial_gpu - self.updated_gpu, "gpu")
         
     def set_queues(self, q, use_queue):
         self.q = q
@@ -176,7 +198,8 @@ class node:
             return (config.a*(avail_gpu/self.initial_gpu))+((1-config.a)*(avail_cpu/self.initial_cpu)) #GPU vs CPU
         elif config.filename == 'alpha_GPU_BW':
             return (config.a*(avail_gpu/self.initial_gpu))+((1-config.a)*(avail_bw/self.initial_bw)) # GPU vs BW
-
+        elif config.filename == 'power':
+            pass # we need to define here the utility function
 
         # elif config.filename == 'alpha_BW_CPU':
         #     return (config.a*(self.updated_bw/config.tot_bw))+((1-config.a)*(self.updated_cpu/config.tot_cpu)) #BW vs CPU
