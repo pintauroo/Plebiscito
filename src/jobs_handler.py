@@ -69,9 +69,14 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate
     bw = round(float(bandwidth) / 2, 6)
     # bw = round(float(bandwidth) / min_layer_number, 2)
 
-    NN_gpu = np.ones(layer_number) * gpu
-    NN_cpu = np.ones(layer_number) * cpu
-    NN_data_size = np.ones(layer_number) * bw
+    # use numpy to create an array of random numbers with length equal to the number of layers. As a constraint, the sum of the array must be equal to the number of GPUs
+    NN_gpu = np.random.dirichlet(np.ones(layer_number), size=1) * gpu
+    NN_cpu = np.random.dirichlet(np.ones(layer_number), size=1) * cpu
+    NN_data_size = np.random.dirichlet(np.ones(layer_number), size=1) * bw
+    
+    # NN_gpu = np.ones(layer_number) * gpu
+    # NN_cpu = np.ones(layer_number) * cpu
+    #NN_data_size = np.ones(layer_number) * bw
 
     max_layer_bid = random.choice([4, 6, 8, 10])
     bundle_size = 2
@@ -84,7 +89,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate
         "duration": int(),
         "N_layer": len(NN_gpu),
         "N_layer_min": 1, # Do not change!! This could be either 1 or = to N_layer_max
-        "N_layer_max": 2,
+        "N_layer_max": max_layer_bid,
         "N_layer_bundle": bundle_size, 
         "edge_id":int(),
         "NN_gpu": NN_gpu,

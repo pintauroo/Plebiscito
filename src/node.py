@@ -54,17 +54,13 @@ class node:
             self.initial_bw = 100000000000
             self.updated_bw = self.initial_bw
            
-            
         self.use_net_topology = use_net_topology
-        
-        #initialize random values for the power consumption
-        self.gamma_cpu = random.uniform(0.1, 10)
-        self.idle_consumption_cpu = random.uniform(0.1, 100)
-        self.max_consumption_cpu =self.power_function(self.updated_cpu, "cpu")
-        self.gamma_gpu = random.uniform(0.1, 10)
-        self.idle_consumption_gpu = random.uniform(0.1, 100)
-        self.max_consumption_gpu =self.power_function(self.updated_gpu, "gpu")
-        
+            
+        # ------------------
+        # use https://dl.acm.org/doi/pdf/10.1145/2851553.2851567 to define the CPU/power transfer function
+        # use https://dl.acm.org/doi/pdf/10.1145/1815961.1815998 to define the GPU/power transfer function
+        # ------------------
+        # initialize random values for the power consumption
         
         self.last_bid_timestamp = {}
         self.last_bid_timestamp_lock = threading.Lock()
@@ -85,12 +81,6 @@ class node:
         self.item={}
         self.bids= {}
         self.layer_bid_already = {}
-        
-    def power_function(self, curr_load, res_type):
-        if res_type == "cpu": 
-            return self.gamma_cpu * math.log(curr_load + 1, 10) + self.idle_consumption_cpu
-        else:
-            return self.gamma_gpu * math.log(curr_load + 1, 10) + self.idle_consumption_gpu
         
     def compute_curr_cpu_power_consumption(self):
         return self.power_function(self.initial_cpu - self.updated_cpu, "cpu")
@@ -316,10 +306,68 @@ class node:
         dict['timestamp'][index] = bid_time # - timedelta(days=1)
         return index + 1
 
-
-
-
     def bid(self, enable_forward=True):
+        tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])
+        bid_time = datetime.now()
+        
+        possible_layer = []
+        for i in range(len(self.layer_bid_already[self.item['job_id']])):
+            if not self.layer_bid_already[self.item['job_id']][i] and \
+                self.item['NN_gpu'][i] <= self.updated_gpu and \
+                    self.item['NN_cpu'][i] <= self.updated_cpu and \
+                        self.item['NN_data_size'][i] <= self.updated_bw:
+                possible_layer.append(i)
+        
+        while len(possible_layer) > 0:
+            best_placement = None
+            best_bid = None
+            
+            for l in possible_layer:
+                bid = self.utility_function(self.updated_bw, self.updated_cpu, self.updated_gpu)
+                if best_bid == None or bid > best_bid:
+                    best_bid = bid
+                    best_placement = l
+
+            if best_bid < self.item['bid'][best_placement]:
+                # remove the layer from the possible layers
+                possible_layer.remove(best_placement)
+            else:
+                n_layer = 1
+                
+                tmp_bid['bid'][best_placement] = best_bid
+                    
+                gpu_ = self.item['NN_gpu'][best_placement]
+                cpu_ = self.item['NN_cpu'][best_placement]
+
+                tmp_bid['auction_id'][best_placement]=(self.id)
+                tmp_bid['timestamp'][best_placement] = bid_time
+                
+                while True:
+                    lower_bound = best_placement - 1
+                    if lower_bound < 0:
+                        lower_bound = 0
+                    
+                    upper_bound = best_placement + 1
+                    if upper_bound >= len(self.item['bid']):
+                        upper_bound = len(self.item['bid']) - 1
+                        
+                    best_placement = None
+                    best_bid = None
+                    
+                    
+            
+            
+            
+            
+        
+        
+        
+        
+        
+        
+
+
+    def bid_old(self, enable_forward=True):
         proceed = True
 
         bid_on_layer = False
