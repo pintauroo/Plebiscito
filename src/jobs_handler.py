@@ -70,9 +70,9 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate
     # bw = round(float(bandwidth) / min_layer_number, 2)
 
     # use numpy to create an array of random numbers with length equal to the number of layers. As a constraint, the sum of the array must be equal to the number of GPUs
-    NN_gpu = np.random.dirichlet(np.ones(layer_number), size=1) * gpu
-    NN_cpu = np.random.dirichlet(np.ones(layer_number), size=1) * cpu
-    NN_data_size = np.random.dirichlet(np.ones(layer_number), size=1) * bw
+    NN_gpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * gpu
+    NN_cpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * cpu
+    NN_data_size = np.random.dirichlet(np.ones(layer_number), size=1)[0] * bw
     
     # NN_gpu = np.ones(layer_number) * gpu
     # NN_cpu = np.ones(layer_number) * cpu

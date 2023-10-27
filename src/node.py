@@ -306,7 +306,7 @@ class node:
         dict['timestamp'][index] = bid_time # - timedelta(days=1)
         return index + 1
 
-    def bid(self, enable_forward=True):
+    def bid_new(self, enable_forward=True):
         tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])
         bid_time = datetime.now()
         
@@ -367,7 +367,7 @@ class node:
         
 
 
-    def bid_old(self, enable_forward=True):
+    def bid(self, enable_forward=True):
         proceed = True
 
         bid_on_layer = False
