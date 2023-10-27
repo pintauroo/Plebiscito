@@ -465,7 +465,7 @@ class node:
                             break
 
                 if success:
-                    # NOTE: Andrea!! We need to remove the layers that have been bid on from the list of possible layers and replace self.bids with tmp_bid
+                    # NOTE: Andrea!! We need to replace self.bids with tmp_bid and update the resources accordingly
                     pass
                 
     def bid(self, enable_forward=True):
