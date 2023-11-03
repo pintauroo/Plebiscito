@@ -63,12 +63,30 @@ def plot_job_deadline(filename, dir_name):
     # clear plot
     plt.clf()
     
-def plot_all(n_edges, filename):
-    plot_node_resource_usage(filename, "gpu", n_edges)
-    plot_node_resource_usage(filename, "cpu", n_edges)
+def plot_job_messages_exchanged(job_count, dir_name):
+    # generate a boxplot of the number of messages exchanged by each job
+    # save the plot to a file
     
-    plot_job_execution_delay("jobs_report")
-    plot_job_deadline("jobs_report")
+    data = list(job_count.values())
+    
+    _ = plt.figure()
+ 
+    # Creating plot
+    plt.boxplot(data)
+    
+    plt.savefig(os.path.join(dir_name, 'number_messages_job.png'))
+    
+    # clear plot
+    plt.clf()
+    
+def plot_all(n_edges, filename, job_count, dir_name):
+    plot_node_resource_usage(filename, "gpu", n_edges, dir_name)
+    plot_node_resource_usage(filename, "cpu", n_edges, dir_name)
+    
+    plot_job_execution_delay("jobs_report", dir_name)
+    plot_job_deadline("jobs_report", dir_name)
+    
+    plot_job_messages_exchanged(job_count, dir_name)
     
 if __name__ == "__main__":
     

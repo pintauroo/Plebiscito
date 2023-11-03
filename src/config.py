@@ -28,6 +28,7 @@ MyManager.register('NetworkTopology', NetworkTopology)
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 counter = 0 #Messages counter
+job_count = {}
 req_number = int(sys.argv[1]) #Total number of requests
 a = float(sys.argv[2]) #Multiplicative factor
 num_edges = int(sys.argv[3]) #Nodes number 

@@ -93,11 +93,15 @@ def print_final_results(start_time):
 
 def collect_node_results(return_val, jobs, exec_time, time_instant):
     c.counter = 0
+    c.job_count = {}
     
     if time_instant != 0:
         for v in return_val: 
             c.nodes[v["id"]].bids = v["bids"]
             for key in v["counter"]:
+                if key not in c.job_count:
+                    c.job_count[key] = 0
+                c.job_count[key] += v["counter"][key]
                 c.counter += v["counter"][key]
             c.nodes[v["id"]].updated_cpu = v["updated_cpu"]
             c.nodes[v["id"]].updated_gpu = v["updated_gpu"]
@@ -247,4 +251,4 @@ if __name__ == "__main__":
 
     print_final_results(start_time)
     
-    plot.plot_all(c.num_edges, c.filename)
+    plot.plot_all(c.num_edges, c.filename, c.job_count, "plot")
