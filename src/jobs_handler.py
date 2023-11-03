@@ -10,7 +10,7 @@ def assign_job_start_time(dataset, time_instant):
         
 def extract_completed_jobs(dataset, time_instant):
     if len(dataset) == 0:
-        return []
+        return dataset, dataset
     ret = dataset[dataset["exec_time"] + dataset["duration"] <= time_instant]
     # print("ret")
     # print(ret)
@@ -56,23 +56,22 @@ def dispatch_job(dataset, queues):
 def get_simulation_end_time_instant(dataset):
     return dataset['arrival_time'].max() + dataset['duration'].max()
 
-# def message_data(job_id, user, num_gpu, num_cpu, duration, job_name, submit_time, gpu_type, num_inst, size, bandwidth):
 def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate=False):
     
     random.seed(job_id)
+    np.random.seed(int(job_id))
     
     layer_number = random.choice([2, 4, 6, 8, 10])
-    layer_number = 8
     
-    gpu = round(num_gpu / layer_number, 6)
-    cpu = round(num_cpu / layer_number, 6)
-    bw = round(float(bandwidth) / 2, 6)
+    # gpu = round(num_gpu / layer_number, 6)
+    # cpu = round(num_cpu / layer_number, 6)
+    # bw = round(float(bandwidth) / 2, 6)
     # bw = round(float(bandwidth) / min_layer_number, 2)
 
     # use numpy to create an array of random numbers with length equal to the number of layers. As a constraint, the sum of the array must be equal to the number of GPUs
-    NN_gpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * gpu
-    NN_cpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * cpu
-    NN_data_size = np.random.dirichlet(np.ones(layer_number), size=1)[0] * bw
+    NN_gpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * num_gpu
+    NN_cpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * num_cpu
+    NN_data_size = np.random.dirichlet(np.ones(layer_number), size=1)[0] * bandwidth
     
     # NN_gpu = np.ones(layer_number) * gpu
     # NN_cpu = np.ones(layer_number) * cpu

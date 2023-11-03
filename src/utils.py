@@ -127,6 +127,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
                 if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
                     count_broken += 1
                     print('BROKEN BID id: ' + str(j))
+                    for k in range(0, c.num_edges):
+                        print(nodes[k].bids[j]['auction_id'])
                     equal_values = False
                     break
         except Exception as e :

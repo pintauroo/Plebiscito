@@ -75,7 +75,8 @@ class node:
         else:
             #print(f"Node {self.id} CPU/GPU ratio: <inf>")
             pass
-        self.counter = 0
+        
+        self.counter = {}
         
         self.user_requests = []
         self.item={}
@@ -188,6 +189,8 @@ class node:
             return (config.a*(avail_gpu/self.initial_gpu))+((1-config.a)*(avail_cpu/self.initial_cpu)) #GPU vs CPU
         elif config.filename == 'alpha_GPU_BW':
             return (config.a*(avail_gpu/self.initial_gpu))+((1-config.a)*(avail_bw/self.initial_bw)) # GPU vs BW
+        elif config.filename == 'GPU':
+            return avail_gpu
         elif config.filename == 'power':
             pass # we need to define here the utility function
 
@@ -312,6 +315,7 @@ class node:
 
     def bid_new(self, enable_forward=True):
         tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])
+        bidtime = datetime.now()
         
         # create an array containing the indices of the layers that can be bid on
         possible_layer = []
@@ -327,7 +331,7 @@ class node:
         else:
             # if I already own at least one layer, I'm not allowed to bet anymore
             # otherwise I break the property of monotonicity
-            return
+            return False
                         
         # if there are no layers that can be bid on, return
         # as the iteration goes on, the number of possible layers decreases (i.e., remove the ufeasible layers)
@@ -349,17 +353,17 @@ class node:
 
             # if my bid is higher than the current bid, I can bid on the layer
             if bid > tmp_bid['bid'][best_placement]:
-                layer_to_remove = []
                                 
                 gpu_ = self.item['NN_gpu'][best_placement]
                 cpu_ = self.item['NN_cpu'][best_placement]
                 bw_ = self.item["NN_data_size"][best_placement]
                 
                 n_layer = 1
+                layers = []
                 
                 tmp_bid['bid'][best_placement] = bid
                 tmp_bid['auction_id'][best_placement]=(self.id)
-                tmp_bid['timestamp'][best_placement] = datetime.now()
+                tmp_bid['timestamp'][best_placement] = bidtime
                 
                 left_bound = best_placement
                 right_bound = best_placement
@@ -412,13 +416,13 @@ class node:
                         bid = self.utility_function(self.updated_bw - bw_, self.updated_cpu - cpu_, self.updated_gpu - gpu_)
                             
                         # if my bid is higher than the current bid, I can bid on the layer
-                        if bid > self.item['bid'][target_layer]:
+                        if bid > tmp_bid['bid'][target_layer]:
                             tmp_bid['bid'][target_layer] = bid
                             tmp_bid['auction_id'][target_layer]=(self.id)
-                            tmp_bid['timestamp'][target_layer] = datetime.now()
+                            tmp_bid['timestamp'][target_layer] = bidtime
                         
                             n_layer += 1
-                            layer_to_remove.append(target_layer)
+                            layers.append(target_layer)
                             
                             cpu_ += self.item['NN_cpu'][target_layer]
                             gpu_ += self.item['NN_gpu'][target_layer]
@@ -445,10 +449,10 @@ class node:
                                 if bid > self.item['bid'][target_layer]:
                                     tmp_bid['bid'][target_layer] = bid
                                     tmp_bid['auction_id'][target_layer]=(self.id)
-                                    tmp_bid['timestamp'][target_layer] = datetime.now()
+                                    tmp_bid['timestamp'][target_layer] = bidtime
                                 
                                     n_layer += 1
-                                    layer_to_remove.append(target_layer)
+                                    layers.append(target_layer)
                                     
                                     cpu_ += self.item['NN_cpu'][target_layer]
                                     gpu_ += self.item['NN_gpu'][target_layer]
@@ -465,8 +469,26 @@ class node:
                             break
 
                 if success:
-                    # NOTE: Andrea!! We need to replace self.bids with tmp_bid and update the resources accordingly
-                    pass
+                    self.updated_cpu -= cpu_
+                    self.updated_gpu -= gpu_
+                    self.updated_bw -= bw_
+                    
+                    self.bids[self.item['job_id']] = tmp_bid
+                    
+                    for l in layers:
+                        self.layer_bid_already[self.item['job_id']][l] = True
+                    
+                    if enable_forward:
+                        self.forward_to_neighbohors()
+                    
+                    return True
+                else:
+                    return False
+                
+        # if enable_forward:
+        #     self.forward_to_neighbohors()
+                                    
+        return False                
                 
     def bid(self, enable_forward=True):
         proceed = True
@@ -676,7 +698,8 @@ class node:
                 t_ij = tmp_local['timestamp'][index]
 
                 if config.enable_logging:
-                    logging.log(TRACE,'DECONFLICTION - NODEID(i):' + str(i) +
+                    logger_method = getattr(logging, 'debug')
+                    logger_method('DECONFLICTION - NODEID(i):' + str(i) +
                                 ' sender(k):' + str(k) +
                                 ' z_kj:' + str(z_kj) +
                                 ' z_ij:' + str(z_ij) +
@@ -685,7 +708,9 @@ class node:
                                 ' t_kj:' + str(t_kj) +
                                 ' t_ij:' + str(t_ij)
                                 )
+                # chi mi manda il messaggio è il vincitore
                 if z_kj==k : 
+                    # io penso di essere il vincitore
                     if z_ij==i:
                         if (y_kj>y_ij): 
                             rebroadcast = True
@@ -720,7 +745,7 @@ class node:
                         #     rebroadcast = True
 
                     elif z_ij==k:
-                        if  t_kj>t_ij:
+                        if t_kj>t_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  '#4')
                             index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
@@ -780,6 +805,7 @@ class node:
                         if config.enable_logging:
                             logging.log(TRACE, "eccoci")    
                 
+                # chi mi manda il messaggio dice che vinco io
                 elif z_kj==i:                                
                     if z_ij==i:
                         if t_kj>t_ij:
@@ -821,6 +847,7 @@ class node:
                         rebroadcast = True
                         index+=1                
                 
+                # chi mi manda il messaggio non mette un vincitore
                 elif z_kj == float('-inf'):
                     if z_ij==i:
                         if config.enable_logging:
@@ -856,6 +883,7 @@ class node:
                         index+=1
                         rebroadcast = True
 
+                # chi manda il messaggio dice che non vinco nè io nè lui
                 elif z_kj!=i or z_kj!=k:   
                                      
                     if z_ij==i:
@@ -888,8 +916,9 @@ class node:
                         #     index+=1
                         #     rebroadcast = True
 
+                    # io penso che vinca lui
                     elif z_ij==k:
-                        if y_kj<y_ij:
+                        if y_kj>y_ij:
                             if config.enable_logging:
                                 logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #20Flavio')
                             index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
@@ -1133,7 +1162,7 @@ class node:
                     
                     if float('-inf') in self.bids[self.item['job_id']]['auction_id']:
                         if self.id not in self.bids[self.item['job_id']]['auction_id']: 
-                            self.bid()
+                            self.bid_new()
                         else:
                             self.forward_to_neighbohors()
                     else:
@@ -1148,10 +1177,9 @@ class node:
                 rebroadcast, integrity_fail = self.deconfliction()
 
                 success = False
-                proceed = True
 
                 if not integrity_fail and self.id not in self.bids[self.item['job_id']]['auction_id']:
-                    success = self.bid()
+                    success = self.bid_new()
                     
                 if not success and rebroadcast:
                     self.forward_to_neighbohors()
@@ -1177,7 +1205,7 @@ class node:
             if config.enable_logging:
                 self.print_node_state('Value not in dict (new_msg)', type='error')
 
-    def integrity_check(self, bid, msg):
+    def integrity_check(self, bid, msg):        
         min_ = self.item["N_layer_min"]
         max_ = self.item["N_layer_max"]
         curr_val = bid[0]
@@ -1191,12 +1219,12 @@ class node:
                 if (curr_count < min_ or curr_count > max_) and curr_val != float('-inf'):
                     if config.enable_logging:
                         self.print_node_state(str(msg) + ' 1 DISCARD BROKEN MSG ' + str(bid))
-                    return False
+                    return True
 
-                if bid[i] in prev_values:  # Check if current value is repeated
+                if bid[i] in prev_values and bid[i] != float('-inf'):  # Check if current value is repeated
                     if config.enable_logging:
                         self.print_node_state(str(msg) + ' 2 DISCARD BROKEN MSG ' + str(bid))
-                    return False
+                    return True
 
                 curr_val = bid[i]
                 curr_count = 1
@@ -1205,7 +1233,7 @@ class node:
         if curr_count < min_ or curr_count > max_ and curr_val != float('-inf'):
             if config.enable_logging:    
                 self.print_node_state(str(msg) + ' 3 DISCARD BROKEN MSG ' + str(bid))
-            return False
+            return True
 
         return True
     
@@ -1288,13 +1316,18 @@ class node:
         # t = threading.Thread(target=self.garbage_collection, args=(terminate_garbage_collect,))
         # t.start()
         
+        ret_val["id"] = self.id
+        ret_val["bids"] = copy.deepcopy(self.bids)
+        ret_val["counter"] = self.counter
+        ret_val["updated_cpu"] = self.updated_cpu
+        ret_val["updated_gpu"] = self.updated_gpu
+        ret_val["updated_bw"] = self.updated_bw
+        
         self.already_finished = True
         
         while True:
             try: 
                 self.item = self.q[self.id].get(timeout=timeout)
-
-                self.counter += 1
                 
                 with self.last_bid_timestamp_lock:
                     self.empty_queue[self.id].clear() 
@@ -1305,6 +1338,11 @@ class node:
                             self.release_resources()
                     else:   
                         flag = False
+                        
+                        if self.item['job_id'] not in self.counter:
+                            self.counter[self.item['job_id']] = 0
+                        self.counter[self.item['job_id']] += 1    
+                        
                         # new request from client
                         if self.item['edge_id'] is None:
                             flag = True
@@ -1323,7 +1361,7 @@ class node:
                             
                                 threading.Thread(target=self.progress_bid_rounds, args=(copy.deepcopy(self.item),)).start()
                                 
-                            self.bid(flag)
+                            self.bid_new(flag)
 
                         
                         if not flag:
@@ -1332,7 +1370,7 @@ class node:
                             # if not self.bids[self.item['job_id']]['complete'] and \
                             #    not self.bids[self.item['job_id']]['clock'] :
                             if self.id not in self.item['auction_id']:
-                                self.bid(False)
+                                self.bid_new(False)
 
                             self.update_bid()
                             # else:

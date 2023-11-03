@@ -10,6 +10,7 @@ import signal
 import os
 import pandas as pd
 from src.jobs_handler import *
+import src.plot as plot
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
@@ -42,7 +43,7 @@ def setup_environment():
     main_pid = os.getpid()
 
     logging.addLevelName(TRACE, "TRACE")
-    logging.basicConfig(filename='debug.log', level=DEBUG, format='%(message)s', filemode='w')
+    logging.basicConfig(filename='debug.log', level=TRACE, format='%(message)s', filemode='w')
     # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
     logging.debug('Clients number: ' + str(c.num_clients))
@@ -91,11 +92,13 @@ def print_final_results(start_time):
     print("Run time: %s" % (time.time() - start_time))
 
 def collect_node_results(return_val, jobs, exec_time, time_instant):
+    c.counter = 0
     
     if time_instant != 0:
         for v in return_val: 
             c.nodes[v["id"]].bids = v["bids"]
-            c.counter += v["counter"]
+            for key in v["counter"]:
+                c.counter += v["counter"][key]
             c.nodes[v["id"]].updated_cpu = v["updated_cpu"]
             c.nodes[v["id"]].updated_gpu = v["updated_gpu"]
             c.nodes[v["id"]].updated_bw = v["updated_bw"]
@@ -165,7 +168,7 @@ if __name__ == "__main__":
         
         print(f"\tCurrent lenght of the job queue: {len(jobs)}.")
         jobs = job.schedule_jobs(jobs)
-        jobs_to_submit = job.create_job_batch(jobs, 20)
+        jobs_to_submit = job.create_job_batch(jobs, 10)
         
         print(f"\tSubmitted jobs: {len(jobs_to_submit)}. \n\tJobs remaining in queue: {len(jobs)}.")
         
@@ -243,3 +246,5 @@ if __name__ == "__main__":
         c.network_t.dump_to_file(c.filename, c.a)
 
     print_final_results(start_time)
+    
+    plot.plot_all(c.num_edges, c.filename)
