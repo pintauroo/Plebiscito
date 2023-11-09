@@ -7,6 +7,15 @@ path = os.getcwd()
 dataset = path + '/df_dataset.csv'
 
 def generate_dataset(entries_num = 100):
+    """
+    Generate a new dataset with the specified number of entries.
+    
+    Args:
+    - entries_num (int): The number of entries to generate.
+    
+    Returns:
+    - pandas.DataFrame: A new dataset with the specified number of entries.
+    """
     df = pd.read_csv(dataset)
     df = df[(df['num_cpu'] <= 100) & (df['num_gpu'] > 0)]
     

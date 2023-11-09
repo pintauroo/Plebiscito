@@ -7,7 +7,16 @@ def generate_plot_folder(dirname):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
 
-def plot_node_resource_usage(filename, res_type, n_nodes, dir_name):    
+def plot_node_resource_usage(filename, res_type, n_nodes, dir_name):
+    """
+    Plots the resource usage of nodes over time and saves the plot to a file.
+
+    Args:
+        filename (str): The name of the file containing the data to plot.
+        res_type (str): The type of resource to plot (e.g. "cpu", "gpu").
+        n_nodes (int): The number of nodes to plot.
+        dir_name (str): The name of the directory to save the plot file in.
+    """
     # plot node resource usage using data from filename
     df = pd.read_csv(filename + ".csv")
     
@@ -32,6 +41,13 @@ def plot_node_resource_usage(filename, res_type, n_nodes, dir_name):
     plt.clf()
     
 def plot_job_execution_delay(filename, dir_name):
+    """
+    Plots a histogram of job execution delays and saves the plot to a file.
+
+    Args:
+        filename (str): The name of the CSV file containing job data.
+        dir_name (str): The name of the directory where the plot will be saved.
+    """
     df = pd.read_csv(filename + ".csv")
         
     res = df["deadline"] - df["exec_time"] + df["duration"]
@@ -48,6 +64,16 @@ def plot_job_execution_delay(filename, dir_name):
     plt.clf()
     
 def plot_job_deadline(filename, dir_name):
+    """
+    Plots a histogram of job deadline exceeded times based on the given CSV file.
+
+    Args:
+        filename (str): The name of the CSV file (without the .csv extension).
+        dir_name (str): The name of the directory where the plot will be saved.
+
+    Returns:
+        None
+    """
     df = pd.read_csv(filename + ".csv")
         
     res = df["exec_time"] - df["arrival_time"]
@@ -65,9 +91,16 @@ def plot_job_deadline(filename, dir_name):
     plt.clf()
     
 def plot_job_messages_exchanged(job_count, dir_name):
-    # generate a boxplot of the number of messages exchanged by each job
-    # save the plot to a file
-    
+    """
+    Generate a boxplot of the number of messages exchanged by each job and save the plot to a file.
+
+    Args:
+        job_count (dict): A dictionary containing the number of messages exchanged by each job.
+        dir_name (str): The directory where the plot will be saved.
+
+    Returns:
+        None
+    """
     data = list(job_count.values())
     
     _ = plt.figure()
@@ -81,6 +114,15 @@ def plot_job_messages_exchanged(job_count, dir_name):
     plt.clf()
     
 def plot_all(n_edges, filename, job_count, dir_name):
+    """
+    Plots all the relevant graphs for the given parameters.
+
+    Args:
+        n_edges (int): Number of edges in the graph.
+        filename (str): Name of the file containing the data.
+        job_count (dict): Jobs in the system.
+        dir_name (str): Name of the directory where the plots will be saved.
+    """
     generate_plot_folder(dir_name)
     
     plot_node_resource_usage(filename, "gpu", n_edges, dir_name)
