@@ -42,8 +42,8 @@ class GPUSupport:
         Determines whether a GPU of type `gpu_type1` can host a GPU of type `gpu_type2`.
 
         Args:
-            gpu_type1 (GPUType): The type of the first GPU.
-            gpu_type2 (GPUType): The type of the second GPU.
+            gpu_type1 (GPUType): The type of the host GPU.
+            gpu_type2 (GPUType): The type of the job GPU.
 
         Returns:
             bool: True if `gpu_type1` can host `gpu_type2`, False otherwise.
@@ -74,4 +74,23 @@ class GPUSupport:
             return cpu[4], gpu[4]
         else: #MISC
             return cpu[1], gpu[1]
+        
+    @staticmethod
+    def get_GPU_corrective_factor(gpu_type1, gpu_type2, decrement=0.15):
+        """
+        Returns the corrective factor for the GPU of type `gpu_type1` to host a GPU of type `gpu_type2`.
+
+        Args:
+            gpu_type1 (GPUType): The type of the node GPU.
+            gpu_type2 (GPUType): The type of the job GPU.
+            decrement (float, optional): The decrement factor if the GPUs don't match. Defaults to 0.15.
+
+        Returns:
+            float: The corrective factor for the GPU of type `gpu_type1` to host a GPU of type `gpu_type2`.
+        """
+        difference = gpu_type2.value - gpu_type1.value
+        return 1 - (difference * decrement)
+        
+        
+        
     

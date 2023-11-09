@@ -3,10 +3,11 @@ import sys
 import time
 import src.config as c
 import numpy as np
+import pandas as pd
 
-def assign_job_start_time(dataset, time_instant):
-    for _, row in dataset.iterrows():
-        row['exec_time'] = time_instant
+def assign_job_start_time(dataset: pd.DataFrame, time_instant):
+    dataset.replace(-1, time_instant, inplace=True)
+    return dataset
         
 def extract_completed_jobs(dataset, time_instant):
     if len(dataset) == 0:

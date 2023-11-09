@@ -192,7 +192,8 @@ class node:
         elif config.filename == 'alpha_GPU_BW':
             return (config.a*(avail_gpu/self.initial_gpu))+((1-config.a)*(avail_bw/self.initial_bw)) # GPU vs BW
         elif config.filename == 'GPU':
-            return avail_gpu
+            corrective_factor = GPUSupport.get_GPU_corrective_factor(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type']), decrement=0.15)
+            return avail_gpu * corrective_factor
         elif config.filename == 'power':
             pass # we need to define here the utility function
 

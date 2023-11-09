@@ -188,7 +188,7 @@ if __name__ == "__main__":
             
         assigned_jobs, unassigned_jobs = collect_node_results(return_val, jobs_to_submit, exec_time, time_instant)
                    
-        job.assign_job_start_time(assigned_jobs, time_instant)
+        assigned_jobs = job.assign_job_start_time(assigned_jobs, time_instant)
         
         print(f"\tAdding {len(unassigned_jobs)} unscheduled job(s) to the list.")
         jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
