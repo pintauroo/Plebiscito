@@ -173,7 +173,7 @@ if __name__ == "__main__":
         
         print(f"\tCurrent lenght of the job queue: {len(jobs)}.")
         jobs = job.schedule_jobs(jobs)
-        jobs_to_submit = job.create_job_batch(jobs, 10)
+        jobs_to_submit = job.create_job_batch(jobs, 5)
         
         print(f"\tSubmitted jobs: {len(jobs_to_submit)}. \n\tJobs remaining in queue: {len(jobs)}.")
         

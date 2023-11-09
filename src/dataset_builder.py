@@ -64,8 +64,8 @@ def generate_dataset_old(entries_num = 100):
         bw = bandwidth_median[entry_idx]
         duration= duration_median[entry_idx]
         
-        duration = random.randint(1, 4)
-        arrival_time = random.randint(1, 4)
+        duration = random.randint(1, 15)
+        arrival_time = random.randint(1, 15)
         
         # TODO: the arrival time should be modeled based on the dataset, instead of a random value
         new_dataset.append({'job_id': i, 'user': i, 'num_cpu': cpu, 'num_gpu': gpu, 'bw': bw, 'duration': duration, 'arrival_time': arrival_time, "exec_time": -1, 'deadline': arrival_time + duration + random.randint(1, 4), 'priority': random.randint(1, 4), 'count': 1})

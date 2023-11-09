@@ -349,6 +349,7 @@ class node:
             
             # compute the bid for the current layer, and remove it from the list of possible layers (no matter if the bid is valid or not)
             bid = self.utility_function(self.updated_bw, self.updated_cpu, self.updated_gpu)
+            bid -= self.id * 0.000000001
             self.layer_bid_already[self.item['job_id']][best_placement] = True    
             possible_layer.remove(best_placement)       
 
@@ -415,6 +416,7 @@ class node:
                     # if there is a layer that can be bid on, bid on it    
                     if target_layer is not None:     
                         bid = self.utility_function(self.updated_bw - bw_, self.updated_cpu - cpu_, self.updated_gpu - gpu_)
+                        bid -= self.id * 0.000000001
                             
                         # if my bid is higher than the current bid, I can bid on the layer
                         if bid > tmp_bid['bid'][target_layer]:
@@ -445,6 +447,7 @@ class node:
                                 
                             if found:
                                 bid = self.utility_function(self.updated_bw - bw_, self.updated_cpu - cpu_, self.updated_gpu - gpu_)
+                                bid -= self.id * 0.000000001
                                 
                                 # if my bid is higher than the current bid, I can bid on the layer
                                 if bid > self.item['bid'][target_layer]:

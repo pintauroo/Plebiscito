@@ -6,6 +6,43 @@ def generate_plot_folder(dirname):
     # check if the plot directory exists, if not create it
     if not os.path.exists(dirname):
         os.makedirs(dirname)
+        
+def plot_node_resource_usage_box(filename, res_type, n_nodes, dir_name):
+    """
+    Plots the resource usage of nodes in the form of a boxplot and saves the plot to a file.
+
+    Args:
+        filename (str): The name of the file containing the data to plot.
+        res_type (str): The type of resource to plot (e.g. "cpu", "gpu").
+        n_nodes (int): The number of nodes to plot.
+        dir_name (str): The name of the directory to save the plot file in.
+    """
+    # plot node resource usage using data from filename
+    df = pd.read_csv(filename + ".csv")
+    
+    # select only the columns matching the pattern node_*_updated_gpu
+    df2 = df.filter(regex=("node.*"+res_type))
+    
+    d = {}
+    for i in range(n_nodes):
+        gpu_type = df['node_'+str(i)+'_gpu_type'].iloc[1]
+        if gpu_type not in d:
+            d[str(gpu_type)] = []
+        d[str(gpu_type)] += list(df2["node_" + str(i) + "_used_" + res_type] / df2["node_" + str(i) + "_initial_" + res_type])
+    
+    # use matplotlib to plot the data and save the plot to a file
+    plt.boxplot(d.values())
+    plt.xticks(range(1, len(d.keys()) + 1), d.keys())
+
+    
+    plt.ylabel(f"{res_type} usage")
+    plt.xlabel("GPU type")
+    plt.savefig(os.path.join(dir_name, 'node_' + res_type + '_resource_usage_box.png'))
+    # ticks = [i+1 for i in range(len(d.keys()))]
+    # plt.xticks(ticks, d.keys())
+    
+    # clear plot
+    plt.clf()
 
 def plot_node_resource_usage(filename, res_type, n_nodes, dir_name):
     """
@@ -31,7 +68,7 @@ def plot_node_resource_usage(filename, res_type, n_nodes, dir_name):
     df_2 = pd.DataFrame(d)
     
     # use matplotlib to plot the data and save the plot to a file
-    df_2.plot()
+    df_2.plot(legend=None)
     
     plt.ylabel(f"{res_type} usage")
     plt.xlabel("time")
@@ -58,7 +95,7 @@ def plot_job_execution_delay(filename, dir_name):
     # save the plot to a file
     plt.ylabel(f"Occurrences")
     plt.xlabel("Job delay time (s)")
-    plt.savefig(os.path.join(dir_name, 'job_deadline.png'))
+    plt.savefig(os.path.join(dir_name, 'job_execution_delay.png'))
     
     # clear plot
     plt.clf()
@@ -85,7 +122,7 @@ def plot_job_deadline(filename, dir_name):
     plt.xlabel("Job deadline exceeded (s)")
     
     # save the plot to a file
-    plt.savefig(os.path.join(dir_name, 'job_execution_delay.png'))
+    plt.savefig(os.path.join(dir_name, 'job_deadline_exceeded.png'))
     
     # clear plot
     plt.clf()
@@ -128,6 +165,9 @@ def plot_all(n_edges, filename, job_count, dir_name):
     plot_node_resource_usage(filename, "gpu", n_edges, dir_name)
     plot_node_resource_usage(filename, "cpu", n_edges, dir_name)
     
+    plot_node_resource_usage_box(filename, "gpu", n_edges, dir_name)
+    plot_node_resource_usage_box(filename, "cpu", n_edges, dir_name)
+    
     plot_job_execution_delay("jobs_report", dir_name)
     plot_job_deadline("jobs_report", dir_name)
     
@@ -138,8 +178,11 @@ if __name__ == "__main__":
     dir_name = "plot"
     generate_plot_folder(dir_name)
         
-    plot_node_resource_usage("GPU", "gpu", 10, dir_name)
-    plot_node_resource_usage("GPU", "cpu", 10, dir_name)
+    plot_node_resource_usage("GPU", "gpu", 20, dir_name)
+    plot_node_resource_usage("GPU", "cpu", 20, dir_name)
+    
+    plot_node_resource_usage_box("GPU", "gpu", 20, dir_name)
+    plot_node_resource_usage_box("GPU", "cpu", 20, dir_name)
     
     plot_job_execution_delay("jobs_report", dir_name)
     plot_job_deadline("jobs_report", dir_name)
