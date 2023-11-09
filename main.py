@@ -43,7 +43,7 @@ def setup_environment():
     main_pid = os.getpid()
 
     logging.addLevelName(TRACE, "TRACE")
-    logging.basicConfig(filename='debug.log', level=TRACE, format='%(message)s', filemode='w')
+    logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
     # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
     logging.debug('Clients number: ' + str(c.num_clients))
@@ -106,6 +106,7 @@ def collect_node_results(return_val, jobs, exec_time, time_instant):
             c.nodes[v["id"]].updated_cpu = v["updated_cpu"]
             c.nodes[v["id"]].updated_gpu = v["updated_gpu"]
             c.nodes[v["id"]].updated_bw = v["updated_bw"]
+            c.nodes[v["id"]].gpu_type = v["gpu_type"]
 
         for j in job_ids:
             for i in range(c.num_edges):
@@ -205,6 +206,7 @@ if __name__ == "__main__":
                         j['num_cpu'],
                         j['duration'],
                         j['bw'],
+                        j['gpu_type'],
                         deallocate=True
                     )
                 for q in queues:
@@ -223,6 +225,7 @@ if __name__ == "__main__":
                         j['num_cpu'],
                         j['duration'],
                         j['bw'],
+                        j['gpu_type'],
                         deallocate=True
                     )
                 

@@ -6,10 +6,22 @@ import os
 import src.config as c
 import logging
 import pandas as pd
+import numpy as np
+from src.GPU import *
 
 import math
 
-
+def generate_gpu_types(n_nodes):
+    occurrencies = [0.26, 0.16, 0.42, 0.07, 0.09]
+    GPU_types = ["T4", "MISC", "P100", "V100", "V100M32"]
+    
+    gpu_types = []
+    for _ in range(n_nodes):
+        t_id = np.random.choice(np.arange(0, 5), p=occurrencies)
+        gpu_types.append(GPUSupport.get_gpu_type(GPU_types[t_id]))
+        
+    return gpu_types
+    
 
 def wrong_bids_calc(nodes, job):
     
@@ -230,6 +242,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
         field_names.append('node_'+str(i)+'_initial_bw')
         field_names.append('node_'+str(i)+'_updated_bw')
         field_names.append('node_'+str(i)+'_used_bw')
+        field_names.append('node_'+str(i)+'_gpu_type')
 
         stats['nodes'][nodes[i].id] = {
             "utility": float(),
@@ -259,7 +272,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
         dictionary['node_'+str(i)+'_used_bw'] = 0 if math.isclose(nodes[i].initial_bw - nodes[i].updated_bw, 0.0, abs_tol=1e-1) else round(nodes[i].initial_bw - nodes[i].updated_bw,2)
 
         tot_used_bw += dictionary['node_'+str(i)+'_used_bw']
-
+        dictionary['node_'+str(i)+'_gpu_type'] = nodes[i].gpu_type
 
         #calculate node assigned count and utility
         for j, job_id in enumerate(nodes[i].bids):

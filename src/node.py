@@ -6,6 +6,7 @@ from queue import Empty
 import time
 import src.config as config
 from src.network_topology import NetworkTopology
+from src.GPU import *
 from datetime import datetime, timedelta
 import copy
 import logging
@@ -24,12 +25,13 @@ class InternalError(Exception):
 
 class node:
 
-    def __init__(self, id, seed, network_topology: NetworkTopology, use_net_topology=False):
+    def __init__(self, id, seed, network_topology: NetworkTopology, gpu_type: GPUType, use_net_topology=False):
         random.seed(seed)
         self.id = id    # unique edge node id
-        self.initial_gpu = float(config.node_gpu) * random.uniform(0.2, 1)
-        self.updated_gpu = self.initial_gpu# * random.uniform(0.7, 1)
-        self.initial_cpu = float(config.node_cpu) * random.uniform(0.4, 0.9)
+        self.gpu_type = gpu_type
+        
+        self.initial_cpu, self.initial_gpu = GPUSupport.get_compute_resources(gpu_type)
+        self.updated_gpu = self.initial_gpu
         self.updated_cpu = self.initial_cpu
         #print(str(self.id) + ' gpu:' +str(self.initial_gpu) + ' cpu:' + str(self.initial_cpu))
 
@@ -202,42 +204,40 @@ class node:
         #     return (config.a*(self.updated_gpu/config.tot_gpu))+((1-config.a)*(self.updated_bw/config.tot_bw)) # GPU vs BW
 
 
-    def forward_to_neighbohors(self, custom_dict=None):
+    def forward_to_neighbohors(self, custom_dict=None, resend_bid=False):
         if config.enable_logging:
             self.print_node_state('FORWARD', True)
-        if custom_dict == None:
-            msg = {
-                        "job_id": self.item['job_id'], 
-                        "user": self.item['user'],
-                        "edge_id": self.id, 
-                        "auction_id": copy.deepcopy(self.bids[self.item['job_id']]['auction_id']), 
-                        "NN_gpu": self.item['NN_gpu'],
-                        "NN_cpu": self.item['NN_cpu'],
-                        "NN_data_size": self.item['NN_data_size'], 
-                        "bid": copy.deepcopy(self.bids[self.item['job_id']]['bid']), 
-                        "timestamp": copy.deepcopy(self.bids[self.item['job_id']]['timestamp']),
-                        "N_layer": self.item["N_layer"],
-                        "N_layer_min": self.item["N_layer_min"],
-                        "N_layer_max": self.item["N_layer_max"],
-                        "N_layer_bundle": self.item["N_layer_bundle"]
-                        }
-        else:
-            msg = {
-                        "job_id": self.item['job_id'], 
-                        "user": self.item['user'],
-                        "edge_id": self.id, 
-                        "auction_id": copy.deepcopy(custom_dict['auction_id']), 
-                        "NN_gpu": self.item['NN_gpu'],
-                        "NN_cpu": self.item['NN_cpu'],
-                        "NN_data_size": self.item['NN_data_size'], 
-                        "bid": copy.deepcopy(custom_dict['bid']), 
-                        "timestamp": copy.deepcopy(custom_dict['timestamp']),
-                        "N_layer": self.item["N_layer"],
-                        "N_layer_min": self.item["N_layer_min"],
-                        "N_layer_max": self.item["N_layer_max"],
-                        "N_layer_bundle": self.item["N_layer_bundle"]
-                        }
+            
+        msg = {
+            "job_id": self.item['job_id'], 
+            "user": self.item['user'],
+            "edge_id": self.id, 
+            "NN_gpu": self.item['NN_gpu'],
+            "NN_cpu": self.item['NN_cpu'],
+            "NN_data_size": self.item['NN_data_size'], 
+            "N_layer": self.item["N_layer"],
+            "N_layer_min": self.item["N_layer_min"],
+            "N_layer_max": self.item["N_layer_max"],
+            "N_layer_bundle": self.item["N_layer_bundle"],
+            "gpu_type": self.item["gpu_type"]
+        }
         
+        if custom_dict == None and not resend_bid:
+            msg["auction_id"] = copy.deepcopy(self.bids[self.item['job_id']]['auction_id'])
+            msg["bid"] = copy.deepcopy(self.bids[self.item['job_id']]['bid'])
+            msg["timestamp"] = copy.deepcopy(self.bids[self.item['job_id']]['timestamp'])
+        elif custom_dict != None and not resend_bid:
+            msg["auction_id"] = copy.deepcopy(custom_dict['auction_id'])
+            msg["bid"] = copy.deepcopy(custom_dict['bid'])
+            msg["timestamp"] = copy.deepcopy(custom_dict['timestamp'])
+        elif resend_bid:
+            if "auction_id" not in self.item:
+                return
+            else:
+                msg["auction_id"] = copy.deepcopy(self.item['auction_id'])
+                msg["bid"] = copy.deepcopy(self.item['bid'])
+                msg["timestamp"] = copy.deepcopy(self.item['timestamp'])
+                
         if self.item['job_id'] not in self.last_sent_msg:
             self.last_sent_msg[self.item['job_id']] = msg
         elif (self.last_sent_msg[self.item['job_id']]["auction_id"] == msg["auction_id"] and \
@@ -1294,14 +1294,11 @@ class node:
     def release_resources(self):
         cpu = 0
         gpu = 0
-
-        #print("NODE", self.id)
         
         for i, id in enumerate(self.bids[self.item['job_id']]['auction_id']):
             if id == self.id:
                 cpu += self.item['NN_cpu'][i]
                 gpu += self.item['NN_gpu'][i]
-                #print(id, gpu, cpu)
                 
         self.updated_cpu += cpu
         self.updated_gpu += gpu
@@ -1311,7 +1308,7 @@ class node:
         if self.use_net_topology:
             timeout = 15
         else:
-            timeout = 5
+            timeout = 2
         terminate_garbage_collect = Event()
         # t = threading.Thread(target=self.garbage_collection, args=(terminate_garbage_collect,))
         # t.start()
@@ -1322,7 +1319,8 @@ class node:
         ret_val["updated_cpu"] = self.updated_cpu
         ret_val["updated_gpu"] = self.updated_gpu
         ret_val["updated_bw"] = self.updated_bw
-        
+        ret_val["gpu_type"] = self.gpu_type.name
+
         self.already_finished = True
         
         while True:
@@ -1352,6 +1350,11 @@ class node:
                                 self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
 
                             self.init_null()
+                            
+                            job_GPU_type = GPUSupport.get_gpu_type(self.item['gpu_type'])
+                            if not GPUSupport.can_host(self.gpu_type, job_GPU_type):
+                                self.forward_to_neighbohors(resend_bid=True)
+                                continue
                             
                             if self.use_net_topology:    
                                 with self.__layer_bid_lock:
@@ -1419,7 +1422,7 @@ class node:
                         ret_val["updated_cpu"] = self.updated_cpu
                         ret_val["updated_gpu"] = self.updated_gpu
                         ret_val["updated_bw"] = self.updated_bw
-                        #print(self.id, sorted(ret_val["bids"].keys()))
+                        ret_val["gpu_type"] = self.gpu_type.name
                         
                     # notify the main process that the bidding process has completed and the result has been saved in the ret_val dictionary    
                     progress_bid.set()
@@ -1433,8 +1436,6 @@ class node:
                     if int(self.updated_cpu) > int(self.initial_cpu):
                         print(f"Node {self.id} -- Mannaggia updated={self.updated_cpu} initial={self.initial_cpu}", flush=True)
                     break               
-
-                # print(str(self.q.qsize()) +" polpetta - user:"+ str(self.id) + " job_id: "  + str(self.item['job_id'])  + " from " + str(self.item['user']))
 
       
       

@@ -12,11 +12,12 @@ def plot_node_resource_usage(filename, res_type, n_nodes, dir_name):
     df = pd.read_csv(filename + ".csv")
     
     # select only the columns matching the pattern node_*_updated_gpu
-    df = df.filter(regex=("node.*"+res_type))
+    df2 = df.filter(regex=("node.*"+res_type))
     
     d = {}
     for i in range(n_nodes):
-        d["node_" + str(i)] = df["node_" + str(i) + "_used_" + res_type] / df["node_" + str(i) + "_initial_" + res_type]
+        gpu_type = df['node_'+str(i)+'_gpu_type'].iloc[0]
+        d["node_" + str(i) + "_" + str(gpu_type)] = df2["node_" + str(i) + "_used_" + res_type] / df2["node_" + str(i) + "_initial_" + res_type]
     
     df_2 = pd.DataFrame(d)
     
@@ -80,6 +81,8 @@ def plot_job_messages_exchanged(job_count, dir_name):
     plt.clf()
     
 def plot_all(n_edges, filename, job_count, dir_name):
+    generate_plot_folder(dir_name)
+    
     plot_node_resource_usage(filename, "gpu", n_edges, dir_name)
     plot_node_resource_usage(filename, "cpu", n_edges, dir_name)
     
@@ -93,8 +96,8 @@ if __name__ == "__main__":
     dir_name = "plot"
     generate_plot_folder(dir_name)
         
-    plot_node_resource_usage("GPU", "gpu", 5, dir_name)
-    plot_node_resource_usage("GPU", "cpu", 5, dir_name)
+    plot_node_resource_usage("GPU", "gpu", 10, dir_name)
+    plot_node_resource_usage("GPU", "cpu", 10, dir_name)
     
     plot_job_execution_delay("jobs_report", dir_name)
     plot_job_deadline("jobs_report", dir_name)

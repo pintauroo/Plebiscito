@@ -13,6 +13,7 @@ from src.topology import topo
 import pandas as pd
 from multiprocessing.managers import SyncManager
 from src.dataset_builder import generate_dataset
+from src.utils import generate_gpu_types
 
 class MyManager(SyncManager): pass
 
@@ -39,7 +40,7 @@ if len(sys.argv) == 6:
     seed = int(sys.argv[5]) + 1
     random.seed(seed)
 
-enable_logging = True 
+enable_logging = False 
 use_net_topology = False
 progress_flag = False
 # dataset='./df_dataset.csv'
@@ -111,4 +112,8 @@ manager.start()
 t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
 network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=4, seed=4, topology_type=TopologyType.FAT_TREE)
 
-nodes = [node(row, random.randint(1,1000), network_t, use_net_topology=use_net_topology) for row in range(num_edges)]
+nodes = []
+gpu_types = generate_gpu_types(num_edges)
+
+for i in range(num_edges):
+    nodes.append(node(i, random.randint(1,1000), network_t, use_net_topology=use_net_topology, gpu_type=gpu_types[i]))

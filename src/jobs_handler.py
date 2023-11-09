@@ -47,7 +47,8 @@ def dispatch_job(dataset, queues):
                     job['num_gpu'],
                     job['num_cpu'],
                     job['duration'],
-                    job['bw']
+                    job['bw'],
+                    job['gpu_type']
                 )
         
         for q in queues:
@@ -56,7 +57,7 @@ def dispatch_job(dataset, queues):
 def get_simulation_end_time_instant(dataset):
     return dataset['arrival_time'].max() + dataset['duration'].max()
 
-def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate=False):
+def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, deallocate=False):
     
     random.seed(job_id)
     np.random.seed(int(job_id))
@@ -93,7 +94,8 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, deallocate
         "edge_id":int(),
         "NN_gpu": NN_gpu,
         "NN_cpu": NN_cpu,
-        "NN_data_size": NN_data_size
+        "NN_data_size": NN_data_size,
+        "gpu_type": gpu_type,
         }
 
     data['edge_id']=None
