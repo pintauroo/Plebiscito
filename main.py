@@ -21,7 +21,11 @@ INFO = logging.INFO
 
 main_pid = ""
 
+import os
+import sys
+
 def sigterm_handler(signum, frame):
+    """Handles the SIGTERM signal by performing cleanup actions and gracefully terminating all processes."""
     # Perform cleanup actions here
     # ...    
     global main_pid
@@ -36,15 +40,22 @@ def sigterm_handler(signum, frame):
         sys.exit(0)  # Exit gracefully
 
 
+import os
+import signal
+import logging
+
 def setup_environment():
-    # Register the SIGTERM signal handler
+    """
+    Set up the environment for the program.
+
+    Registers the SIGTERM signal handler, sets the main process ID, and initializes logging.
+    """
     signal.signal(signal.SIGINT, sigterm_handler)
     global main_pid
     main_pid = os.getpid()
 
     logging.addLevelName(TRACE, "TRACE")
     logging.basicConfig(filename='debug.log', level=INFO, format='%(message)s', filemode='w')
-    # logging.basicConfig(filename='debug.log', level=TRACE, format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
     logging.debug('Clients number: ' + str(c.num_clients))
     logging.debug('Edges number: ' + str(c.num_edges))
@@ -52,6 +63,19 @@ def setup_environment():
     
     
 def setup_nodes(nodes_thread, terminate_processing_events, start_events, use_queue, manager, return_val, queues, progress_bid_events):
+    """
+    Sets up the nodes for processing. Generates threads for each node and starts them.
+    
+    Args:
+    nodes_thread (list): A list of threads for each node.
+    terminate_processing_events (list): A list of events to terminate processing for each node.
+    start_events (list): A list of events to start processing for each node.
+    use_queue (list): A list of events to indicate if a queue is being used by a node.
+    manager (multiprocessing.Manager): A multiprocessing manager object.
+    return_val (list): A list of return values for each node.
+    queues (list): A list of queues for each node.
+    progress_bid_events (list): A list of events to indicate progress of bid processing for each node.
+    """
     for i in range(c.num_edges):
         q = JoinableQueue()
         e = Event() 
@@ -92,6 +116,18 @@ def print_final_results(start_time):
     print("Run time: %s" % (time.time() - start_time))
 
 def collect_node_results(return_val, jobs, exec_time, time_instant):
+    """
+    Collects the results from the nodes and updates the corresponding data structures.
+    
+    Args:
+    - return_val: list of dictionaries containing the results from each node
+    - jobs: list of job objects
+    - exec_time: float representing the execution time of the jobs
+    - time_instant: int representing the current time instant
+    
+    Returns:
+    - float representing the utility value calculated based on the updated data structures
+    """
     c.counter = 0
     c.job_count = {}
     
