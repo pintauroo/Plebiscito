@@ -19,6 +19,8 @@ def generate_dataset(entries_num = 100):
     df = pd.read_csv(dataset)
     df = df[(df['num_cpu'] <= 100) & (df['num_gpu'] > 0)]
     
+    random.seed(1) 
+    
     new_dataset = []
     
     for i in range(entries_num):
@@ -27,11 +29,11 @@ def generate_dataset(entries_num = 100):
         cpu = df["num_cpu"].iloc[i]
         gpu = df["num_gpu"].iloc[i]
         bw = df["write_count"].iloc[i]
-        duration = random.randint(1, 4)
-        arrival_time = random.randint(1, 4)
+        duration = random.randint(1, 12)
+        arrival_time = random.randint(1, 20)
         gpu_type = df["gpu_type"].iloc[i]
         
-        new_dataset.append({'job_id': job_id, 'user': user, 'num_cpu': cpu, 'num_gpu': gpu, 'bw': bw, 'duration': duration, 'arrival_time': arrival_time, "exec_time": -1, 'deadline': arrival_time + duration + random.randint(1, 4), 'priority': random.randint(1, 4), 'count': 1, "gpu_type": gpu_type})
+        new_dataset.append({'job_id': job_id, 'user': user, 'num_cpu': cpu, 'num_gpu': gpu, 'bw': bw, 'duration': duration, 'arrival_time': arrival_time, "exec_time": -1, 'deadline': arrival_time + duration + random.randint(1, 10), 'priority': random.randint(1, 4), 'count': 1, "gpu_type": gpu_type})
 
     new_dataset = pd.DataFrame(new_dataset)
     
@@ -65,10 +67,10 @@ def generate_dataset_old(entries_num = 100):
         duration= duration_median[entry_idx]
         
         duration = random.randint(1, 15)
-        arrival_time = random.randint(1, 15)
+        arrival_time = random.randint(1, 30)
         
         # TODO: the arrival time should be modeled based on the dataset, instead of a random value
-        new_dataset.append({'job_id': i, 'user': i, 'num_cpu': cpu, 'num_gpu': gpu, 'bw': bw, 'duration': duration, 'arrival_time': arrival_time, "exec_time": -1, 'deadline': arrival_time + duration + random.randint(1, 4), 'priority': random.randint(1, 4), 'count': 1})
+        new_dataset.append({'job_id': i, 'user': i, 'num_cpu': cpu, 'num_gpu': gpu, 'bw': bw, 'duration': duration, 'arrival_time': arrival_time, "exec_time": -1, 'deadline': arrival_time + duration + random.randint(1, 8), 'priority': random.randint(1, 4), 'count': 1})
         i+=1
         
     new_dataset = pd.DataFrame(new_dataset)

@@ -325,9 +325,9 @@ class node:
         if self.id not in self.bids[self.item['job_id']]['auction_id']:
             for i in range(len(self.layer_bid_already[self.item['job_id']])):
                 # include only those layers that have not been bid on yet and that can be executed on the node (i.e., the node has enough resources)
-                if not self.layer_bid_already[self.item['job_id']][i] and \
-                    self.item['NN_gpu'][i] <= self.updated_gpu and \
-                        self.item['NN_cpu'][i] <= self.updated_cpu:# and self.item['NN_data_size'][i] <= self.updated_bw:
+                if not self.layer_bid_already[self.item['job_id']][i] \
+                    and self.item['NN_gpu'][i] <= self.updated_gpu:# \
+                        #self.item['NN_cpu'][i] <= self.updated_cpu:# and self.item['NN_data_size'][i] <= self.updated_bw:
                     possible_layer.append(i)
         else:
             # if I already own at least one layer, I'm not allowed to bet anymore
@@ -385,16 +385,15 @@ class node:
                     left_score = None
                     right_score = None
                     
-                    if left_bound >= 0 \
-                        and self.item['NN_gpu'][left_bound] <= self.updated_gpu - gpu_ \
-                            and self.item['NN_cpu'][left_bound] <= self.updated_cpu - cpu_ \
-                                and self.layer_bid_already[self.item['job_id']][left_bound] == False:
+                    if left_bound >= 0 and self.layer_bid_already[self.item['job_id']][left_bound] == False \
+                        and self.item['NN_gpu'][left_bound] <= self.updated_gpu - gpu_ :#\
+                            #and self.item['NN_cpu'][left_bound] <= self.updated_cpu - cpu_ :
                         left_score = self.compute_layer_score(self.item["NN_cpu"][left_bound], self.item["NN_gpu"][left_bound], self.item["NN_data_size"][left_bound])
                         
-                    if right_bound < len(self.item["NN_cpu"]) \
-                        and self.item['NN_gpu'][right_bound] <= self.updated_gpu - gpu_ \
-                            and self.item['NN_cpu'][right_bound] <= self.updated_cpu - cpu_ \
-                                and self.layer_bid_already[self.item['job_id']][right_bound] == False:
+                    if right_bound < len(self.item["NN_cpu"]) and self.layer_bid_already[self.item['job_id']][right_bound] == False \
+                        and self.item['NN_gpu'][right_bound] <= self.updated_gpu - gpu_:# \
+                            #and self.item['NN_cpu'][right_bound] <= self.updated_cpu - cpu_ \
+                                
                         right_score = self.compute_layer_score(self.item["NN_cpu"][right_bound], self.item["NN_gpu"][right_bound], self.item["NN_data_size"][right_bound])
                     
                     target_layer = None
@@ -1019,10 +1018,16 @@ class node:
             # self.print_node_state(f'Deconfliction checked pass {self.id}', True)
 
             if reset_flag:
-                self.forward_to_neighbohors(tmp_local)
+                msg_to_resend = copy.deepcopy(tmp_local)
+                #self.forward_to_neighbohors(tmp_local)
                 for i in reset_ids:
-                    _ = self.reset(i, tmp_local, bid_time)
+                    _ = self.reset(i, tmp_local, bid_time - timedelta(hours=1))
+                    msg_to_resend['auction_id'][i] = self.item['auction_id'][i]
+                    msg_to_resend['bid'][i] = self.item['bid'][i]
+                    msg_to_resend['timestamp'][i] = self.item['timestamp'][i]
+                    
                 self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
+                self.forward_to_neighbohors(msg_to_resend)
                 return False, False             
 
             cpu = 0
