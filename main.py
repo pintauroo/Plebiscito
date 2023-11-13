@@ -172,8 +172,10 @@ def terminate_node_processing(nodes_thread, events):
 
 if __name__ == "__main__":
     
+    # Set up the environment
     setup_environment()
 
+    # Set up nodes and related variables
     nodes_thread = []
     terminate_processing_events = []
     start_events = []
@@ -182,57 +184,67 @@ if __name__ == "__main__":
     manager = Manager()
     return_val = []
     queues = []
-
     setup_nodes(nodes_thread, terminate_processing_events, start_events, use_queue, manager, return_val, queues, progress_bid_events)
-    
+
+    # Get the simulation end time instant
     simulation_end = job.get_simulation_end_time_instant(c.dataset)
 
+    # Initialize job-related variables
     job_ids=[]
     jobs = pd.DataFrame()
     running_jobs = pd.DataFrame()
     processed_jobs = pd.DataFrame()
     print(f"Total number of jobs: {len(c.dataset)}")
-    
+
+    # Collect node results
     start_time = time.time()
     collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0)
-    
+
+    # Start the simulation loop
     time_instant = 1
     while True:
         start_time = time.time()
         
+        # Select jobs for the current time instant
         print()
         print(f"Performing simulation at time {time_instant}.")
         new_jobs = job.select_jobs(c.dataset, time_instant)
         
+        # Add new jobs to the job queue
         print(f"\tAdding {len(new_jobs)} to the job list for time instant {time_instant}.")
         jobs = pd.concat([jobs, new_jobs], sort=False)
         
+        # Schedule jobs
         print(f"\tCurrent lenght of the job queue: {len(jobs)}.")
         jobs = job.schedule_jobs(jobs)
         jobs_to_submit = job.create_job_batch(jobs, 5)
         
+        # Dispatch jobs
         print(f"\tSubmitted jobs: {len(jobs_to_submit)}. \n\tJobs remaining in queue: {len(jobs)}.")
-        
         if len(jobs_to_submit) > 0:                   
             job.dispatch_job(jobs_to_submit, queues)
 
             for e in progress_bid_events:
                 e.wait()
                 e.clear() 
-            
+        
+        # Collect node results
         exec_time = time.time() - start_time
-            
         assigned_jobs, unassigned_jobs = collect_node_results(return_val, jobs_to_submit, exec_time, time_instant)
                    
+        # Assign start time to assigned jobs
         assigned_jobs = job.assign_job_start_time(assigned_jobs, time_instant)
         
+        # Add unassigned jobs to the job queue
         print(f"\tAdding {len(unassigned_jobs)} unscheduled job(s) to the list.")
         jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
         running_jobs = pd.concat([running_jobs, assigned_jobs], sort=False)
         processed_jobs = pd.concat([processed_jobs,assigned_jobs], sort=False)
         
+        # Extract completed jobs
         jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
         
+        # Deallocate completed jobs
         if len(jobs_to_unallocate) > 0:
             for _, j in jobs_to_unallocate.iterrows():
                 data = message_data(
@@ -252,6 +264,7 @@ if __name__ == "__main__":
                 e.wait()
                 e.clear()
 
+        # Deallocate unassigned jobs
         if len(unassigned_jobs) > 0:
             for _, j in unassigned_jobs.iterrows():
                 data = message_data(
@@ -276,18 +289,23 @@ if __name__ == "__main__":
         
         time_instant += 1
         
+        # Check if all jobs have been processed
         if len(processed_jobs) == len(c.dataset) and len(running_jobs) == 0 and len(jobs) == 0:
             break
 
+    # Collect final node results
     collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant)
-    
+
+    # Terminate node processing
     terminate_node_processing(nodes_thread, terminate_processing_events)
-    
+
+    # Save processed jobs to CSV
     processed_jobs.to_csv("jobs_report.csv")
 
+    # Plot results
     if c.use_net_topology:
         c.network_t.dump_to_file(c.filename, c.a)
 
     print_final_results(start_time)
-    
+
     plot.plot_all(c.num_edges, c.filename, c.job_count, "plot")
