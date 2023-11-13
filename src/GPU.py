@@ -8,8 +8,8 @@ class GPUType(Enum):
     T4 = 1
     P100 = 2
     V100 = 3
-    V100M32 = 4
-    MISC = 5
+    MISC = 4
+    #V100M32 = 4 sarebbe 4 e misc 5
     
 class GPUSupport:
     
@@ -30,8 +30,8 @@ class GPUSupport:
             return GPUType.P100
         elif gpu_type == "V100":
             return GPUType.V100
-        elif gpu_type == "V100M32":
-            return GPUType.V100M32
+        # elif gpu_type == "V100M32":
+        #     return GPUType.V100M32
         else:
             return GPUType.MISC
     
@@ -61,8 +61,8 @@ class GPUSupport:
         Returns:
             Tuple[int, int]: A tuple containing the number of CPUs and GPUs available.
         """
-        cpu = [96, 96, 64, 96, 96]
-        gpu = [2, 8, 2, 8, 8]
+        cpu = [96, 96, 64, 96]
+        gpu = [2, 8, 2, 8]
 
         if gpu_type == GPUType.T4:
             return cpu[0], gpu[0]
@@ -70,8 +70,8 @@ class GPUSupport:
             return cpu[2], gpu[2]
         elif gpu_type == GPUType.V100:
             return cpu[3], gpu[3]
-        elif gpu_type == GPUType.V100M32:
-            return cpu[4], gpu[4]
+        # elif gpu_type == GPUType.V100M32:
+        #     return cpu[4], gpu[4]
         else: #MISC
             return cpu[1], gpu[1]
         
