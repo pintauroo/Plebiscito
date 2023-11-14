@@ -30,14 +30,17 @@ def generate_dataset(entries_num = 100):
         cpu = df["num_cpu"].iloc[i]/df["num_pod"].iloc[i]
         gpu = df["num_gpu"].iloc[i]/df["num_pod"].iloc[i]
         bw = df["write_count"].iloc[i]/df["num_pod"].iloc[i]
-        duration = math.ceil(df["duration"].iloc[i]/50)
-        arrival_time = math.ceil(df["submit_time"].iloc[i]/50)
+        duration = math.ceil(df["duration"].iloc[i]/10)
+        #arrival_time = math.ceil(df["submit_time"].iloc[i]/10)
+        
+        # to align with the original paper from alibaba
+        arrival_time = i // 10 + 1
         gpu_type = df["gpu_type"].iloc[i]
         
         new_dataset.append({'job_id': job_id, 'user': user, 'num_cpu': cpu, 'num_gpu': gpu, 'bw': bw, 'duration': duration, 'arrival_time': arrival_time, "exec_time": -1, 'deadline': arrival_time + math.ceil(duration * (1 + random.random())), 'priority': random.randint(1, 4), 'count': 1, "gpu_type": gpu_type})
 
     new_dataset = pd.DataFrame(new_dataset)
-    
+
     return new_dataset
 
 def generate_dataset_old(entries_num = 100):

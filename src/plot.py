@@ -91,14 +91,14 @@ def plot_job_execution_delay(filename, dir_name):
     except:
         return
         
-    res = df["deadline"] - df["exec_time"] + df["duration"]
+    res = df["exec_time"] - df["arrival_time"]
         
     # plot histogram using the res variable
     res.astype(int).hist()
     
     # save the plot to a file
     plt.ylabel(f"Occurrences")
-    plt.xlabel("Job delay time (s)")
+    plt.xlabel("Job execution delay (s)")
     plt.savefig(os.path.join(dir_name, 'job_execution_delay.png'))
     
     # clear plot
@@ -122,7 +122,7 @@ def plot_job_deadline(filename, dir_name):
     except:
         return
         
-    res = df["exec_time"] - df["arrival_time"]
+    res = df["exec_time"] + df["duration"] - df["deadline"]
         
     # plot histogram using the res variable
     res.astype(int).hist()
