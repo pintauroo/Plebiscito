@@ -12,12 +12,13 @@ from src.GPU import *
 import math
 
 def generate_gpu_types(n_nodes):
-    occurrencies = [0.26, 0.16, 0.42, 0.07, 0.09]
-    GPU_types = ["T4", "MISC", "P100", "V100", "V100M32"]
+    occurrencies = [0.3, 0.17, 0.47, 0.06]
+    GPU_types = ["T4", "MISC", "P100", "V100"]
+    np.random.seed(1)
     
     gpu_types = []
     for _ in range(n_nodes):
-        t_id = np.random.choice(np.arange(0, 5), p=occurrencies)
+        t_id = np.random.choice(np.arange(0, 4), p=occurrencies)
         gpu_types.append(GPUSupport.get_gpu_type(GPU_types[t_id]))
         
     return gpu_types
@@ -65,9 +66,6 @@ def wrong_bids_calc(nodes, job):
                         index += 1
         else:
             continue
-            # print('\nAlready in wrong bids req: ' + str(j))
-            # for i in range(0, c.num_edges):
-            #     print(nodes[i].bids[j]['auction_id'])
             
     if c.use_net_topology:
         # release network resources between client and node        
@@ -161,9 +159,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
                     if not found_failure:
                         count_success += 1
                     valid_bids[j] = nodes[i].bids[j]['auction_id']
-                    pass
-                    # for i in range(0, c.num_edges):
-                    #     print('matching: ' +str(c.nodes[i].bids[j]['auction_id']))
+                    for i in range(0, c.num_edges):
+                        logging.info(f"Job {j} assignment {nodes[i].bids[j]['auction_id']}")
 
         else: # unmatching auctions
             # print('NON matching: ' +str(c.nodes[i].bids[j]['auction_id']))
@@ -175,6 +172,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
         if flag:
             assigned_jobs.append(job)
             assigned_jobs_id.append(j)
+            
             count_assigned += 1
             assigned_sum_cpu += float(job['num_cpu'])
             assigned_sum_gpu += float(job['num_gpu'])
@@ -191,9 +189,9 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
         print()
         c.network_t.check_network_consistency(valid_bids)
             
-    print("\t-------")
-    print('\tASSIGNED jobs: ' +str(count_assigned))
-    print('\tUNASSIGNED jobs: ' +str(count_unassigned))
+    # print("\t-------")
+    # print('\tASSIGNED jobs: ' +str(count_assigned))
+    # print('\tUNASSIGNED jobs: ' +str(count_unassigned))
     field_names.append('count_assigned')
     field_names.append('count_unassigned')
     field_names.append('time_instant')
@@ -331,7 +329,7 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
 
     #print('jobs number: ' + str(len(jobs)))
 
-    print('\tcount: ' +str(count) + ' count_broken: ' +str(count_broken))
+    # print('\tcount: ' +str(count) + ' count_broken: ' +str(count_broken))
 
     write_data(field_names, dictionary)
     

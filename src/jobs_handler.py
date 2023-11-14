@@ -31,8 +31,8 @@ def create_job_batch(dataset, batch_size):
     dataset.drop(index=dataset.index[:batch_size], axis=0, inplace=True)
     return ret
 
-def schedule_jobs(jobs):
-    return jobs
+def schedule_jobs(jobs: pd.DataFrame):
+    return jobs.sort_values(by=["arrival_time"])
 
 def dispatch_job(dataset, queues):        
     if c.use_net_topology:

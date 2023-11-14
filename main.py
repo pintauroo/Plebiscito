@@ -107,13 +107,13 @@ def setup_nodes(nodes_thread, terminate_processing_events, start_events, use_que
     for e in start_events:
         e.wait()
         
-    print("All the processes started.")
+    # print("All the processes started.")
 
-def print_final_results(start_time):
+def print_final_results(start_time):    
     logging.info('Tot messages: '+str(c.counter))
-    print('Tot messages: '+str(c.counter))
+    # print('Tot messages: '+str(c.counter))
     logging.info("Run time: %s" % (time.time() - start_time))
-    print("Run time: %s" % (time.time() - start_time))
+    # print("Run time: %s" % (time.time() - start_time))
 
 def collect_node_results(return_val, jobs, exec_time, time_instant):
     """
@@ -169,6 +169,31 @@ def terminate_node_processing(nodes_thread, events):
     # Block until all tasks are done.
     for nt in nodes_thread:
         nt.join()
+        
+def clear_screen():
+    # Function to clear the terminal screen
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def print_simulation_values(time_instant, processed_jobs, queued_jobs, running_jobs):
+    print("Infrastructure info")
+    print(f"Number of nodes: {c.num_edges}")
+    
+    for t in set(c.gpu_types):
+        count = 0
+        for i in c.gpu_types:
+            if i == t:
+                count += 1
+        print(f"Number of {t.name} GPU nodes: {count}")
+    
+    print()
+    print("Performing simulation at time " + str(time_instant) + ".")
+    print(f"# Jobs processed: \t\t{processed_jobs}/{len(c.dataset)}")
+    print(f"# Jobs currently in queue: \t{queued_jobs}")
+    print(f"# Jobs currently running: \t{running_jobs}")
+        
+def print_simulation_progress(time_instant, job_processed, queued_jobs, running_jobs):
+    clear_screen()
+    print_simulation_values(time_instant, job_processed, queued_jobs, running_jobs)
 
 if __name__ == "__main__":
     
@@ -194,33 +219,30 @@ if __name__ == "__main__":
     jobs = pd.DataFrame()
     running_jobs = pd.DataFrame()
     processed_jobs = pd.DataFrame()
-    print(f"Total number of jobs: {len(c.dataset)}")
 
     # Collect node results
     start_time = time.time()
     collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0)
-
+    
     # Start the simulation loop
     time_instant = 1
     while True:
         start_time = time.time()
         
+        if time_instant%10 == 0:
+            plot.plot_all(c.num_edges, c.filename, c.job_count, "plot")
+        
         # Select jobs for the current time instant
-        print()
-        print(f"Performing simulation at time {time_instant}.")
         new_jobs = job.select_jobs(c.dataset, time_instant)
         
         # Add new jobs to the job queue
-        print(f"\tAdding {len(new_jobs)} to the job list for time instant {time_instant}.")
         jobs = pd.concat([jobs, new_jobs], sort=False)
         
         # Schedule jobs
-        print(f"\tCurrent lenght of the job queue: {len(jobs)}.")
         jobs = job.schedule_jobs(jobs)
-        jobs_to_submit = job.create_job_batch(jobs, 5)
+        jobs_to_submit = job.create_job_batch(jobs, 10)
         
         # Dispatch jobs
-        print(f"\tSubmitted jobs: {len(jobs_to_submit)}. \n\tJobs remaining in queue: {len(jobs)}.")
         if len(jobs_to_submit) > 0:                   
             job.dispatch_job(jobs_to_submit, queues)
 
@@ -236,7 +258,6 @@ if __name__ == "__main__":
         assigned_jobs = job.assign_job_start_time(assigned_jobs, time_instant)
         
         # Add unassigned jobs to the job queue
-        print(f"\tAdding {len(unassigned_jobs)} unscheduled job(s) to the list.")
         jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
         running_jobs = pd.concat([running_jobs, assigned_jobs], sort=False)
         processed_jobs = pd.concat([processed_jobs,assigned_jobs], sort=False)
@@ -285,14 +306,13 @@ if __name__ == "__main__":
                 e.wait()
                 e.clear()
             
-        print(f"\tUnallocated {len(jobs_to_unallocate)} jobs.")
-        
+        print_simulation_progress(time_instant, len(processed_jobs), len(jobs) + len(unassigned_jobs), len(running_jobs))
         time_instant += 1
-        
-        # Check if all jobs have been processed
-        if len(processed_jobs) == len(c.dataset) and len(running_jobs) == 0 and len(jobs) == 0:
-            break
 
+        # Check if all jobs have been processed
+        if len(processed_jobs) == len(c.dataset):# and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
+            break
+    
     # Collect final node results
     collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant)
 

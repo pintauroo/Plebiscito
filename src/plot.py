@@ -76,6 +76,7 @@ def plot_node_resource_usage(filename, res_type, n_nodes, dir_name):
     
     # clear plot
     plt.clf()
+    plt.close()
     
 def plot_job_execution_delay(filename, dir_name):
     """
@@ -85,7 +86,10 @@ def plot_job_execution_delay(filename, dir_name):
         filename (str): The name of the CSV file containing job data.
         dir_name (str): The name of the directory where the plot will be saved.
     """
-    df = pd.read_csv(filename + ".csv")
+    try:
+        df = pd.read_csv(filename + ".csv")
+    except:
+        return
         
     res = df["deadline"] - df["exec_time"] + df["duration"]
         
@@ -99,6 +103,8 @@ def plot_job_execution_delay(filename, dir_name):
     
     # clear plot
     plt.clf()
+    plt.close()
+
     
 def plot_job_deadline(filename, dir_name):
     """
@@ -111,7 +117,10 @@ def plot_job_deadline(filename, dir_name):
     Returns:
         None
     """
-    df = pd.read_csv(filename + ".csv")
+    try:
+        df = pd.read_csv(filename + ".csv")
+    except:
+        return
         
     res = df["exec_time"] - df["arrival_time"]
         
@@ -126,6 +135,8 @@ def plot_job_deadline(filename, dir_name):
     
     # clear plot
     plt.clf()
+    plt.close()
+
     
 def plot_job_messages_exchanged(job_count, dir_name):
     """
@@ -149,6 +160,8 @@ def plot_job_messages_exchanged(job_count, dir_name):
     
     # clear plot
     plt.clf()
+    plt.close()
+
     
 def plot_all(n_edges, filename, job_count, dir_name):
     """

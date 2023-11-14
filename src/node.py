@@ -192,7 +192,7 @@ class node:
         elif config.filename == 'alpha_GPU_BW':
             return (config.a*(avail_gpu/self.initial_gpu))+((1-config.a)*(avail_bw/self.initial_bw)) # GPU vs BW
         elif config.filename == 'GPU':
-            corrective_factor = GPUSupport.get_GPU_corrective_factor(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type']), decrement=0.15)
+            corrective_factor = GPUSupport.get_GPU_corrective_factor(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type']), decrement=0.1)
             return avail_gpu * corrective_factor
         elif config.filename == 'power':
             pass # we need to define here the utility function
@@ -314,7 +314,18 @@ class node:
     def compute_layer_score(self, cpu, gpu, bw):
         return gpu
 
-    def bid_new(self, enable_forward=True):
+    def bid_new(self, enable_forward=True):  
+        job_GPU_type = GPUSupport.get_gpu_type(self.item['gpu_type'])
+        # compute the requirements in CPU for the job
+        cpu = sum(self.item['NN_cpu'])
+        
+        # check if node GPU is capable of hosting the job
+        # check if the node has enough resources to host the job, we assume that a node can bet only in if it has enough resources to host the entire job
+        if not GPUSupport.can_host(self.gpu_type, job_GPU_type) \
+            or (self.item['job_id'] in self.layer_bid_already and True not in self.layer_bid_already[self.item['job_id']] and self.updated_cpu < cpu/2):
+            self.forward_to_neighbohors()
+            return False
+              
         tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])
         bidtime = datetime.now()
         
@@ -1296,7 +1307,7 @@ class node:
                     break
 
     def check_if_hosting_job(self):
-        if self.id in self.bids[self.item['job_id']]['auction_id'] and float('-inf') not in self.bids[self.item['job_id']]['auction_id']:
+        if self.id in self.bids[self.item['job_id']]['auction_id']:
             return True
         return False
     
@@ -1317,7 +1328,7 @@ class node:
         if self.use_net_topology:
             timeout = 15
         else:
-            timeout = 2
+            timeout = 0.5
         terminate_garbage_collect = Event()
         # t = threading.Thread(target=self.garbage_collection, args=(terminate_garbage_collect,))
         # t.start()
@@ -1340,9 +1351,15 @@ class node:
                     self.empty_queue[self.id].clear() 
                     self.already_finished = False
                     
+                    # if the message is a "unallocate" message, the node must release the resources
+                    # if the node is hosting the job
                     if "unallocate" in self.item:
                         if self.check_if_hosting_job():
                             self.release_resources()
+                        
+                        # if the bidding process didn't complete, reset the bid (it will be submitted later)
+                        if float('-inf') in self.bids[self.item['job_id']]['auction_id']:
+                            del self.bids[self.item['job_id']]
                     else:   
                         flag = False
                         
@@ -1359,12 +1376,6 @@ class node:
                                 self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
 
                             self.init_null()
-                            
-                            job_GPU_type = GPUSupport.get_gpu_type(self.item['gpu_type'])
-                            if not GPUSupport.can_host(self.gpu_type, job_GPU_type):
-                                self.forward_to_neighbohors(resend_bid=True)
-                                continue
-                            
                             if self.use_net_topology:    
                                 with self.__layer_bid_lock:
                                     self.__layer_bid[self.item["job_id"]] = 0
@@ -1437,7 +1448,7 @@ class node:
                     progress_bid.set()
 
                 if end_processing.is_set():    
-                    print(f"Node {self.id}: received end processing signal", flush=True)
+                    # print(f"Node {self.id}: received end processing signal", flush=True)
                     
                     terminate_garbage_collect.set()
                     # t.join()

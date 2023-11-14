@@ -12,7 +12,6 @@ class topo:
         self.n = num_edges #adjacency matrix
 
         self.to = getattr(self, func_name)
-        print(self.to)
         self.b = max_bandwidth
         # self.b = np.random.uniform(min_bandwidth, max_bandwidth, size=(num_clients, num_edges)) #bandwidth matrix
 
