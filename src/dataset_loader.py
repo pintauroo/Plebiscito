@@ -23,6 +23,8 @@ def set_job_list_arrival_time(job_list, arrival_rate=None, interval=60, shuffle_
         arrival_time = (arrival_counter // arrival_rate) # * interval
         job['submit_time'] = arrival_time
         arrival_counter += 1
+    
+    return job_list
 
 def _add_job(job_list, job_dict, describe_dict=None):
     # Add job (job_dict) into job_list
@@ -119,9 +121,10 @@ def add_job(csv_file, describe_dict, limit=None):
 
 
 
-def init_go(num_jobs=None):
+def init_go_(num_jobs=None):
         cur_time = 0
         num_jobs=200
+        arrivals = 10
         csv_file='/home/andrea/Documents/clusterdata/cluster-trace-gpu-v2020/simulator/traces/pai/pai_job_duration_estimate_100K.csv'
         job_list = add_job(csv_file, None, limit=num_jobs)
         print('job_list size:')
@@ -130,14 +133,14 @@ def init_go(num_jobs=None):
             random.shuffle(job_list)
 
             job_list = job_list[:num_jobs]
-        set_job_list_arrival_time(job_list)
+        job_list = set_job_list_arrival_time(job_list, arrivals)
 
         return job_list
 
 
 
-jobs = init_go()
+# jobs = init_go()
 
-df = pd.DataFrame(jobs)
+# df = pd.DataFrame(jobs)
 
-print(df.describe())
+# print(df.describe())
