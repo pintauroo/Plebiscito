@@ -1,89 +1,112 @@
-'''
-Configuration variables module
-'''
+from enum import Enum
+import logging
 
-import random
-from src.node import node
-import numpy as np
-import datetime
-import sys
-from src.dataset import JobList
-from src.network_topology import NetworkTopology, TopologyType
-from src.topology import topo
-import pandas as pd
-from multiprocessing.managers import SyncManager
-from src.dataset_builder import generate_dataset
-from src.utils import generate_gpu_types
+class Utility(Enum):
+    LGF = 1
+    STEFANO = 2
+    ALPHA_BW_GPU = 3
+    ALPHA_GPU_CPU = 4
+    ALPHA_GPU_BW = 5
+    POWER = 6
+    SGF = 7
+    
+    
+class DebugLevel(Enum):
+    TRACE = 5
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    
+class SchedulingAlgorithm(Enum):
+    FIFO = 1
+    SDF = 2 # shortest duration first
 
-class MyManager(SyncManager): pass
+# create an enum to represent the possible types of GPUS
+# the idea is to represent the types of GPU in ascending order of performance
+# i.e., NVIDIA > AMD > INTEL so when we receive the request for an AMD GPU
+# it can be executed on an NVIDIA and AMD GPU but not on an INTEL GPU
+class GPUType(Enum):
+    T4 = 1
+    P100 = 2
+    V100 = 3
+    MISC = 4
+    #V100M32 = 4 sarebbe 4 e misc 5
+    
+class GPUSupport:
+    
+    @staticmethod
+    def get_gpu_type(gpu_type):
+        """
+        Returns the GPUType enum corresponding to the string `gpu_type`.
 
-MyManager.register('NetworkTopology', NetworkTopology)
+        Args:
+            gpu_type (str): The GPU type.
 
-# Alibaba datacenter servers
-# --------------------------------------------------------------------------------------------------------------------------------------------------------------
-#type   |cap_cpu    |cap_gpu    |count      |tot_cpu    |tot_gpu    |cpu/gpu_ratio	|relative_occurrence    |relative_occurrence_cpu    |relative_occurrence_gpu
-#0	    |64	        |2	        |798        |51072	    |1596	    |32.0	        |42.066421	            |32.618026	                |23.672501
-#1	    |96	        |8	        |519	    |49824	    |4152	    |12.0	        |27.358988	            |31.820969	                |61.584100
-#2	    |96	        |2          |497	    |47712	    |994	    |48.0	        |26.199262	            |30.472103	                |14.743400
-#3	    |96	        |0	        |83	        |7968	    |0	        |inf	        |4.375329	            |5.088903	                |0.000000
-# --------------------------------------------------------------------------------------------------------------------------------------------------------------
+        Returns:
+            GPUType: The GPUType enum corresponding to `gpu_type`.
+        """
+        if gpu_type == "T4":
+            return GPUType.T4
+        elif gpu_type == "P100":
+            return GPUType.P100
+        elif gpu_type == "V100":
+            return GPUType.V100
+        # elif gpu_type == "V100M32":
+        #     return GPUType.V100M32
+        else:
+            return GPUType.MISC
+    
+    
+    @staticmethod
+    def can_host(gpu_type1, gpu_type2):
+        """
+        Determines whether a GPU of type `gpu_type1` can host a GPU of type `gpu_type2`.
 
-counter = 0 #Messages counter
-job_count = {}
-req_number = int(sys.argv[1]) #Total number of requests
-a = float(sys.argv[2]) #Multiplicative factor
-num_edges = int(sys.argv[3]) #Nodes number 
-filename = str(sys.argv[4])
+        Args:
+            gpu_type1 (GPUType): The type of the host GPU.
+            gpu_type2 (GPUType): The type of the job GPU.
 
-seed = None
-if len(sys.argv) == 6:
-    seed = int(sys.argv[5]) + 1
-    random.seed(seed)
+        Returns:
+            bool: True if `gpu_type1` can host `gpu_type2`, False otherwise.
+        """
+        return gpu_type1.value <= gpu_type2.value
+    
+    @staticmethod
+    def get_compute_resources(gpu_type):
+        """
+        Returns the number of CPUs and GPUs available for a given GPU type.
 
-enable_logging = False 
-use_net_topology = False
-progress_flag = False
+        Args:
+            gpu_type (GPUType): The type of GPU to get compute resources for.
 
-dataset = generate_dataset(req_number)
+        Returns:
+            Tuple[int, int]: A tuple containing the number of CPUs and GPUs available.
+        """
+        cpu = [96, 96, 64, 96]
+        gpu = [2, 8, 2, 8]
 
+        if gpu_type == GPUType.T4:
+            return cpu[0], gpu[0]
+        elif gpu_type == GPUType.P100:
+            return cpu[2], gpu[2]
+        elif gpu_type == GPUType.V100:
+            return cpu[3], gpu[3]
+        # elif gpu_type == GPUType.V100M32:
+        #     return cpu[4], gpu[4]
+        else: #MISC
+            return cpu[1], gpu[1]
+        
+    @staticmethod
+    def get_GPU_corrective_factor(gpu_type1, gpu_type2, decrement=0.15):
+        """
+        Returns the corrective factor for the GPU of type `gpu_type1` to host a GPU of type `gpu_type2`.
 
-# calculate total bw, cpu, and gpu needed
-tot_gpu = 0 
-tot_cpu = 0 
-tot_bw = 0 
-for index, d in dataset.iterrows():
-    # tot_gpu += d["num_gpu"] 
-    # tot_cpu += d["num_cpu"] 
-    if tot_gpu<d["num_gpu"] :
-         tot_gpu = d["num_gpu"] 
-    if tot_cpu<d["num_cpu"] :
-        tot_cpu = d["num_cpu"] 
-    tot_bw += float(d['bw'])
+        Args:
+            gpu_type1 (GPUType): The type of the node GPU.
+            gpu_type2 (GPUType): The type of the job GPU.
+            decrement (float, optional): The decrement factor if the GPUs don't match. Defaults to 0.15.
 
-
-node_cpu = dataset['num_cpu'].quantile(0.75) * req_number / num_edges * 20
-node_gpu = dataset['num_gpu'].quantile(0.75) * req_number / num_edges * 20
-if use_net_topology:
-    node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges
-else:
-    node_bw =  dataset['bw'].quantile(0.75) * req_number / num_edges *400000
-
-if tot_gpu != 0:
-    cpu_gpu_ratio = tot_cpu / tot_gpu
-else:
-    pass
-
-num_clients=3
-
-manager = MyManager()
-manager.start()
-
-#Build Topolgy
-t = topo(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=num_clients, num_edges=num_edges)
-network_t = manager.NetworkTopology(num_edges, node_bw, node_bw, group_number=4, seed=4, topology_type=TopologyType.FAT_TREE)
-
-nodes = []
-gpu_types = generate_gpu_types(num_edges)
-
-for i in range(num_edges):
-    nodes.append(node(i, random.randint(1,1000), network_t, use_net_topology=use_net_topology, gpu_type=gpu_types[i]))
+        Returns:
+            float: The corrective factor for the GPU of type `gpu_type1` to host a GPU of type `gpu_type2`.
+        """
+        difference = gpu_type2.value - gpu_type1.value
+        return 1 - (difference * decrement)

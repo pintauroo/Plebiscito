@@ -1,9 +1,9 @@
 import random
 import sys
 import time
-import src.config as c
 import numpy as np
 import pandas as pd
+from src.config import SchedulingAlgorithm
 
 def assign_job_start_time(dataset: pd.DataFrame, time_instant):
     dataset.replace(-1, time_instant, inplace=True)
@@ -12,30 +12,28 @@ def assign_job_start_time(dataset: pd.DataFrame, time_instant):
 def extract_completed_jobs(dataset, time_instant):
     if len(dataset) == 0:
         return dataset, dataset
-    ret = dataset[dataset["exec_time"] + dataset["duration"] <= time_instant]
-    # print("ret")
-    # print(ret)
+    ret = dataset[dataset["exec_time"] + dataset["duration"] < time_instant]
 
-    dataset = dataset.drop(dataset[dataset["exec_time"] + dataset["duration"] <= time_instant].index)
-    # print('DATASET')
-    # print(dataset)
+    dataset = dataset.drop(dataset[dataset["exec_time"] + dataset["duration"] < time_instant].index)
     
     return ret, dataset
 
 def select_jobs(dataset, time_instant):
-    return dataset[dataset['arrival_time'] == time_instant]
+    return dataset[dataset['submit_time'] == time_instant]
 
 def create_job_batch(dataset, batch_size):
     ret = dataset.head(batch_size)
-    #print(len(ret))
     dataset.drop(index=dataset.index[:batch_size], axis=0, inplace=True)
     return ret
 
-def schedule_jobs(jobs: pd.DataFrame):
-    return jobs.sort_values(by=["arrival_time"])
+def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm):
+    if scheduling_algorithm == SchedulingAlgorithm.FIFO:
+        return jobs.sort_values(by=["submit_time"])
+    elif scheduling_algorithm == SchedulingAlgorithm.SDF:
+        return jobs.sort_values(by=["duration"])
 
-def dispatch_job(dataset, queues):        
-    if c.use_net_topology:
+def dispatch_job(dataset, queues, use_net_topology=False):        
+    if use_net_topology:
         timeout = 1 # don't change it
     else:
         timeout = 0.1
@@ -56,7 +54,7 @@ def dispatch_job(dataset, queues):
             q.put(data)
 
 def get_simulation_end_time_instant(dataset):
-    return dataset['arrival_time'].max() + dataset['duration'].max()
+    return dataset['submit_time'].max() + dataset['duration'].max()
 
 def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, deallocate=False):
     
@@ -64,6 +62,8 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
     np.random.seed(int(job_id))
     
     layer_number = random.choice([2, 4, 6, 8, 10])
+    
+    #print(bandwidth)
     
     # gpu = round(num_gpu / layer_number, 6)
     # cpu = round(num_cpu / layer_number, 6)

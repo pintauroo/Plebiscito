@@ -91,7 +91,7 @@ def plot_job_execution_delay(filename, dir_name):
     except:
         return
         
-    res = df["exec_time"] - df["arrival_time"]
+    res = df["exec_time"] - df["submit_time"]
         
     # plot histogram using the res variable
     res.astype(int).hist()

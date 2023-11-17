@@ -3,11 +3,10 @@ This module contains utils functions to calculate all necessary stats
 """
 from csv import DictWriter
 import os
-import src.config as c
 import logging
 import pandas as pd
 import numpy as np
-from src.GPU import *
+from src.config import *
 
 import math
 
@@ -24,32 +23,28 @@ def generate_gpu_types(n_nodes):
     return gpu_types
     
 
-def wrong_bids_calc(nodes, job):
+def wrong_bids_calc(nodes, job, num_edges, use_net_topology):
     
     j = job['job_id']
     #print('\n[WRONG BID]' + str(j))
     wrong_bids=[] # used to not replicate same action over different nodes
     wrong_ids=[]
     equal_values=True
-    for curr_node in range(0, c.num_edges):
+    for curr_node in range(0, num_edges):
         if nodes[curr_node].bids[j]['auction_id'] not in wrong_bids:
-            for i in range(1, c.num_edges):
+            for i in range(1, num_edges):
                 if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
                     equal_values = False
                     break
             if not equal_values:
                 pass
-                #print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
 
 
-    for curr_node in range(0, c.num_edges):
+    for curr_node in range(0, num_edges):
         if nodes[curr_node].bids[j]['auction_id'] not in wrong_bids:
-            #print('Unmatching: ' +str(c.nodes[curr_node].bids[j]['auction_id']))
-            # print('Unmatching x: ' +str(c.nodes[curr_node].bids[j]['x']))
             if all(x == float('-inf') for x in nodes[curr_node].bids[j]['auction_id']):
                 continue
             else:
-                # print('(wrong_bids_calc) NON matching: ' +str(wrong_ids))
 
                 if curr_node in nodes[curr_node].bids[j]['auction_id'] and curr_node not in wrong_ids:
                     
@@ -67,30 +62,35 @@ def wrong_bids_calc(nodes, job):
         else:
             continue
             
-    if c.use_net_topology:
+    if use_net_topology:
         # release network resources between client and node        
-        for curr_node in range(0, c.num_edges):
+        for curr_node in range(0, num_edges):
             for i, n_id in enumerate(nodes[curr_node].bids[j]['auction_id']):
                 if i == 0 and n_id == curr_node:
-                    c.network_t.release_bandwidth_node_and_client(curr_node, float(job['bw']) / float(len(nodes[curr_node].bids[j]['auction_id'])), j)
+                    network_t.release_bandwidth_node_and_client(curr_node, float(job['bw']) / float(len(nodes[curr_node].bids[j]['auction_id'])), j)
                     
         # release network resources between nodes        
-        for curr_node in range(0, c.num_edges):
+        for curr_node in range(0, num_edges):
             prev_val = nodes[curr_node].bids[j]['auction_id'][0]
             for i, n_id in enumerate(nodes[curr_node].bids[j]['auction_id']):
                 if i != 0:
                     if prev_val != n_id and n_id == curr_node:
-                        c.network_t.release_bandwidth_between_nodes(curr_node, prev_val, float(job['bw']) / float(len(nodes[curr_node].bids[j]['auction_id'])), j)
+                        network_t.release_bandwidth_between_nodes(curr_node, prev_val, float(job['bw']) / float(len(nodes[curr_node].bids[j]['auction_id'])), j)
                     prev_val = nodes[curr_node].bids[j]['auction_id'][i]
 
+def allocation_to_gpu_type(allocation, gpu_types):
+        ret = []
+        for a in allocation:
+            ret.append(gpu_types[a].name)
+        return ret
 
-def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, time_instant):
+def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, time_instant, use_net_topology, filename, net_topology, gpu_types, save_on_file):
     
     stats = {}
     stats['nodes'] = {}
     stats['tot_utility'] = 0
     
-    field_names = ['n_nodes', 'n_req', 'n_msg', 'exec_time', 'alpha', 'tot_utility', 'jaini']
+    field_names = ['n_nodes', 'n_req', 'n_msg', 'exec_time', 'alpha']
     dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'n_msg' : msg_count, 'exec_time': time, 'alpha': alpha}
 
     # ---------------------------------------------------------
@@ -121,23 +121,17 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
         flag = True
         j = job['job_id']
         # Check correctness of all bids
-        equal_values = True 
-        #print('job_id: ' +str(j))
-        
-        # for i in range(0, c.num_edges):
-        #     print('nodeid: ' + str(i) + ' consensus_count: ' +str(c.nodes[i].bids[j]['consensus_count']))
-        #     print('nodeid: ' + str(i) + ' deconflictions: ' +str(c.nodes[i].bids[j]['deconflictions']))
-        #     print('nodeid: ' + str(i) + ' forwards: ' +str(c.nodes[i].bids[j]['forward_count']))
-        #     print('')
+        equal_values = True         
+
         i = 0
         try:
 
-            for i in range(1, c.num_edges):
+            for i in range(1, num_edges):
                 #print(nodes[i].bids)
                 if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
                     count_broken += 1
                     print('BROKEN BID id: ' + str(j))
-                    for k in range(0, c.num_edges):
+                    for k in range(0, num_edges):
                         print(nodes[k].bids[j]['auction_id'])
                     equal_values = False
                     break
@@ -150,26 +144,25 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
                     found_failure = True
                     flag = False # all unassigned
                 elif float('-inf') in nodes[i].bids[j]['auction_id']: #check if there is a value not assigned 
-                    # print('matching with -inf: ' +str(c.nodes[i].bids[j]['auction_id']))
                     flag = False
                     found_failure = True
-                    wrong_bids_calc(nodes, job)
+                    wrong_bids_calc(nodes, job, num_edges, use_net_topology)
                 else:
                     #print('MATCH')
                     if not found_failure:
                         count_success += 1
                     valid_bids[j] = nodes[i].bids[j]['auction_id']
-                    for i in range(0, c.num_edges):
-                        logging.info(f"Job {j} assignment {nodes[i].bids[j]['auction_id']}")
+                    logging.info(f"Job {j} assignment {nodes[0].bids[j]['auction_id']}")
 
         else: # unmatching auctions
-            # print('NON matching: ' +str(c.nodes[i].bids[j]['auction_id']))
             flag = False
             found_failure = True
-            wrong_bids_calc(nodes, job)
+            wrong_bids_calc(nodes, job, num_edges, use_net_topology)
 
 
         if flag:
+            job["final_node_allocation"] = nodes[0].bids[j]['auction_id']
+            job["final_gpu_allocation"] = allocation_to_gpu_type(nodes[0].bids[j]['auction_id'], gpu_types=gpu_types)
             assigned_jobs.append(job)
             assigned_jobs_id.append(j)
             
@@ -179,44 +172,25 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
             assigned_sum_bw += float(job['bw']) 
         else:
             unassigned_jobs.append(job)
+            # for k in range(num_edges):
+            #     print(nodes[k].bids[j]['auction_id'])
             unassigned_job_id.append(j)
             count_unassigned += 1
             unassigned_sum_cpu += float(job['num_cpu'])
             unassigned_sum_gpu += float(job['num_gpu'])
             unassigned_sum_bw += float(job['bw']) 
             
-    if c.use_net_topology:
+    if use_net_topology:
         print()
-        c.network_t.check_network_consistency(valid_bids)
+        net_topology.check_network_consistency(valid_bids)
             
-    # print("\t-------")
-    # print('\tASSIGNED jobs: ' +str(count_assigned))
-    # print('\tUNASSIGNED jobs: ' +str(count_unassigned))
+    #print(f"Count assigned {count_assigned} count unassigned {count_unassigned}")    
     field_names.append('count_assigned')
     field_names.append('count_unassigned')
     field_names.append('time_instant')
     dictionary['count_assigned'] = round(count_assigned,2)
     dictionary['count_unassigned'] = round(count_unassigned,2)
     dictionary['time_instant'] = time_instant
-
-    # metrics lables
-    field_names.append('tot_gpu_jobs')
-    field_names.append('tot_gpu_nodes')
-    field_names.append('assigned_sum_gpu')
-    field_names.append('tot_used_gpu')
-    field_names.append('unassigned_sum_gpu')
-    field_names.append('tot_cpu_jobs')
-    field_names.append('tot_cpu_nodes')
-    field_names.append('assigned_sum_cpu')
-    field_names.append('tot_used_cpu')
-    field_names.append('unassigned_sum_cpu')
-    field_names.append('tot_bw_jobs')
-    field_names.append('tot_bw_nodes')
-    field_names.append('assigned_sum_bw')
-    field_names.append('tot_used_bw')
-    field_names.append('unassigned_sum_bw')
-    field_names.append('first_failure_after')
-
 
     tot_used_bw = 0
     tot_used_cpu = 0
@@ -294,50 +268,14 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
         #print('node: '+ str(i) + ' assigned jobs count: ' + str(stats['nodes'][i]['assigned_count']))
         dictionary['node_'+str(i)+'_jobs'] = round(stats['nodes'][i]['assigned_count'],2)
 
-
-
-    #GPU metrics
-    dictionary['tot_gpu_nodes'] = tot_gpu_nodes
-    dictionary['tot_gpu_jobs'] = round(c.tot_gpu,2)
-    dictionary['assigned_sum_gpu'] = round(assigned_sum_gpu,2)
-    dictionary['tot_used_gpu']=round(tot_used_gpu,2)
-    dictionary['unassigned_sum_gpu']=round(unassigned_sum_gpu,2)
-
-    #CPU metrics
-    dictionary['tot_cpu_nodes'] = tot_cpu_nodes
-    dictionary['tot_cpu_jobs'] = round(c.tot_cpu,2)
-    dictionary['assigned_sum_cpu'] = round(assigned_sum_cpu,2)
-    dictionary['tot_used_cpu']=round(tot_used_cpu,2)
-    dictionary['unassigned_sum_cpu'] = round(unassigned_sum_cpu,2)
-
-    #BW metrics
-    dictionary['tot_bw_nodes'] = tot_bw_nodes
-    dictionary['tot_bw_jobs'] = round(c.tot_bw,2)
-    dictionary['assigned_sum_bw'] = round(assigned_sum_bw,2)
-    dictionary['tot_used_bw']=round(tot_used_bw,2)    
-    dictionary['unassigned_sum_bw'] = round(unassigned_sum_bw,2)
-
-    dictionary['tot_utility'] = round(stats["tot_utility"],2)
-    #print('total utility: ' + str(stats["tot_utility"]))
-    dictionary['first_failure_after'] = count_success
-
-
-    # ---------------------------------------------------------
-    # calculate fairness
-    # ---------------------------------------------------------
-    dictionary['jaini'] = jaini_index(dictionary, num_edges)
-
-    #print('jobs number: ' + str(len(jobs)))
-
-    # print('\tcount: ' +str(count) + ' count_broken: ' +str(count_broken))
-
-    write_data(field_names, dictionary)
+    if save_on_file:
+        write_data(field_names, dictionary, filename)
     
     return pd.DataFrame(assigned_jobs), pd.DataFrame(unassigned_jobs)
 
 
-def write_data(field_names, dictionary):
-    filename = str(c.filename)+'.csv'
+def write_data(field_names, dictionary, filename):
+    filename = str(filename)+'.csv'
     # filename = 'alpha_GPU_BW.csv'
     # filename = 'alpha_BW_CPU.csv'
 
