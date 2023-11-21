@@ -1300,7 +1300,7 @@ class node:
         if self.use_net_topology:
             timeout = 15
         else:
-            timeout = 0.5
+            timeout = 0.3
         
         ret_val["id"] = self.id
         ret_val["bids"] = copy.deepcopy(self.bids)

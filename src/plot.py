@@ -87,7 +87,7 @@ def plot_job_execution_delay(filename, dir_name):
         dir_name (str): The name of the directory where the plot will be saved.
     """
     try:
-        df = pd.read_csv(filename + ".csv")
+        df = pd.read_csv(filename + "_jobs_report.csv")
     except:
         return
         
@@ -118,7 +118,7 @@ def plot_job_deadline(filename, dir_name):
         None
     """
     try:
-        df = pd.read_csv(filename + ".csv")
+        df = pd.read_csv(filename + "_jobs_report.csv")
     except:
         return
         
@@ -181,8 +181,8 @@ def plot_all(n_edges, filename, job_count, dir_name):
     plot_node_resource_usage_box(filename, "gpu", n_edges, dir_name)
     plot_node_resource_usage_box(filename, "cpu", n_edges, dir_name)
     
-    plot_job_execution_delay("jobs_report", dir_name)
-    plot_job_deadline("jobs_report", dir_name)
+    plot_job_execution_delay(filename, dir_name)
+    plot_job_deadline(filename, dir_name)
     
     plot_job_messages_exchanged(job_count, dir_name)
     

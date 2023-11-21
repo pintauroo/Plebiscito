@@ -217,11 +217,31 @@ class Simulator_Plebiscito:
         print(f"# Jobs assigned: \t\t{processed_jobs}/{len(self.dataset)}")
         print(f"# Jobs currently in queue: \t{queued_jobs}")
         print(f"# Jobs currently running: \t{running_jobs}")
-        print(f"Current batch size: \t\t{batch_size}")
+        print(f"# Current batch size: \t{batch_size}")
             
     def print_simulation_progress(self, time_instant, job_processed, queued_jobs, running_jobs, batch_size):
         self.clear_screen()
-        self.print_simulation_values(time_instant, job_processed, queued_jobs, running_jobs, batch_size)        
+        self.print_simulation_values(time_instant, job_processed, queued_jobs, running_jobs, batch_size) 
+        
+    def deallocate_jobs(self, progress_bid_events, queues, jobs_to_unallocate):
+        if len(jobs_to_unallocate) > 0:
+            for _, j in jobs_to_unallocate.iterrows():
+                data = message_data(
+                            j['job_id'],
+                            j['user'],
+                            j['num_gpu'],
+                            j['num_cpu'],
+                            j['duration'],
+                            j['bw'],
+                            j['gpu_type'],
+                            deallocate=True
+                        )
+                for q in queues:
+                    q.put(data)
+
+            for e in progress_bid_events:
+                e.wait()
+                e.clear()       
  
     def run(self):
         # Set up nodes and related variables
@@ -249,6 +269,7 @@ class Simulator_Plebiscito:
         batch_size = 10
         jobs_to_unallocate = pd.DataFrame()
         unassigned_jobs = pd.DataFrame()
+        assigned_jobs = pd.DataFrame()
         while True:
             start_time = time.time()
             
@@ -256,26 +277,9 @@ class Simulator_Plebiscito:
             jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
             
             # Deallocate completed jobs
-            if len(jobs_to_unallocate) > 0:
-                for _, j in jobs_to_unallocate.iterrows():
-                    data = message_data(
-                            j['job_id'],
-                            j['user'],
-                            j['num_gpu'],
-                            j['num_cpu'],
-                            j['duration'],
-                            j['bw'],
-                            j['gpu_type'],
-                            deallocate=True
-                        )
-                    for q in queues:
-                        q.put(data)
-
-                for e in progress_bid_events:
-                    e.wait()
-                    e.clear()
+            self.deallocate_jobs(progress_bid_events, queues, jobs_to_unallocate)
             
-            if time_instant%10 == 0:
+            if time_instant%5 == 0:
                 plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot")
             
             # Select jobs for the current time instant
@@ -283,23 +287,42 @@ class Simulator_Plebiscito:
             
             # Add new jobs to the job queue
             jobs = pd.concat([jobs, new_jobs], sort=False)
+            max_jobs_to_process = math.ceil(len(jobs) / 3)
             
             # Schedule jobs
             jobs = job.schedule_jobs(jobs, self.scheduling_algorithm)
-            jobs_to_submit = job.create_job_batch(jobs, batch_size)
+            jobs_to_submit = job.create_job_batch(jobs, max(batch_size, max_jobs_to_process))
+            
+            unassigned_jobs = pd.DataFrame()
+            assigned_jobs = pd.DataFrame()
             
             # Dispatch jobs
-            if len(jobs_to_submit) > 0:                   
-                job.dispatch_job(jobs_to_submit, queues, self.use_net_topology)
-
-                for e in progress_bid_events:
-                    e.wait()
-                    e.clear() 
-            
-            # Collect node results
-            exec_time = time.time() - start_time
-            assigned_jobs, unassigned_jobs = self.collect_node_results(return_val, jobs_to_submit, exec_time, time_instant, save_on_file=False)
+            if len(jobs_to_submit) > 0: 
+                start_id = 0
+                while True:
+                    if start_id >= max_jobs_to_process:
+                        break
                     
+                    subset = jobs_to_submit.iloc[start_id:start_id+batch_size]
+                                      
+                    job.dispatch_job(subset, queues, self.use_net_topology)
+
+                    for e in progress_bid_events:
+                        e.wait()
+                        e.clear() 
+                        
+                    exec_time = time.time() - start_time
+                    
+                    # Collect node results
+                    a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
+                    assigned_jobs = pd.concat([assigned_jobs, a_jobs])
+                    unassigned_jobs = pd.concat([unassigned_jobs, u_jobs])
+                    
+                    # Deallocate unassigned jobs
+                    self.deallocate_jobs(progress_bid_events, queues, u_jobs)
+                    
+                    start_id += batch_size
+            
             # Assign start time to assigned jobs
             assigned_jobs = job.assign_job_start_time(assigned_jobs, time_instant)
             
@@ -307,33 +330,12 @@ class Simulator_Plebiscito:
             jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
             running_jobs = pd.concat([running_jobs, assigned_jobs], sort=False)
             processed_jobs = pd.concat([processed_jobs,assigned_jobs], sort=False)
-            
-            # Deallocate unassigned jobs
-            if len(unassigned_jobs) > 0:
-                for _, j in unassigned_jobs.iterrows():
-                    data = message_data(
-                            j['job_id'],
-                            j['user'],
-                            j['num_gpu'],
-                            j['num_cpu'],
-                            j['duration'],
-                            j['bw'],
-                            j['gpu_type'],
-                            deallocate=True
-                        )
-                    
-                    for q in queues:
-                        q.put(data)
-                
-                for e in progress_bid_events:
-                    e.wait()
-                    e.clear()
                     
             self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=True)
                 
             self.print_simulation_progress(time_instant, len(processed_jobs), len(jobs), len(running_jobs), batch_size)
             time_instant += 1
-            batch_size = 1 + math.ceil(len(assigned_jobs) / (1 + len(unassigned_jobs)))
+            batch_size = 2 + math.ceil(len(assigned_jobs) / (1 + len(unassigned_jobs)))
 
             # Check if all jobs have been processed
             if len(processed_jobs) == len(self.dataset):# and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
@@ -353,3 +355,5 @@ class Simulator_Plebiscito:
             self.network_t.dump_to_file(self.filename, self.alpha)
 
         plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot")
+
+    

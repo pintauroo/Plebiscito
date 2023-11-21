@@ -3,7 +3,7 @@ from src.config import Utility, DebugLevel, SchedulingAlgorithm
 from src.dataset_builder import generate_dataset
 
 if __name__ == '__main__':
-    n_jobs = 80
+    n_jobs = 200
     dataset = generate_dataset(entries_num=n_jobs)
     
     simulator = Simulator_Plebiscito(filename="prova",
