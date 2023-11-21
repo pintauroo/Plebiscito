@@ -1,3 +1,4 @@
+import math
 from multiprocessing.managers import SyncManager
 from multiprocessing import Process, Event, Manager, JoinableQueue
 import time
@@ -37,7 +38,7 @@ def sigterm_handler(signum, frame):
         print("All processes have been gracefully teminated.")
         sys.exit(0)  # Exit gracefully    
 
-class Simulator:
+class Simulator_Plebiscito:
     def __init__(self, filename: str, n_nodes: int, node_bw: int, n_jobs: int, n_client: int, enable_logging: bool, use_net_topology: bool, progress_flag: bool, dataset: pd.DataFrame, alpha: float, utility: Utility, debug_level: DebugLevel, scheduling_algorithm: SchedulingAlgorithm, decrement_factor: float) -> None:
         self.filename = filename + "_" + utility.name + "_" + scheduling_algorithm.name + "_" + str(decrement_factor)
         self.n_nodes = n_nodes
@@ -199,7 +200,7 @@ class Simulator:
         # Function to clear the terminal screen
         os.system('cls' if os.name == 'nt' else 'clear')
 
-    def print_simulation_values(self, time_instant, processed_jobs, queued_jobs, running_jobs):
+    def print_simulation_values(self, time_instant, processed_jobs, queued_jobs, running_jobs, batch_size):
         print()
         print("Infrastructure info")
         print(f"Number of nodes: {self.n_nodes}")
@@ -216,10 +217,11 @@ class Simulator:
         print(f"# Jobs assigned: \t\t{processed_jobs}/{len(self.dataset)}")
         print(f"# Jobs currently in queue: \t{queued_jobs}")
         print(f"# Jobs currently running: \t{running_jobs}")
+        print(f"Current batch size: \t\t{batch_size}")
             
-    def print_simulation_progress(self, time_instant, job_processed, queued_jobs, running_jobs):
+    def print_simulation_progress(self, time_instant, job_processed, queued_jobs, running_jobs, batch_size):
         self.clear_screen()
-        self.print_simulation_values(time_instant, job_processed, queued_jobs, running_jobs)        
+        self.print_simulation_values(time_instant, job_processed, queued_jobs, running_jobs, batch_size)        
  
     def run(self):
         # Set up nodes and related variables
@@ -244,6 +246,7 @@ class Simulator:
         self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0, save_on_file=True)
         
         time_instant = 1
+        batch_size = 10
         jobs_to_unallocate = pd.DataFrame()
         unassigned_jobs = pd.DataFrame()
         while True:
@@ -283,7 +286,7 @@ class Simulator:
             
             # Schedule jobs
             jobs = job.schedule_jobs(jobs, self.scheduling_algorithm)
-            jobs_to_submit = job.create_job_batch(jobs, 10)
+            jobs_to_submit = job.create_job_batch(jobs, batch_size)
             
             # Dispatch jobs
             if len(jobs_to_submit) > 0:                   
@@ -328,8 +331,9 @@ class Simulator:
                     
             self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=True)
                 
-            self.print_simulation_progress(time_instant, len(processed_jobs), len(jobs), len(running_jobs))
+            self.print_simulation_progress(time_instant, len(processed_jobs), len(jobs), len(running_jobs), batch_size)
             time_instant += 1
+            batch_size = 1 + math.ceil(len(assigned_jobs) / (1 + len(unassigned_jobs)))
 
             # Check if all jobs have been processed
             if len(processed_jobs) == len(self.dataset):# and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
