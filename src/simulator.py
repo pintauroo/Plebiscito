@@ -217,7 +217,7 @@ class Simulator_Plebiscito:
         print(f"# Jobs assigned: \t\t{processed_jobs}/{len(self.dataset)}")
         print(f"# Jobs currently in queue: \t{queued_jobs}")
         print(f"# Jobs currently running: \t{running_jobs}")
-        print(f"# Current batch size: \t{batch_size}")
+        print(f"# Current batch size: \t\t{batch_size}")
             
     def print_simulation_progress(self, time_instant, job_processed, queued_jobs, running_jobs, batch_size):
         self.clear_screen()
@@ -299,10 +299,7 @@ class Simulator_Plebiscito:
             # Dispatch jobs
             if len(jobs_to_submit) > 0: 
                 start_id = 0
-                while True:
-                    if start_id >= max_jobs_to_process:
-                        break
-                    
+                while start_id < len(jobs_to_submit):
                     subset = jobs_to_submit.iloc[start_id:start_id+batch_size]
                                       
                     job.dispatch_job(subset, queues, self.use_net_topology)
