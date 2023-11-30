@@ -12,9 +12,11 @@ def assign_job_start_time(dataset: pd.DataFrame, time_instant):
 def extract_completed_jobs(dataset, time_instant):
     if len(dataset) == 0:
         return dataset, dataset
+    
     ret = dataset[dataset["exec_time"] + dataset["duration"] < time_instant]
-
-    dataset = dataset.drop(dataset[dataset["exec_time"] + dataset["duration"] < time_instant].index)
+    
+    if len(ret) > 0:
+        dataset = dataset.drop(dataset[dataset["exec_time"] + dataset["duration"] < time_instant].index)
     
     return ret, dataset
 
@@ -36,10 +38,9 @@ def dispatch_job(dataset, queues, use_net_topology=False):
     if use_net_topology:
         timeout = 1 # don't change it
     else:
-        timeout = 0.1
+        timeout = 0.01
 
     for _, job in dataset.iterrows():
-        time.sleep(timeout)
         data = message_data(
                     job['job_id'],
                     job['user'],
@@ -52,6 +53,8 @@ def dispatch_job(dataset, queues, use_net_topology=False):
         
         for q in queues:
             q.put(data)
+            
+        time.sleep(timeout)
 
 def get_simulation_end_time_instant(dataset):
     return dataset['submit_time'].max() + dataset['duration'].max()
@@ -61,7 +64,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
     random.seed(job_id)
     np.random.seed(int(job_id))
     
-    layer_number = random.choice([2, 4, 6, 8, 10])
+    layer_number = random.choice([3, 4, 5, 6, 7, 8])
     
     #print(bandwidth)
     
@@ -79,7 +82,9 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
     # NN_cpu = np.ones(layer_number) * cpu
     #NN_data_size = np.ones(layer_number) * bw
 
-    max_layer_bid = random.choice([4, 6, 8, 10])
+    max_layer_bid = random.choice([3, 4, 5, 6, 7, 8])
+    if max_layer_bid > layer_number:
+        max_layer_bid = layer_number
     bundle_size = 2
     
     data = {

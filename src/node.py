@@ -1300,7 +1300,7 @@ class node:
         if self.use_net_topology:
             timeout = 15
         else:
-            timeout = 0.3
+            timeout = 0.1
         
         ret_val["id"] = self.id
         ret_val["bids"] = copy.deepcopy(self.bids)
@@ -1329,6 +1329,8 @@ class node:
                         # if the bidding process didn't complete, reset the bid (it will be submitted later)
                         if float('-inf') in self.bids[self.item['job_id']]['auction_id']:
                             del self.bids[self.item['job_id']]
+                            del self.counter[self.item['job_id']]
+                            
                     else:   
                         flag = False
                         

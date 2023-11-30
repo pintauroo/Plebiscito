@@ -270,28 +270,36 @@ class Simulator_Plebiscito:
         jobs_to_unallocate = pd.DataFrame()
         unassigned_jobs = pd.DataFrame()
         assigned_jobs = pd.DataFrame()
+        prev_job_list = pd.DataFrame()
+        prev_running_jobs = pd.DataFrame()
         while True:
             start_time = time.time()
             
             # Extract completed jobs
+            prev_running_jobs = running_jobs.copy()
             jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
             
             # Deallocate completed jobs
             self.deallocate_jobs(progress_bid_events, queues, jobs_to_unallocate)
             
-            if time_instant%5 == 0:
+            if time_instant%25 == 0:
                 plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot")
             
             # Select jobs for the current time instant
             new_jobs = job.select_jobs(self.dataset, time_instant)
             
             # Add new jobs to the job queue
+            prev_job_list = jobs.copy(deep=True)
             jobs = pd.concat([jobs, new_jobs], sort=False)
-            max_jobs_to_process = math.ceil(len(jobs) / 3)
             
             # Schedule jobs
             jobs = job.schedule_jobs(jobs, self.scheduling_algorithm)
-            jobs_to_submit = job.create_job_batch(jobs, max(batch_size, max_jobs_to_process))
+            
+            n_jobs = len(jobs)
+            if prev_job_list.equals(jobs) and prev_running_jobs.equals(running_jobs):
+                n_jobs = 0
+            
+            jobs_to_submit = job.create_job_batch(jobs, n_jobs)
             
             unassigned_jobs = pd.DataFrame()
             assigned_jobs = pd.DataFrame()
