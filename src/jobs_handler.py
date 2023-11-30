@@ -9,14 +9,15 @@ def assign_job_start_time(dataset: pd.DataFrame, time_instant):
     dataset.replace(-1, time_instant, inplace=True)
     return dataset
         
-def extract_completed_jobs(dataset, time_instant):
+def extract_completed_jobs(dataset: pd.DataFrame, time_instant):
     if len(dataset) == 0:
         return dataset, dataset
     
-    ret = dataset[dataset["exec_time"] + dataset["duration"] < time_instant]
+    condition = dataset.exec_time + dataset.duration < time_instant
+    ret = dataset[condition]
     
     if len(ret) > 0:
-        dataset = dataset.drop(dataset[dataset["exec_time"] + dataset["duration"] < time_instant].index)
+        dataset = dataset[~condition]
     
     return ret, dataset
 
@@ -34,11 +35,11 @@ def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm)
     elif scheduling_algorithm == SchedulingAlgorithm.SDF:
         return jobs.sort_values(by=["duration"])
 
-def dispatch_job(dataset, queues, use_net_topology=False):        
+def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False):        
     if use_net_topology:
         timeout = 1 # don't change it
     else:
-        timeout = 0.01
+        timeout = 0.2
 
     for _, job in dataset.iterrows():
         data = message_data(
@@ -53,7 +54,7 @@ def dispatch_job(dataset, queues, use_net_topology=False):
         
         for q in queues:
             q.put(data)
-            
+
         time.sleep(timeout)
 
 def get_simulation_end_time_instant(dataset):

@@ -139,7 +139,7 @@ class Simulator_Plebiscito:
         for e in start_events:
             e.wait()
     
-    def collect_node_results(self, return_val, jobs, exec_time, time_instant, save_on_file):
+    def collect_node_results(self, return_val, jobs: pd.DataFrame, exec_time, time_instant, save_on_file):
         """
         Collects the results from the nodes and updates the corresponding data structures.
         
@@ -152,38 +152,28 @@ class Simulator_Plebiscito:
         Returns:
         - float representing the utility value calculated based on the updated data structures
         """
-        self.counter = 0
-        self.job_count = {}
+        # self.counter = 0
+        # self.job_count = {}
         
         if time_instant != 0:
             for v in return_val: 
-                self.nodes[v["id"]].bids = v["bids"]
-                for key in v["counter"]:
-                    if key not in self.job_count:
-                        self.job_count[key] = 0
-                    self.job_count[key] += v["counter"][key]
-                    self.counter += v["counter"][key]
-                self.nodes[v["id"]].updated_cpu = v["updated_cpu"]
-                self.nodes[v["id"]].updated_gpu = v["updated_gpu"]
-                self.nodes[v["id"]].updated_bw = v["updated_bw"]
-                self.nodes[v["id"]].gpu_type = v["gpu_type"]
-
-            for j in self.job_ids:
-                for i in range(self.n_nodes):
-                    if j not in self.nodes[i].bids:
-                        print('???????')
-                        print(self.nodes[i].bids)
-                        print(str(self.nodes[i].id) + ' ' +str(j))
-                    logging.info(
-                        str(self.nodes[i].bids[j]['auction_id']) + 
-                        ' id: ' + str(self.nodes[i].id) + 
-                        ' complete: ' + str(self.nodes[i].bids[j]['complete']) +
-                        ' complete_tiemstamp' + str(self.nodes[i].bids[j]['complete_timestamp'])+
-                        ' count' + str(self.nodes[i].bids[j]['count'])+
-                        ' used_tot_gpu: ' + str(self.nodes[i].initial_gpu)+' - ' +str(self.nodes[i].updated_gpu)  + ' = ' +str(self.nodes[i].initial_gpu - self.nodes[i].updated_gpu) + 
-                        ' used_tot_cpu: ' + str(self.nodes[i].initial_cpu)+' - ' +str(self.nodes[i].updated_cpu)  + ' = ' +str(self.nodes[i].initial_cpu - self.nodes[i].updated_cpu) + 
-                        ' used_tot_bw: '  + str(self.nodes[i].initial_bw)+' - '  +str(self.nodes[i].updated_bw) + ' = '  +str(self.nodes[i].initial_bw  - self.nodes[i].updated_bw))
-
+                nodeId = v["id"]
+                for _, j in jobs.iterrows():
+                    # if j["job_id"] not in self.nodes[nodeId].bids:
+                    self.nodes[nodeId].bids[j["job_id"]] = v["bids"][j["job_id"]]
+                    if j["job_id"] not in self.job_count:
+                        self.job_count[j["job_id"]] = 0
+                    self.job_count[j["job_id"]] += v["counter"][j["job_id"]]
+                # for key in v["counter"]:
+                #     if key not in self.job_count:
+                #         self.job_count[key] = 0
+                #     self.job_count[key] += v["counter"][key]
+                #     self.counter += v["counter"][key]
+                self.nodes[nodeId].updated_cpu = v["updated_cpu"]
+                self.nodes[nodeId].updated_gpu = v["updated_gpu"]
+                self.nodes[nodeId].updated_bw = v["updated_bw"]
+                self.nodes[nodeId].gpu_type = v["gpu_type"]
+        
         return utils.calculate_utility(self.nodes, self.n_nodes, self.counter, exec_time, self.n_jobs, jobs, self.alpha, time_instant, self.use_net_topology, self.filename, self.network_t, self.gpu_types, save_on_file)
     
     def terminate_node_processing(self, events):
@@ -200,7 +190,7 @@ class Simulator_Plebiscito:
         # Function to clear the terminal screen
         os.system('cls' if os.name == 'nt' else 'clear')
 
-    def print_simulation_values(self, time_instant, processed_jobs, queued_jobs, running_jobs, batch_size):
+    def print_simulation_values(self, time_instant, processed_jobs, queued_jobs: pd.DataFrame, running_jobs, batch_size):
         print()
         print("Infrastructure info")
         print(f"Number of nodes: {self.n_nodes}")
@@ -215,9 +205,16 @@ class Simulator_Plebiscito:
         print()
         print("Performing simulation at time " + str(time_instant) + ".")
         print(f"# Jobs assigned: \t\t{processed_jobs}/{len(self.dataset)}")
-        print(f"# Jobs currently in queue: \t{queued_jobs}")
+        print(f"# Jobs currently in queue: \t{len(queued_jobs)}")
         print(f"# Jobs currently running: \t{running_jobs}")
         print(f"# Current batch size: \t\t{batch_size}")
+        print()
+        print("Jobs in queue stats for gpu type:")
+        if len(queued_jobs) == 0:
+            print("<no jobs in queue>")
+        else:
+            print(queued_jobs["gpu_type"].value_counts().to_dict())
+
             
     def print_simulation_progress(self, time_instant, job_processed, queued_jobs, running_jobs, batch_size):
         self.clear_screen()
@@ -266,17 +263,18 @@ class Simulator_Plebiscito:
         self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0, save_on_file=True)
         
         time_instant = 1
-        batch_size = 10
+        batch_size = 5
         jobs_to_unallocate = pd.DataFrame()
         unassigned_jobs = pd.DataFrame()
         assigned_jobs = pd.DataFrame()
         prev_job_list = pd.DataFrame()
         prev_running_jobs = pd.DataFrame()
+        
         while True:
             start_time = time.time()
             
             # Extract completed jobs
-            prev_running_jobs = running_jobs.copy()
+            prev_running_jobs = running_jobs.copy(deep=True)
             jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
             
             # Deallocate completed jobs
@@ -298,6 +296,7 @@ class Simulator_Plebiscito:
             n_jobs = len(jobs)
             if prev_job_list.equals(jobs) and prev_running_jobs.equals(running_jobs):
                 n_jobs = 0
+            
             
             jobs_to_submit = job.create_job_batch(jobs, n_jobs)
             
@@ -337,10 +336,14 @@ class Simulator_Plebiscito:
             processed_jobs = pd.concat([processed_jobs,assigned_jobs], sort=False)
                     
             self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=True)
-                
-            self.print_simulation_progress(time_instant, len(processed_jobs), len(jobs), len(running_jobs), batch_size)
+            
+            self.print_simulation_progress(time_instant, len(processed_jobs), jobs, len(running_jobs), batch_size)
             time_instant += 1
-            batch_size = 2 + math.ceil(len(assigned_jobs) / (1 + len(unassigned_jobs)))
+
+            if len(assigned_jobs) == 0 and len(unassigned_jobs) != 0 and batch_size > 1:
+                batch_size -= 1
+            elif len(assigned_jobs) > len(unassigned_jobs)/3 and batch_size < 5:
+                batch_size += 1
 
             # Check if all jobs have been processed
             if len(processed_jobs) == len(self.dataset):# and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation

@@ -4,9 +4,11 @@ This module contains utils functions to calculate all necessary stats
 from csv import DictWriter
 import os
 import logging
+import time
 import pandas as pd
 import numpy as np
 from src.config import *
+
 
 import math
 
@@ -84,14 +86,13 @@ def allocation_to_gpu_type(allocation, gpu_types):
             ret.append(gpu_types[a].name)
         return ret
 
-def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, time_instant, use_net_topology, filename, net_topology, gpu_types, save_on_file):
-    
+def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs, alpha, time_instant, use_net_topology, filename, net_topology, gpu_types, save_on_file):
     stats = {}
     stats['nodes'] = {}
     stats['tot_utility'] = 0
     
-    field_names = ['n_nodes', 'n_req', 'n_msg', 'exec_time', 'alpha']
-    dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'n_msg' : msg_count, 'exec_time': time, 'alpha': alpha}
+    field_names = ['n_nodes', 'n_req', 'exec_time', 'alpha']
+    dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'exec_time': simulation_time, 'alpha': alpha}
 
     # ---------------------------------------------------------
     # calculate assigned jobs, update resources if job not assigned
@@ -125,7 +126,6 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
 
         i = 0
         try:
-
             for i in range(1, num_edges):
                 #print(nodes[i].bids)
                 if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
@@ -203,8 +203,8 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
     # calculate node utility, assigned jobs and used res
     # ---------------------------------------------------------
     for i in range(num_edges):
-        field_names.append('node_'+str(i)+'_jobs')
-        field_names.append('node_'+str(i)+'_utility')
+        # field_names.append('node_'+str(i)+'_jobs')
+        # field_names.append('node_'+str(i)+'_utility')
         field_names.append('node_'+str(i)+'_initial_gpu')
         field_names.append('node_'+str(i)+'_updated_gpu')
         field_names.append('node_'+str(i)+'_used_gpu')
@@ -216,13 +216,13 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
         field_names.append('node_'+str(i)+'_used_bw')
         field_names.append('node_'+str(i)+'_gpu_type')
 
-        stats['nodes'][nodes[i].id] = {
-            "utility": float(),
-            "assigned_count": int()
-        }
+        # stats['nodes'][nodes[i].id] = {
+        #     "utility": float(),
+        #     "assigned_count": int()
+        # }
 
-        stats['nodes'][nodes[i].id]['utility'] = 0
-        stats['nodes'][nodes[i].id]['assigned_count'] = 0
+        # stats['nodes'][nodes[i].id]['utility'] = 0
+        # stats['nodes'][nodes[i].id]['assigned_count'] = 0
 
         tot_gpu_nodes += round(nodes[i].initial_gpu,2)
         dictionary['node_'+str(i)+'_initial_gpu'] = round(nodes[i].initial_gpu,2)
@@ -247,26 +247,26 @@ def calculate_utility(nodes, num_edges, msg_count, time, n_req, jobs, alpha, tim
         dictionary['node_'+str(i)+'_gpu_type'] = nodes[i].gpu_type
 
         #calculate node assigned count and utility
-        for j, job_id in enumerate(nodes[i].bids):
+        # for j, job_id in enumerate(nodes[i].bids):
             
-            if job_id in assigned_jobs_id and nodes[i].id in nodes[i].bids[job_id]['auction_id']:
-                stats['nodes'][nodes[i].id]['assigned_count'] += 1
+        #     if job_id in assigned_jobs_id and nodes[i].id in nodes[i].bids[job_id]['auction_id']:
+        #         stats['nodes'][nodes[i].id]['assigned_count'] += 1
 
-            # print(nodes[i].bids[job_id])
-            for k, auctioner in enumerate(nodes[i].bids[job_id]['auction_id']):
-                # print(nodes[i].id)
-                if job_id in assigned_jobs_id and auctioner== nodes[i].id:
-                    # print(nodes[i].bids[job_id]['bid'])
-                    stats['nodes'][nodes[i].id]['utility'] += nodes[i].bids[job_id]['bid'][k]
+        #     # print(nodes[i].bids[job_id])
+        #     for k, auctioner in enumerate(nodes[i].bids[job_id]['auction_id']):
+        #         # print(nodes[i].id)
+        #         if job_id in assigned_jobs_id and auctioner== nodes[i].id:
+        #             # print(nodes[i].bids[job_id]['bid'])
+        #             stats['nodes'][nodes[i].id]['utility'] += nodes[i].bids[job_id]['bid'][k]
 
         #print('node: ' + str(nodes[i].id) + ' utility: ' + str(stats['nodes'][nodes[i].id]['utility']))
-        dictionary['node_'+str(i)+'_utility'] = round(stats['nodes'][nodes[i].id]['utility'],2)
-        stats["tot_utility"] += stats['nodes'][nodes[i].id]['utility']
+        # dictionary['node_'+str(i)+'_utility'] = round(stats['nodes'][nodes[i].id]['utility'],2)
+        # stats["tot_utility"] += stats['nodes'][nodes[i].id]['utility']
 
-    for i in stats['nodes']:
+    # for i in stats['nodes']:
 
-        #print('node: '+ str(i) + ' assigned jobs count: ' + str(stats['nodes'][i]['assigned_count']))
-        dictionary['node_'+str(i)+'_jobs'] = round(stats['nodes'][i]['assigned_count'],2)
+    #     #print('node: '+ str(i) + ' assigned jobs count: ' + str(stats['nodes'][i]['assigned_count']))
+    #     dictionary['node_'+str(i)+'_jobs'] = round(stats['nodes'][i]['assigned_count'],2)
 
     if save_on_file:
         write_data(field_names, dictionary, filename)
