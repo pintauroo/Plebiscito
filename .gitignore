@@ -10,6 +10,8 @@ res/
 *.dot
 out
 
+plot
+
 # Distribution / packaging
 .Python
 build/
