@@ -39,8 +39,13 @@ def sigterm_handler(signum, frame):
         sys.exit(0)  # Exit gracefully    
 
 class Simulator_Plebiscito:
-    def __init__(self, filename: str, n_nodes: int, node_bw: int, n_jobs: int, n_client: int, enable_logging: bool, use_net_topology: bool, progress_flag: bool, dataset: pd.DataFrame, alpha: float, utility: Utility, debug_level: DebugLevel, scheduling_algorithm: SchedulingAlgorithm, decrement_factor: float) -> None:
+    def __init__(self, filename: str, n_nodes: int, node_bw: int, n_jobs: int, n_client: int, enable_logging: bool, use_net_topology: bool, progress_flag: bool, dataset: pd.DataFrame, alpha: float, utility: Utility, debug_level: DebugLevel, scheduling_algorithm: SchedulingAlgorithm, decrement_factor: float, split: bool) -> None:   
         self.filename = filename + "_" + utility.name + "_" + scheduling_algorithm.name + "_" + str(decrement_factor)
+        if split:
+            self.filename = self.filename + "_split"
+        else:
+            self.filename = self.filename + "_nosplit"
+            
         self.n_nodes = n_nodes
         self.node_bw = node_bw
         self.n_jobs = n_jobs
@@ -54,6 +59,7 @@ class Simulator_Plebiscito:
         self.alpha = alpha
         self.scheduling_algorithm = scheduling_algorithm
         self.decrement_factor = decrement_factor
+        self.split = split
         
         self.job_count = {}
         
@@ -263,7 +269,7 @@ class Simulator_Plebiscito:
         self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0, save_on_file=True)
         
         time_instant = 1
-        batch_size = 5
+        batch_size = 100
         jobs_to_unallocate = pd.DataFrame()
         unassigned_jobs = pd.DataFrame()
         assigned_jobs = pd.DataFrame()
@@ -309,7 +315,7 @@ class Simulator_Plebiscito:
                 while start_id < len(jobs_to_submit):
                     subset = jobs_to_submit.iloc[start_id:start_id+batch_size]
                                       
-                    job.dispatch_job(subset, queues, self.use_net_topology)
+                    job.dispatch_job(subset, queues, self.use_net_topology, self.split)
 
                     for e in progress_bid_events:
                         e.wait()
@@ -340,10 +346,10 @@ class Simulator_Plebiscito:
             self.print_simulation_progress(time_instant, len(processed_jobs), jobs, len(running_jobs), batch_size)
             time_instant += 1
 
-            if len(assigned_jobs) == 0 and len(unassigned_jobs) != 0 and batch_size > 1:
-                batch_size -= 1
-            elif len(assigned_jobs) > len(unassigned_jobs)/3 and batch_size < 5:
-                batch_size += 1
+            # if len(assigned_jobs) == 0 and len(unassigned_jobs) != 0 and batch_size > 3:
+            #     batch_size -= 1
+            # elif len(assigned_jobs) > len(unassigned_jobs)/3 and batch_size < 8:
+            #     batch_size += 1
 
             # Check if all jobs have been processed
             if len(processed_jobs) == len(self.dataset):# and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation

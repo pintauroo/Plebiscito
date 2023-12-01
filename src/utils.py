@@ -268,7 +268,7 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
     #     #print('node: '+ str(i) + ' assigned jobs count: ' + str(stats['nodes'][i]['assigned_count']))
     #     dictionary['node_'+str(i)+'_jobs'] = round(stats['nodes'][i]['assigned_count'],2)
 
-    if save_on_file:
+    if save_on_file:        
         write_data(field_names, dictionary, filename)
     
     return pd.DataFrame(assigned_jobs), pd.DataFrame(unassigned_jobs)
