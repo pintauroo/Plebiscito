@@ -269,7 +269,7 @@ class Simulator_Plebiscito:
         self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0, save_on_file=True)
         
         time_instant = 1
-        batch_size = 100
+        batch_size = 10
         jobs_to_unallocate = pd.DataFrame()
         unassigned_jobs = pd.DataFrame()
         assigned_jobs = pd.DataFrame()
@@ -302,7 +302,6 @@ class Simulator_Plebiscito:
             n_jobs = len(jobs)
             if prev_job_list.equals(jobs) and prev_running_jobs.equals(running_jobs):
                 n_jobs = 0
-            
             
             jobs_to_submit = job.create_job_batch(jobs, n_jobs)
             
