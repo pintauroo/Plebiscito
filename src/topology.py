@@ -14,6 +14,11 @@ class topo:
         self.disconnect_nodes = []
         self.edge_to_add = []
         
+        if func_name == "complete_graph":
+            self.adjacency_matrix = self.compute_complete_graph()
+        elif func_name == "ring_graph":
+            self.adjacency_matrix = self.compute_ring_graph()
+        
         for _ in range(edge_to_add):
             while True:
                 from_edge = np.random.randint(0, num_edges-1)
@@ -56,14 +61,17 @@ class topo:
         
         return adjacency_matrix
 
-    def complete_graph(self):
+    def compute_complete_graph(self):
         adjacency_matrix = np.ones((self.n, self.n)) - np.eye(self.n)
-        for n in self.disconnect_nodes:
-            adjacency_matrix[n,:] = 0
-            adjacency_matrix[:,n] = 0
         return adjacency_matrix
+    
+    def complete_graph(self):
+        for n in self.disconnect_nodes:
+            self.adjacency_matrix[n,:] = 0
+            self.adjacency_matrix[:,n] = 0
+        return self.adjacency_matrix
 
-    def ring_graph(self):
+    def compute_ring_graph(self):
         adjacency_matrix = np.zeros((self.n, self.n))
         for i in range(self.n):
             adjacency_matrix[i][(i-1)%self.n] = 1
@@ -71,10 +79,13 @@ class topo:
         for e in self.edge_to_add:
             adjacency_matrix[list(e)[0], list(e)[1]] = 1
             adjacency_matrix[list(e)[1], list(e)[0]] = 1
-        for n in self.disconnect_nodes:
-            adjacency_matrix[n,:] = 0
-            adjacency_matrix[:,n] = 0
         return adjacency_matrix
+    
+    def ring_graph(self):
+        for n in self.disconnect_nodes:
+            self.adjacency_matrix[n,:] = 0
+            self.adjacency_matrix[:,n] = 0
+        return self.adjacency_matrix
 
     def star_graph(self):
         adjacency_matrix = np.zeros((self.n, self.n))
