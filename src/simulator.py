@@ -1,6 +1,7 @@
 import math
 from multiprocessing.managers import SyncManager
 from multiprocessing import Process, Event, Manager, JoinableQueue
+import random
 import time
 import pandas as pd
 import signal
@@ -39,12 +40,14 @@ def sigterm_handler(signum, frame):
         sys.exit(0)  # Exit gracefully    
 
 class Simulator_Plebiscito:
-    def __init__(self, filename: str, n_nodes: int, node_bw: int, n_jobs: int, n_client: int, enable_logging: bool, use_net_topology: bool, progress_flag: bool, dataset: pd.DataFrame, alpha: float, utility: Utility, debug_level: DebugLevel, scheduling_algorithm: SchedulingAlgorithm, decrement_factor: float, split: bool) -> None:   
+    def __init__(self, filename: str, n_nodes: int, node_bw: int, n_jobs: int, n_client: int, enable_logging: bool, use_net_topology: bool, progress_flag: bool, dataset: pd.DataFrame, alpha: float, utility: Utility, debug_level: DebugLevel, scheduling_algorithm: SchedulingAlgorithm, decrement_factor: float, split: bool, n_failures, edge_to_add, logical_topology_name) -> None:   
         self.filename = filename + "_" + utility.name + "_" + scheduling_algorithm.name + "_" + str(decrement_factor)
         if split:
             self.filename = self.filename + "_split"
         else:
             self.filename = self.filename + "_nosplit"
+            
+        self.filename = self.filename + "_" + str(n_failures) + "_failures"
             
         self.n_nodes = n_nodes
         self.node_bw = node_bw
@@ -60,17 +63,23 @@ class Simulator_Plebiscito:
         self.scheduling_algorithm = scheduling_algorithm
         self.decrement_factor = decrement_factor
         self.split = split
+        self.n_failures = n_failures
+        self.failure_nodes = random.sample(range(1, n_nodes), int(n_failures * n_nodes))
+        self.edge_to_add = edge_to_add
         
         self.job_count = {}
         
         # create a suitable network topology for multiprocessing 
         MyManager.register('NetworkTopology', NetworkTopology)
-        self.manager = MyManager()
-        self.manager.start()
+        MyManager.register('LogicalTopology', LogicalTopology)
+        self.physical_network_manager = MyManager()
+        self.physical_network_manager.start()
+        self.logical_network_manager = MyManager()
+        self.logical_network_manager.start()
         
         #Build Topolgy
-        self.t = LogicalTopology(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=n_client, num_edges=n_nodes)
-        self.network_t = self.manager.NetworkTopology(n_nodes, node_bw, node_bw, group_number=4, seed=4, topology_type=TopologyType.FAT_TREE)
+        self.t = self.logical_network_manager.LogicalTopology(func_name=logical_topology_name, max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=n_client, num_edges=n_nodes, edge_to_add=edge_to_add)
+        self.network_t = self.physical_network_manager.NetworkTopology(n_nodes, node_bw, node_bw, group_number=4, seed=4, topology_type=TopologyType.FAT_TREE)
         
         self.nodes = []
         self.gpu_types = generate_gpu_types(n_nodes)
@@ -145,7 +154,7 @@ class Simulator_Plebiscito:
         for e in start_events:
             e.wait()
     
-    def collect_node_results(self, return_val, jobs: pd.DataFrame, exec_time, time_instant, save_on_file):
+    def collect_node_results(self, return_val, jobs: pd.DataFrame, exec_time, time_instant, failure_nodes, save_on_file):
         """
         Collects the results from the nodes and updates the corresponding data structures.
         
@@ -164,12 +173,14 @@ class Simulator_Plebiscito:
         if time_instant != 0:
             for v in return_val: 
                 nodeId = v["id"]
+                if nodeId in failure_nodes:
+                    continue
                 for _, j in jobs.iterrows():
                     # if j["job_id"] not in self.nodes[nodeId].bids:
                     self.nodes[nodeId].bids[j["job_id"]] = v["bids"][j["job_id"]]
                     if j["job_id"] not in self.job_count:
                         self.job_count[j["job_id"]] = 0
-                    self.job_count[j["job_id"]] += v["counter"][j["job_id"]]
+                    self.job_count[j["job_id"]] = v["counter"][j["job_id"]]
                 # for key in v["counter"]:
                 #     if key not in self.job_count:
                 #         self.job_count[key] = 0
@@ -179,8 +190,14 @@ class Simulator_Plebiscito:
                 self.nodes[nodeId].updated_gpu = v["updated_gpu"]
                 self.nodes[nodeId].updated_bw = v["updated_bw"]
                 self.nodes[nodeId].gpu_type = v["gpu_type"]
+                
+        # for i in range(self.n_nodes):
+        #     if i in failure_nodes:
+        #         continue
+        #     for key in self.nodes[i].bids:
+        #         print(f"Node {i} bids for job {key}: {self.nodes[i].bids[key]['auction_id']}")
         
-        return utils.calculate_utility(self.nodes, self.n_nodes, self.counter, exec_time, self.n_jobs, jobs, self.alpha, time_instant, self.use_net_topology, self.filename, self.network_t, self.gpu_types, save_on_file)
+        return utils.calculate_utility(self.nodes, self.n_nodes, self.counter, exec_time, self.n_jobs, jobs, self.alpha, time_instant, self.use_net_topology, self.filename, self.network_t, self.gpu_types, save_on_file, failure_nodes)
     
     def terminate_node_processing(self, events):
         global nodes_thread
@@ -260,113 +277,46 @@ class Simulator_Plebiscito:
 
         # Initialize job-related variables
         self.job_ids=[]
-        jobs = pd.DataFrame()
-        running_jobs = pd.DataFrame()
-        processed_jobs = pd.DataFrame()
 
         # Collect node results
         start_time = time.time()
-        self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0, save_on_file=True)
+        #self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0, save_on_file=True)
         
         time_instant = 1
-        batch_size = 10
-        jobs_to_unallocate = pd.DataFrame()
-        unassigned_jobs = pd.DataFrame()
-        assigned_jobs = pd.DataFrame()
-        prev_job_list = pd.DataFrame()
-        prev_running_jobs = pd.DataFrame()
         
-        while True:
-            start_time = time.time()
-            
-            # Extract completed jobs
-            prev_running_jobs = running_jobs.copy(deep=True)
-            jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
-            
-            # Deallocate completed jobs
-            self.deallocate_jobs(progress_bid_events, queues, jobs_to_unallocate)
-            
-            if time_instant%25 == 0:
-                plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot")
-            
-            # Select jobs for the current time instant
-            new_jobs = job.select_jobs(self.dataset, time_instant)
-            
-            # Add new jobs to the job queue
-            prev_job_list = jobs.copy(deep=True)
-            jobs = pd.concat([jobs, new_jobs], sort=False)
-            
-            # Schedule jobs
-            jobs = job.schedule_jobs(jobs, self.scheduling_algorithm)
-            
-            n_jobs = len(jobs)
-            if prev_job_list.equals(jobs) and prev_running_jobs.equals(running_jobs):
-                n_jobs = 0
-            
-            jobs_to_submit = job.create_job_batch(jobs, n_jobs)
-            
-            unassigned_jobs = pd.DataFrame()
-            assigned_jobs = pd.DataFrame()
-            
-            # Dispatch jobs
-            if len(jobs_to_submit) > 0: 
-                start_id = 0
-                while start_id < len(jobs_to_submit):
-                    subset = jobs_to_submit.iloc[start_id:start_id+batch_size]
-                                      
-                    job.dispatch_job(subset, queues, self.use_net_topology, self.split)
-
-                    for e in progress_bid_events:
-                        e.wait()
-                        e.clear() 
+        job.dispatch_job(self.dataset, queues, self.t, self.failure_nodes, self.use_net_topology, self.split)
+        
+        for e in progress_bid_events:
+            e.wait()
+            e.clear() 
                         
-                    exec_time = time.time() - start_time
-                    
-                    # Collect node results
-                    a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
-                    assigned_jobs = pd.concat([assigned_jobs, a_jobs])
-                    unassigned_jobs = pd.concat([unassigned_jobs, u_jobs])
-                    
-                    # Deallocate unassigned jobs
-                    self.deallocate_jobs(progress_bid_events, queues, u_jobs)
-                    
-                    start_id += batch_size
-            
-            # Assign start time to assigned jobs
-            assigned_jobs = job.assign_job_start_time(assigned_jobs, time_instant)
-            
-            # Add unassigned jobs to the job queue
-            jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
-            running_jobs = pd.concat([running_jobs, assigned_jobs], sort=False)
-            processed_jobs = pd.concat([processed_jobs,assigned_jobs], sort=False)
-                    
-            self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=True)
-            
-            self.print_simulation_progress(time_instant, len(processed_jobs), jobs, len(running_jobs), batch_size)
-            time_instant += 1
-
-            # if len(assigned_jobs) == 0 and len(unassigned_jobs) != 0 and batch_size > 3:
-            #     batch_size -= 1
-            # elif len(assigned_jobs) > len(unassigned_jobs)/3 and batch_size < 8:
-            #     batch_size += 1
-
-            # Check if all jobs have been processed
-            if len(processed_jobs) == len(self.dataset):# and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
-                break
+        exec_time = time.time() - start_time
         
-        # Collect final node results
-        self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=True)
-
+        # Collect node results
+        a_jobs, u_jobs = self.collect_node_results(return_val, self.dataset, exec_time, time_instant, self.failure_nodes, save_on_file=False)
+            
         # Terminate node processing
         self.terminate_node_processing(terminate_processing_events)
 
         # Save processed jobs to CSV
-        processed_jobs.to_csv(self.filename + "_jobs_report.csv")
-
-        # Plot results
-        if self.use_net_topology:
-            self.network_t.dump_to_file(self.filename, self.alpha)
-
-        plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot")
+        jobs = pd.concat([a_jobs, u_jobs])
+        #jobs.to_csv(self.filename + "_jobs_report.csv")
+        
+        # for _, row in jobs.iterrows():
+        #     jobId = row["job_id"]
+        #     winner = row["final_node_allocation"]
+            #print(f"Job {jobId} winner: node {winner[0]}")
+            
+        count = 0
+        for key in self.job_count:
+            count += self.job_count[key]
+            
+        self.logical_network_manager.shutdown()
+        self.physical_network_manager.shutdown()
+            
+        #print(f"Total message count: {count}")
+        return count, len(a_jobs), len(u_jobs)
+            
+        
 
     

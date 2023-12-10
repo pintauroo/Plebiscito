@@ -23,7 +23,7 @@ class InternalError(Exception):
 
 class node:
 
-    def __init__(self, id, network_topology: NetworkTopology, gpu_type: GPUType, utility: Utility, alpha: float, enable_logging: bool, logical_topology: LogicalTopology, tot_nodes: int, progress_flag: bool, use_net_topology=False, decrement_factor=0.1):
+    def __init__(self, id, network_topology: NetworkTopology, gpu_type: GPUType, utility: Utility, alpha: float, enable_logging: bool, logical_topology, tot_nodes: int, progress_flag: bool, use_net_topology=False, decrement_factor=0.1):
         self.id = id    # unique edge node id
         self.gpu_type = gpu_type
         self.utility = utility
@@ -131,8 +131,6 @@ class node:
             'clock':False,
             'rebid':False,
             "N_layer_bundle": self.item["N_layer_bundle"]
-
-
             }
         
         self.layer_bid_already[self.item['job_id']] = [False] * self.item["N_layer"]
@@ -1418,7 +1416,10 @@ class node:
                     # notify the main process that the bidding process has completed and the result has been saved in the ret_val dictionary    
                     progress_bid.set()
 
-                if end_processing.is_set():    
+                if end_processing.is_set():      
+                    # for key in self.bids:
+                    #     print(f"Node {self.id} job {key} bids {self.bids[key]['auction_id']}")
+                                            
                     if int(self.updated_cpu) > int(self.initial_cpu):
                         print(f"Node {self.id} -- Mannaggia updated={self.updated_cpu} initial={self.initial_cpu}", flush=True)
                     break               

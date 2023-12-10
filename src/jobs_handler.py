@@ -35,12 +35,14 @@ def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm)
     elif scheduling_algorithm == SchedulingAlgorithm.SDF:
         return jobs.sort_values(by=["duration"])
 
-def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True):        
+def dispatch_job(dataset: pd.DataFrame, queues, logical_topology, failure_nodes, use_net_topology=False, split=True):        
     if use_net_topology:
         timeout = 1 # don't change it
     else:
-        timeout = 0.05
+        timeout = 0.1
 
+    count = 0
+    failure_time = random.randint(1, len(dataset) - 2)
     for _, job in dataset.iterrows():
         data = message_data(
                     job['job_id'],
@@ -57,42 +59,22 @@ def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=Tr
         for q in queues:
             q.put(data)
 
+        if count == failure_time:
+            for f in failure_nodes:
+                logical_topology.disconnect_node(f)
+        
+        count += 1
         time.sleep(timeout)
 
 def get_simulation_end_time_instant(dataset):
     return dataset['submit_time'].max() + dataset['duration'].max()
 
 def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, deallocate=False, split=True):
-    
-    random.seed(job_id)
-    np.random.seed(int(job_id))
-    
-    layer_number = random.choice([3, 4, 5, 6, 7, 8])
-    
-    #print(bandwidth)
-    
-    # gpu = round(num_gpu / layer_number, 6)
-    # cpu = round(num_cpu / layer_number, 6)
-    # bw = round(float(bandwidth) / 2, 6)
-    # bw = round(float(bandwidth) / min_layer_number, 2)
 
     # use numpy to create an array of random numbers with length equal to the number of layers. As a constraint, the sum of the array must be equal to the number of GPUs
-    NN_gpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * num_gpu
-    NN_cpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * num_cpu
-    NN_data_size = np.random.dirichlet(np.ones(layer_number), size=1)[0] * bandwidth
-    
-    # NN_gpu = np.ones(layer_number) * gpu
-    # NN_cpu = np.ones(layer_number) * cpu
-    #NN_data_size = np.ones(layer_number) * bw
-
-    if split:
-        max_layer_bid = random.choice([3, 4, 5, 6, 7, 8])
-        if max_layer_bid > layer_number:
-            max_layer_bid = layer_number
-        min_layer_bid = 1
-    else:
-        max_layer_bid = layer_number
-        min_layer_bid = layer_number
+    NN_gpu = [num_gpu]
+    NN_cpu = [num_cpu]
+    NN_data_size = [bandwidth]
 
     bundle_size = 2
     
@@ -103,8 +85,8 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
         "num_cpu": int(),
         "duration": int(),
         "N_layer": len(NN_gpu),
-        "N_layer_min": min_layer_bid, # Do not change!! This could be either 1 or = to N_layer_max
-        "N_layer_max": max_layer_bid,
+        "N_layer_min": 1, # Do not change!! This could be either 1 or = to N_layer_max
+        "N_layer_max": 1,
         "N_layer_bundle": bundle_size, 
         "edge_id":int(),
         "NN_gpu": NN_gpu,

@@ -5,17 +5,32 @@ Topology building module
 import numpy as np
 
 
-
-
 class topo:
-    def __init__(self, func_name, max_bandwidth, min_bandwidth, num_clients, num_edges):
+    def __init__(self, func_name, max_bandwidth, min_bandwidth, num_clients, num_edges, edge_to_add=0):
         self.n = num_edges #adjacency matrix
 
         self.to = getattr(self, func_name)
         self.b = max_bandwidth
+        self.disconnect_nodes = []
+        self.edge_to_add = []
+        
+        for _ in range(edge_to_add):
+            while True:
+                from_edge = np.random.randint(0, num_edges-1)
+                to_edge = np.random.randint(0, num_edges-1)
+                if from_edge != to_edge and abs(from_edge-to_edge) != 1 and set([from_edge, to_edge]) not in self.edge_to_add:
+                    self.edge_to_add.append(set([from_edge, to_edge]))
+                    break
+            
         # self.b = np.random.uniform(min_bandwidth, max_bandwidth, size=(num_clients, num_edges)) #bandwidth matrix
 
-
+    def disconnect_node(self, node):
+        """
+        This function disconnects a node from the network.
+        """
+        self.disconnect_nodes.append(node)
+        
+        
     def call_func(self):
         return self.to()
     
@@ -42,13 +57,23 @@ class topo:
         return adjacency_matrix
 
     def complete_graph(self):
-        return np.ones((self.n, self.n)) - np.eye(self.n)
+        adjacency_matrix = np.ones((self.n, self.n)) - np.eye(self.n)
+        for n in self.disconnect_nodes:
+            adjacency_matrix[n,:] = 0
+            adjacency_matrix[:,n] = 0
+        return adjacency_matrix
 
     def ring_graph(self):
         adjacency_matrix = np.zeros((self.n, self.n))
         for i in range(self.n):
             adjacency_matrix[i][(i-1)%self.n] = 1
             adjacency_matrix[i][(i+1)%self.n] = 1
+        for e in self.edge_to_add:
+            adjacency_matrix[list(e)[0], list(e)[1]] = 1
+            adjacency_matrix[list(e)[1], list(e)[0]] = 1
+        for n in self.disconnect_nodes:
+            adjacency_matrix[n,:] = 0
+            adjacency_matrix[:,n] = 0
         return adjacency_matrix
 
     def star_graph(self):

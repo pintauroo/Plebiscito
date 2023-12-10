@@ -8,6 +8,23 @@ import math
 path = os.getcwd()
 dataset = path + '/df_dataset.csv'
 
+def generate_dataset_fake(entries_num = 100):
+    data = []
+    
+    for i in range(entries_num):
+        job = {}
+        job['job_id'] = i
+        job['user'] = 'user_' + str(random.randint(0, 9))
+        job['num_gpu'] = random.random() * 0.00001
+        job['num_cpu'] = random.random() * 0.00001
+        job['duration'] = random.random() * 0.00001
+        job['bw'] = random.random() * 0.00001
+        job['gpu_type'] = "MISC"
+        data.append(job)
+    
+    df = pd.DataFrame(data)
+    return df
+
 def generate_dataset(entries_num = 100):
     """
     Generate a new dataset with the specified number of entries.
@@ -136,16 +153,16 @@ def add_job(csv_file, describe_dict, limit=None):
 
 # function from Alibaba's trace
 def init_go(num_jobs=100):
-        cur_time = 0
-        arrivals = 10
-        job_list = add_job(dataset, None, limit=num_jobs)
-        if (num_jobs is not None) and num_jobs <= len(job_list):
-            random.shuffle(job_list)
+    cur_time = 0
+    arrivals = 10
+    job_list = add_job(dataset, None, limit=num_jobs)
+    if (num_jobs is not None) and num_jobs <= len(job_list):
+        random.shuffle(job_list)
 
-            job_list = job_list[:num_jobs]
-        job_list = set_job_list_arrival_time(job_list, arrivals)
+        job_list = job_list[:num_jobs]
+    job_list = set_job_list_arrival_time(job_list, arrivals)
 
-        return job_list
+    return job_list
 
 
 

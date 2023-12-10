@@ -13,6 +13,7 @@ from src.config import *
 import math
 
 def generate_gpu_types(n_nodes):
+    return [GPUSupport.get_gpu_type("MISC") for _ in range(n_nodes)]
     occurrencies = [0.3, 0.17, 0.47, 0.06]
     GPU_types = ["T4", "MISC", "P100", "V100"]
     np.random.seed(1)
@@ -86,7 +87,7 @@ def allocation_to_gpu_type(allocation, gpu_types):
             ret.append(gpu_types[a].name)
         return ret
 
-def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs, alpha, time_instant, use_net_topology, filename, net_topology, gpu_types, save_on_file):
+def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs, alpha, time_instant, use_net_topology, filename, net_topology, gpu_types, save_on_file, failure_nodes):
     stats = {}
     stats['nodes'] = {}
     stats['tot_utility'] = 0
@@ -125,44 +126,60 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         equal_values = True         
 
         i = 0
+        acceptable_node_id = -1
         try:
             for i in range(1, num_edges):
+                if i in failure_nodes:
+                    continue
                 #print(nodes[i].bids)
-                if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
+                prev_id = i-1
+                while prev_id in failure_nodes:
+                    prev_id -= 1
+                    if prev_id < 0:
+                        prev_id = 0
+                        break
+                    
+                acceptable_node_id = i
+                if nodes[i].bids[j]['auction_id'] != nodes[prev_id].bids[j]['auction_id']:
                     count_broken += 1
-                    print('BROKEN BID id: ' + str(j))
-                    for k in range(0, num_edges):
-                        print(nodes[k].bids[j]['auction_id'])
+                    #print('BROKEN BID id: ' + str(j))
+                    # for k in range(0, num_edges):
+                    #     print(nodes[k].bids[j]['auction_id'])
                     equal_values = False
                     break
         except Exception as e :
             print("bingo", e, nodes[i].bids.keys())        
         if equal_values: # matching auction
 
-                if all(x == float('-inf') for x in nodes[i].bids[j]['auction_id']):
+                if all(x == float('-inf') for x in nodes[acceptable_node_id].bids[j]['auction_id']):
                     #print('Unassigned')
                     found_failure = True
                     flag = False # all unassigned
-                elif float('-inf') in nodes[i].bids[j]['auction_id']: #check if there is a value not assigned 
+                elif float('-inf') in nodes[acceptable_node_id].bids[j]['auction_id']: #check if there is a value not assigned 
                     flag = False
                     found_failure = True
-                    wrong_bids_calc(nodes, job, num_edges, use_net_topology)
+                    #wrong_bids_calc(nodes, job, num_edges, use_net_topology)
                 else:
                     #print('MATCH')
                     if not found_failure:
                         count_success += 1
-                    valid_bids[j] = nodes[i].bids[j]['auction_id']
-                    logging.info(f"Job {j} assignment {nodes[0].bids[j]['auction_id']}")
+                    valid_bids[j] = nodes[acceptable_node_id].bids[j]['auction_id']
+                    #logging.info(f"Job {j} assignment {nodes[0].bids[j]['auction_id']}")
 
         else: # unmatching auctions
             flag = False
             found_failure = True
-            wrong_bids_calc(nodes, job, num_edges, use_net_topology)
+            #wrong_bids_calc(nodes, job, num_edges, use_net_topology)
 
 
         if flag:
-            job["final_node_allocation"] = nodes[0].bids[j]['auction_id']
-            job["final_gpu_allocation"] = allocation_to_gpu_type(nodes[0].bids[j]['auction_id'], gpu_types=gpu_types)
+            k = 0
+            for k in range(num_edges):
+                if k not in failure_nodes:
+                    break
+                
+            job["final_node_allocation"] = nodes[k].bids[j]['auction_id']
+            job["final_gpu_allocation"] = allocation_to_gpu_type(nodes[k].bids[j]['auction_id'], gpu_types=gpu_types)
             assigned_jobs.append(job)
             assigned_jobs_id.append(j)
             
@@ -179,7 +196,11 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
             unassigned_sum_cpu += float(job['num_cpu'])
             unassigned_sum_gpu += float(job['num_gpu'])
             unassigned_sum_bw += float(job['bw']) 
-            
+    # print("Assigned")    
+    # print(assigned_jobs)
+    # print("Unassigned")
+    # print(unassigned_jobs)
+     
     if use_net_topology:
         print()
         net_topology.check_network_consistency(valid_bids)
@@ -203,6 +224,8 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
     # calculate node utility, assigned jobs and used res
     # ---------------------------------------------------------
     for i in range(num_edges):
+        if i in failure_nodes:
+            continue
         # field_names.append('node_'+str(i)+'_jobs')
         # field_names.append('node_'+str(i)+'_utility')
         field_names.append('node_'+str(i)+'_initial_gpu')
