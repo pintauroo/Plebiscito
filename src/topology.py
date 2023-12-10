@@ -4,9 +4,6 @@ Topology building module
 
 import numpy as np
 
-
-
-
 class topo:
     def __init__(self, func_name, max_bandwidth, min_bandwidth, num_clients, num_edges):
         self.n = num_edges #adjacency matrix
@@ -14,12 +11,24 @@ class topo:
         self.to = getattr(self, func_name)
         self.b = max_bandwidth
         # self.b = np.random.uniform(min_bandwidth, max_bandwidth, size=(num_clients, num_edges)) #bandwidth matrix
-
+        
+        if func_name == "complete_graph":
+            self.adjacency_matrix = self.compute_complete_graph()
+        elif func_name == "ring_graph":
+            self.adjacency_matrix = self.compute_ring_graph()
+        elif func_name == "star_graph":
+            self.adjacency_matrix = self.compute_star_graph()
+        elif func_name == "grid_graph":
+            self.adjacency_matrix = self.compute_grid_graph()
+        elif func_name == "linear_topology":
+            self.adjacency_matrix = self.compute_linear_topology()
+        else:
+            raise ValueError("Invalid topology function name")
 
     def call_func(self):
         return self.to()
     
-    def linear_topology(self):
+    def compute_linear_topology(self):
         """
         This function returns the adjacency matrix for a linear topology of n nodes.
         """
@@ -40,25 +49,38 @@ class topo:
                 adjacency_matrix[i][i+1] = 1
         
         return adjacency_matrix
+    
+    def linear_topology(self):
+        return self.adjacency_matrix
 
+    def compute_complete_graph(self):
+        adjacency_matrix = np.ones((self.n, self.n)) - np.eye(self.n)
+        return adjacency_matrix
+        
     def complete_graph(self):
-        return np.ones((self.n, self.n)) - np.eye(self.n)
-
-    def ring_graph(self):
+        return self.adjacency_matrix
+    
+    def compute_ring_graph(self):
         adjacency_matrix = np.zeros((self.n, self.n))
         for i in range(self.n):
             adjacency_matrix[i][(i-1)%self.n] = 1
             adjacency_matrix[i][(i+1)%self.n] = 1
         return adjacency_matrix
 
-    def star_graph(self):
+    def ring_graph(self):
+        return self.adjacency_matrix
+    
+    def compute_star_graph(self):
         adjacency_matrix = np.zeros((self.n, self.n))
         adjacency_matrix[0,:] = 1
         adjacency_matrix[:,0] = 1
         adjacency_matrix[0,0] = 0
         return adjacency_matrix
 
-    def grid_graph(self):
+    def star_graph(self):
+        return self.adjacency_matrix
+    
+    def compute_grid_graph(self):
         adjacency_matrix = np.zeros((self.n*self.n, self.n*self.n))
         for i in range(self.n):
             for j in range(self.n):
@@ -72,4 +94,7 @@ class topo:
                 if j < self.n-1:
                     adjacency_matrix[node][node+1] = 1
         return adjacency_matrix
+
+    def grid_graph(self):
+        return self.adjacency_matrix
 
