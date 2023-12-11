@@ -169,7 +169,7 @@ class Simulator_Plebiscito:
                     self.nodes[nodeId].bids[j["job_id"]] = v["bids"][j["job_id"]]
                     if j["job_id"] not in self.job_count:
                         self.job_count[j["job_id"]] = 0
-                    self.job_count[j["job_id"]] += v["counter"][j["job_id"]]
+                    self.job_count[j["job_id"]] = v["counter"][j["job_id"]]
                 # for key in v["counter"]:
                 #     if key not in self.job_count:
                 #         self.job_count[key] = 0

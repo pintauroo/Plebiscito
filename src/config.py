@@ -68,7 +68,17 @@ class GPUSupport:
         Returns:
             bool: True if `gpu_type1` can host `gpu_type2`, False otherwise.
         """
-        return gpu_type1.value <= gpu_type2.value
+        # return gpu_type1.value <= gpu_type2.value
+        if gpu_type2.value == GPUType.V100.value:
+            if gpu_type1.value == GPUType.V100.value:
+                return True
+            else:
+                return False
+        return True
+    
+        
+        
+
     
     @staticmethod
     def get_compute_resources(gpu_type):
