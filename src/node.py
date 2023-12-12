@@ -250,8 +250,6 @@ class node:
         
         self.last_sent_msg[self.item['job_id']] = msg
 
-
-
     def print_node_state(self, msg, bid=False, type='debug'):
         logger_method = getattr(logging, type)
         #print(str(self.item.get('auction_id')) if bid and self.item.get('auction_id') is not None else "\n")
@@ -1298,7 +1296,7 @@ class node:
         if self.use_net_topology:
             timeout = 15
         else:
-            timeout = 0.2
+            timeout = 0.25
         
         ret_val["id"] = self.id
         ret_val["bids"] = copy.deepcopy(self.bids)
@@ -1419,7 +1417,6 @@ class node:
                 if end_processing.is_set():      
                     # for key in self.bids:
                     #     print(f"Node {self.id} job {key} bids {self.bids[key]['auction_id']}")
-                                            
                     if int(self.updated_cpu) > int(self.initial_cpu):
                         print(f"Node {self.id} -- Mannaggia updated={self.updated_cpu} initial={self.initial_cpu}", flush=True)
                     break               

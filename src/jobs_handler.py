@@ -39,10 +39,13 @@ def dispatch_job(dataset: pd.DataFrame, queues, logical_topology, failure_nodes,
     if use_net_topology:
         timeout = 1 # don't change it
     else:
-        timeout = 0.1
+        timeout = 0.2
 
     count = 0
     failure_time = random.randint(1, len(dataset) - 2)
+    # for f in failure_nodes:
+    #     logical_topology.disconnect_node(f)
+    failure = False    
     for _, job in dataset.iterrows():
         data = message_data(
                     job['job_id'],
@@ -56,15 +59,20 @@ def dispatch_job(dataset: pd.DataFrame, queues, logical_topology, failure_nodes,
                     split=split
                 )
         
-        for q in queues:
+        for i, q in enumerate(queues):
+            if i in failure_nodes and failure:
+                continue
             q.put(data)
+            
+        time.sleep(timeout)
 
         if count == failure_time:
             for f in failure_nodes:
                 logical_topology.disconnect_node(f)
+            failure = True
         
         count += 1
-        time.sleep(timeout)
+        
 
 def get_simulation_end_time_instant(dataset):
     return dataset['submit_time'].max() + dataset['duration'].max()

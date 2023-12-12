@@ -40,7 +40,7 @@ def sigterm_handler(signum, frame):
         sys.exit(0)  # Exit gracefully    
 
 class Simulator_Plebiscito:
-    def __init__(self, filename: str, n_nodes: int, node_bw: int, n_jobs: int, n_client: int, enable_logging: bool, use_net_topology: bool, progress_flag: bool, dataset: pd.DataFrame, alpha: float, utility: Utility, debug_level: DebugLevel, scheduling_algorithm: SchedulingAlgorithm, decrement_factor: float, split: bool, n_failures, edge_to_add, logical_topology_name) -> None:   
+    def __init__(self, filename: str, n_nodes: int, node_bw: int, n_jobs: int, n_client: int, enable_logging: bool, use_net_topology: bool, progress_flag: bool, dataset: pd.DataFrame, alpha: float, utility: Utility, debug_level: DebugLevel, scheduling_algorithm: SchedulingAlgorithm, decrement_factor: float, split: bool, n_failures, edge_to_add, logical_topology_name, probability=0) -> None:   
         self.filename = filename + "_" + utility.name + "_" + scheduling_algorithm.name + "_" + str(decrement_factor)
         if split:
             self.filename = self.filename + "_split"
@@ -78,7 +78,7 @@ class Simulator_Plebiscito:
         self.logical_network_manager.start()
         
         #Build Topolgy
-        self.t = self.logical_network_manager.LogicalTopology(func_name=logical_topology_name, max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=n_client, num_edges=n_nodes, edge_to_add=edge_to_add)
+        self.t = self.logical_network_manager.LogicalTopology(func_name=logical_topology_name, max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=n_client, num_edges=n_nodes, edge_to_add=edge_to_add, probability=probability)
         self.network_t = self.physical_network_manager.NetworkTopology(n_nodes, node_bw, node_bw, group_number=4, seed=4, topology_type=TopologyType.FAT_TREE)
         
         self.nodes = []

@@ -5,7 +5,7 @@ from src.simulator import Simulator_Plebiscito
 from src.config import Utility, DebugLevel, SchedulingAlgorithm
 from src.dataset_builder import generate_dataset_fake
 
-def test(run, n_jobs, n_nodes, n_failure, edge_to_add, logical_topology_name):
+def test(run, n_jobs, n_nodes, n_failure, edge_to_add, logical_topology_name, probability):
     #print()
     #print(f"Running Plebiscito with {n_nodes} nodes and {n_jobs} jobs.")
     
@@ -28,5 +28,7 @@ def test(run, n_jobs, n_nodes, n_failure, edge_to_add, logical_topology_name):
                           split=True,
                           n_failures=n_failure,
                           edge_to_add=edge_to_add,
-                          logical_topology_name=logical_topology_name)
+                          logical_topology_name=logical_topology_name,
+                          probability=probability)
+    
     return simulator.run()

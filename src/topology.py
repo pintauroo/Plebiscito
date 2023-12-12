@@ -2,22 +2,26 @@
 Topology building module
 """
 
+import threading
 import numpy as np
 
 
 class topo:
-    def __init__(self, func_name, max_bandwidth, min_bandwidth, num_clients, num_edges, edge_to_add=0):
+    def __init__(self, func_name, max_bandwidth, min_bandwidth, num_clients, num_edges, edge_to_add=0, probability=0):
         self.n = num_edges #adjacency matrix
 
         self.to = getattr(self, func_name)
         self.b = max_bandwidth
-        self.disconnect_nodes = []
         self.edge_to_add = []
+        self.probability = probability
         
+        self.adjacency_matrix_lock = threading.Lock()
         if func_name == "complete_graph":
             self.adjacency_matrix = self.compute_complete_graph()
         elif func_name == "ring_graph":
             self.adjacency_matrix = self.compute_ring_graph()
+        elif func_name == "probability_graph":
+            self.adjacency_matrix = self.compute_probabilistic_graph()
         
         for _ in range(edge_to_add):
             while True:
@@ -33,8 +37,9 @@ class topo:
         """
         This function disconnects a node from the network.
         """
-        self.disconnect_nodes.append(node)
-        
+        with self.adjacency_matrix_lock:
+            self.adjacency_matrix[node,:] = 0
+            self.adjacency_matrix[:,node] = 0
         
     def call_func(self):
         return self.to()
@@ -60,16 +65,27 @@ class topo:
                 adjacency_matrix[i][i+1] = 1
         
         return adjacency_matrix
+    
+    def compute_probabilistic_graph(self):
+        adjacency_matrix = np.zeros((self.n, self.n))
+        for i in range(self.n):
+            for j in range(0, i):
+                value = np.random.choice([0, 1], p=[1-self.probability, self.probability])
+                adjacency_matrix[i][j] = value
+                adjacency_matrix[j][i] = value
+        return adjacency_matrix
+    
+    def probability_graph(self):
+        with self.adjacency_matrix_lock:
+            return self.adjacency_matrix
 
     def compute_complete_graph(self):
         adjacency_matrix = np.ones((self.n, self.n)) - np.eye(self.n)
         return adjacency_matrix
     
     def complete_graph(self):
-        for n in self.disconnect_nodes:
-            self.adjacency_matrix[n,:] = 0
-            self.adjacency_matrix[:,n] = 0
-        return self.adjacency_matrix
+        with self.adjacency_matrix_lock:
+            return self.adjacency_matrix
 
     def compute_ring_graph(self):
         adjacency_matrix = np.zeros((self.n, self.n))
@@ -82,10 +98,8 @@ class topo:
         return adjacency_matrix
     
     def ring_graph(self):
-        for n in self.disconnect_nodes:
-            self.adjacency_matrix[n,:] = 0
-            self.adjacency_matrix[:,n] = 0
-        return self.adjacency_matrix
+        with self.adjacency_matrix_lock:
+            return self.adjacency_matrix
 
     def star_graph(self):
         adjacency_matrix = np.zeros((self.n, self.n))
