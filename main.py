@@ -19,5 +19,6 @@ if __name__ == '__main__':
                           utility=Utility.LGF,
                           debug_level=DebugLevel.INFO,
                           scheduling_algorithm=SchedulingAlgorithm.FIFO,
-                          decrement_factor=0.2)
+                          decrement_factor=0.2,
+                          split=False)
     simulator.run()
