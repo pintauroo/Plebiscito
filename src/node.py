@@ -893,7 +893,7 @@ class node:
                         rebroadcast = True
 
                 # chi manda il messaggio dice che non vinco nè io nè lui
-                elif z_kj!=i or z_kj!=k:   
+                elif z_kj!=i and z_kj!=k:   
                                      
                     if z_ij==i:
                         if (y_kj>y_ij):
@@ -1017,102 +1017,63 @@ class node:
                 if self.enable_logging:
                     self.print_node_state('Value not in dict (deconfliction)', type='error')
 
-        if self.integrity_check(tmp_local['auction_id'], 'deconfliction'):
-            # tmp_local['auction_id']!=self.bids[self.item['job_id']]['auction_id']:
-            # tmp_local['bid'] != self.bids[self.item['job_id']]['bid'] and \
-            # tmp_local['timestamp'] != self.bids[self.item['job_id']]['timestamp']:
-            # self.print_node_state(f'Deconfliction checked pass {self.id}', True)
-
-            if reset_flag:
-                msg_to_resend = copy.deepcopy(tmp_local)
-                #self.forward_to_neighbohors(tmp_local)
-                for i in reset_ids:
-                    _ = self.reset(i, tmp_local, bid_time - timedelta(hours=1))
-                    msg_to_resend['auction_id'][i] = self.item['auction_id'][i]
-                    msg_to_resend['bid'][i] = self.item['bid'][i]
-                    msg_to_resend['timestamp'][i] = self.item['timestamp'][i]
-                    
-                self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
-                self.forward_to_neighbohors(msg_to_resend)
-                return False, False             
-
-            cpu = 0
-            gpu = 0
-            bw = 0
-
-            first_1 = False
-            first_2 = False
-            for i in range(len(tmp_local["auction_id"])):
-                if tmp_local["auction_id"][i] == self.id and prev_bet["auction_id"][i] == self.id:
-                    if i != 0 and tmp_local["auction_id"][i-1] != prev_bet["auction_id"][i-1]: 
-                        if self.use_net_topology:
-                            print(f"Failure in node {self.id} job_bid {job_id}. Deconfliction failed. Exiting ...")
-                            raise InternalError
-                elif tmp_local["auction_id"][i] == self.id and prev_bet["auction_id"][i] != self.id:
-                    # self.release_reserved_resources(self.item['job_id'], i)
-                    cpu -= self.item['NN_cpu'][i]
-                    gpu -= self.item['NN_gpu'][i]
-                    if not first_1:
-                        bw -= self.item['NN_data_size'][i]
-                        first_1 = True
-                elif tmp_local["auction_id"][i] != self.id and prev_bet["auction_id"][i] == self.id:
-                    cpu += self.item['NN_cpu'][i]
-                    gpu += self.item['NN_gpu'][i]
-                    if not first_2:
-                        bw += self.item['NN_data_size'][i]
-                        first_2 = True
-                    
-            self.updated_cpu += cpu
-            self.updated_gpu += gpu
-
-            if self.use_net_topology:
-                if release_to_client:
-                    self.network_topology.release_bandwidth_node_and_client(self.id, bw, self.item['job_id'])
-                elif previous_winner_id != float('-inf'):
-                    self.network_topology.release_bandwidth_between_nodes(previous_winner_id, self.id, bw, self.item['job_id'])      
-            else:
-                self.updated_bw += bw
-
-            self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
-            
-            if self.use_net_topology:
-                with self.__layer_bid_lock:
-                    self.__layer_bid[self.item["job_id"]] = sum(1 for i in self.bids[self.item['job_id']]["auction_id"] if i != float('-inf'))
-
-            return rebroadcast, False
-        else:
-            if self.use_net_topology:
-                print(f"Failure in node {self.id}. Deconfliction failed. Exiting ...")
-                raise InternalError
-
-            cpu = 0
-            gpu = 0
-            bw = 0
-            first_1 = False
-
-            for i in range(len(self.item["auction_id"])):
-                if self.item["auction_id"][i] == self.id and prev_bet["auction_id"][i] == self.id:
-                    pass
-                elif self.item["auction_id"][i] == self.id and prev_bet["auction_id"][i] != self.id:
-                    cpu -= self.item['NN_cpu'][i]
-                    gpu -= self.item['NN_gpu'][i]
-                    if not first_1:
-                        bw -= self.item['NN_data_size'][i]
-                        first_1 = True
-                elif self.item["auction_id"][i] != self.id and prev_bet["auction_id"][i] == self.id:
-                    self.reserve_resources(self.item["job_id"], self.item['NN_cpu'][i], self.item['NN_gpu'][i], bw, [i])
-       
-            self.updated_cpu += cpu
-            self.updated_gpu += gpu
-            self.updated_bw += bw            
-            
-            for key in self.item:
-                self.bids[self.item['job_id']][key] = copy.deepcopy(self.item[key])
+        if reset_flag:
+            msg_to_resend = copy.deepcopy(tmp_local)
+            #self.forward_to_neighbohors(tmp_local)
+            for i in reset_ids:
+                _ = self.reset(i, tmp_local, bid_time - timedelta(hours=1))
+                msg_to_resend['auction_id'][i] = self.item['auction_id'][i]
+                msg_to_resend['bid'][i] = self.item['bid'][i]
+                msg_to_resend['timestamp'][i] = self.item['timestamp'][i]
                 
-            self.forward_to_neighbohors()
-                    
-            return False, True       
+            self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
+            self.forward_to_neighbohors(msg_to_resend)
+            return False, False             
 
+        cpu = 0
+        gpu = 0
+        bw = 0
+
+        first_1 = False
+        first_2 = False
+        for i in range(len(tmp_local["auction_id"])):
+            if tmp_local["auction_id"][i] == self.id and prev_bet["auction_id"][i] == self.id:
+                if i != 0 and tmp_local["auction_id"][i-1] != prev_bet["auction_id"][i-1]: 
+                    if self.use_net_topology:
+                        print(f"Failure in node {self.id} job_bid {job_id}. Deconfliction failed. Exiting ...")
+                        raise InternalError
+            elif tmp_local["auction_id"][i] == self.id and prev_bet["auction_id"][i] != self.id:
+                # self.release_reserved_resources(self.item['job_id'], i)
+                cpu -= self.item['NN_cpu'][i]
+                gpu -= self.item['NN_gpu'][i]
+                if not first_1:
+                    bw -= self.item['NN_data_size'][i]
+                    first_1 = True
+            elif tmp_local["auction_id"][i] != self.id and prev_bet["auction_id"][i] == self.id:
+                cpu += self.item['NN_cpu'][i]
+                gpu += self.item['NN_gpu'][i]
+                if not first_2:
+                    bw += self.item['NN_data_size'][i]
+                    first_2 = True
+                
+        self.updated_cpu += cpu
+        self.updated_gpu += gpu
+
+        if self.use_net_topology:
+            if release_to_client:
+                self.network_topology.release_bandwidth_node_and_client(self.id, bw, self.item['job_id'])
+            elif previous_winner_id != float('-inf'):
+                self.network_topology.release_bandwidth_between_nodes(previous_winner_id, self.id, bw, self.item['job_id'])      
+        else:
+            self.updated_bw += bw
+
+        self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
+        
+        if self.use_net_topology:
+            with self.__layer_bid_lock:
+                self.__layer_bid[self.item["job_id"]] = sum(1 for i in self.bids[self.item['job_id']]["auction_id"] if i != float('-inf'))
+
+        return rebroadcast, False
        
     def reserve_resources(self, job_id, cpu, gpu, bw, idx):
         if job_id not in self.resource_remind:
