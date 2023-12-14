@@ -9,6 +9,7 @@ class Utility(Enum):
     ALPHA_GPU_BW = 5
     POWER = 6
     SGF = 7
+    UTIL = 8
     
     
 class DebugLevel(Enum):

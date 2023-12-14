@@ -155,6 +155,16 @@ class node:
             self.bids[self.item['job_id']]['auction_id'].append(float('-inf'))
             self.bids[self.item['job_id']]['timestamp'].append(datetime.now() - timedelta(days=1))
 
+    def util_rate(self):
+        cpus_util = 1 - self.updated_cpu / self.initial_cpu
+        if self.updated_gpu > 0:
+            gpus_util = 1 - self.updated_gpu / self.initial_gpu
+            util_rate = round((gpus_util + cpus_util) / 2)
+        else:
+            util_rate = 0 # round(cpus_util)
+        return util_rate
+
+
     def utility_function(self, avail_bw, avail_cpu, avail_gpu):
         def f(x, alpha, beta):
             if beta == 0 and x == 0:
@@ -200,6 +210,9 @@ class node:
         elif self.utility == Utility.SGF:
             corrective_factor = GPUSupport.get_GPU_corrective_factor(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type']), decrement=self.decrement_factor)
             return (self.initial_gpu - avail_gpu) * corrective_factor
+        elif self.utility == Utility.UTIL:
+            return self.util_rate()
+
         elif self.utility == Utility.POWER:
             pass # we need to define here the utility function
 
