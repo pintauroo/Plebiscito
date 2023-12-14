@@ -245,7 +245,36 @@ class Simulator_Plebiscito:
             for e in progress_bid_events:
                 e.wait()
                 e.clear()       
- 
+
+    def skip_deconfliction(self, jobs): # :)
+        if jobs.empty:
+            return None
+        dispatch = []
+        
+        if self.split:
+            node_gpu = 0
+            node_cpu = 0
+            
+            for node in self.nodes:
+                node_gpu += node.get_avail_gpu()  # Consider caching these values if they don't change
+                node_cpu += node.get_avail_cpu()
+        
+        for _, row in jobs.iterrows():
+            num_gpu = row['num_gpu']
+            num_cpu = row['num_cpu']
+            
+            if self.split:
+                if num_cpu < node_cpu and num_gpu < num_gpu:
+                    dispatch.append(row)
+            else:
+                for node in self.nodes:                    
+                    if node.get_avail_cpu() >= num_cpu and node.get_avail_gpu() >= num_gpu:
+                        # Append the row from jobs DataFrame
+                        dispatch.append(row)
+                        break
+        
+        return pd.DataFrame(dispatch) if dispatch else None
+
     def run(self):
         # Set up nodes and related variables
         global nodes_thread
@@ -269,7 +298,7 @@ class Simulator_Plebiscito:
         self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0, save_on_file=True)
         
         time_instant = 1
-        batch_size = 10
+        batch_size = 5
         jobs_to_unallocate = pd.DataFrame()
         unassigned_jobs = pd.DataFrame()
         assigned_jobs = pd.DataFrame()
@@ -313,22 +342,24 @@ class Simulator_Plebiscito:
                 start_id = 0
                 while start_id < len(jobs_to_submit):
                     subset = jobs_to_submit.iloc[start_id:start_id+batch_size]
-                                      
-                    job.dispatch_job(subset, queues, self.use_net_topology, self.split)
 
-                    for e in progress_bid_events:
-                        e.wait()
-                        e.clear() 
+                    if self.skip_deconfliction(subset) is not None:
+      
+                        job.dispatch_job(subset, queues, self.use_net_topology, self.split)
+
+                        for e in progress_bid_events:
+                            e.wait()
+                            e.clear() 
+                            
+                        exec_time = time.time() - start_time
                         
-                    exec_time = time.time() - start_time
+                        # Collect node results
+                        a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
+                        assigned_jobs = pd.concat([assigned_jobs, a_jobs])
+                        unassigned_jobs = pd.concat([unassigned_jobs, u_jobs])
                     
-                    # Collect node results
-                    a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
-                    assigned_jobs = pd.concat([assigned_jobs, a_jobs])
-                    unassigned_jobs = pd.concat([unassigned_jobs, u_jobs])
-                    
-                    # Deallocate unassigned jobs
-                    self.deallocate_jobs(progress_bid_events, queues, u_jobs)
+                        # Deallocate unassigned jobs
+                        self.deallocate_jobs(progress_bid_events, queues, u_jobs)
                     
                     start_id += batch_size
             

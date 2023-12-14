@@ -53,7 +53,7 @@ def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=Tr
                     deallocate=False,
                     split=split
                 )
-        print(data)
+        
         for q in queues:
             q.put(data)
 
