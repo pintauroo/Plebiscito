@@ -215,8 +215,17 @@ class Simulator_Plebiscito:
         print(f"# Jobs currently running: \t{running_jobs}")
         print(f"# Current batch size: \t\t{batch_size}")
         print()
+        NODES_PER_LINE = 4
+        count = 0
+        print("Node GPU resource usage")
         for n in self.nodes:
-            print(f"Node {n.id} - {n.gpu_type}: {n.updated_gpu}")
+            if count == NODES_PER_LINE:
+                count = 0
+                print()
+            print("Node{0} ({1}):\t{2:3.0f}%\t".format(n.id, n.gpu_type,(n.initial_gpu - n.updated_gpu)/n.initial_gpu*100), end=" |   ")
+            count += 1
+            #print(f"Node{n.id} ({n.gpu_type}):\t{(n.initial_gpu - n.updated_gpu)/n.initial_gpu*100}%   ", end=" | ")
+        print()
         print()
         print("Jobs in queue stats for gpu type:")
         if len(queued_jobs) == 0:
@@ -396,11 +405,11 @@ class Simulator_Plebiscito:
             #     batch_size += 1
 
             # Check if all jobs have been processed
-            if len(processed_jobs) == len(self.dataset) and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
+            if len(processed_jobs) == len(self.dataset):# and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
                 break
         
         # Collect final node results
-        self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=True)
+        self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant+1, save_on_file=True)
         
         self.print_simulation_progress(time_instant, len(processed_jobs), jobs, len(running_jobs), batch_size)
         
