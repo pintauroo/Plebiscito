@@ -114,7 +114,7 @@ class NetworkTopology:
         if self.__n_nodes < self.__group_number:
             print(
                 "Number of nodes in the network topology must be >= than the number of groups. Exiting...")
-            sys.exit(1)
+            # sys.exit(1)
 
         if self.__group_number < 2:
             print(

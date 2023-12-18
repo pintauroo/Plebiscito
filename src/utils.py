@@ -51,16 +51,16 @@ def wrong_bids_calc(nodes, job, num_edges, use_net_topology):
                 if curr_node in nodes[curr_node].bids[j]['auction_id'] and curr_node not in wrong_ids:
                     
                     wrong_ids.append(curr_node)
-                    first_time = True
-                    index=0
-                    while index<len(nodes[curr_node].bids[j]['auction_id']):
-                        if nodes[curr_node].bids[j]['auction_id'][index] == curr_node and id != float('-inf'):
-                            nodes[curr_node].updated_cpu += float(job['num_cpu']) / float(len(nodes[curr_node].bids[j]['auction_id']))
-                            nodes[curr_node].updated_gpu += float(job['num_gpu']) / float(len(nodes[curr_node].bids[j]['auction_id']))
-                            if first_time:
-                                nodes[curr_node].updated_bw += float(job['bw']) / float(len(nodes[curr_node].bids[j]['auction_id']))
-                                first_time = False
-                        index += 1
+                    # first_time = True
+                    # index=0
+                    # while index<len(nodes[curr_node].bids[j]['auction_id']):
+                    #     if nodes[curr_node].bids[j]['auction_id'][index] == curr_node and id != float('-inf'):
+                    #         nodes[curr_node].updated_cpu += float(job['num_cpu']) / float(len(nodes[curr_node].bids[j]['auction_id']))
+                    #         nodes[curr_node].updated_gpu += float(job['num_gpu']) / float(len(nodes[curr_node].bids[j]['auction_id']))
+                    #         if first_time:
+                    #             nodes[curr_node].updated_bw += float(job['bw']) / float(len(nodes[curr_node].bids[j]['auction_id']))
+                    #             first_time = False
+                    #     index += 1
         else:
             continue
             

@@ -1307,6 +1307,13 @@ class node:
                             del self.bids[self.item['job_id']]
                             del self.counter[self.item['job_id']]
                             
+                        ret_val["id"] = self.id
+                        ret_val["bids"] = copy.deepcopy(self.bids)
+                        ret_val["counter"] = copy.deepcopy(self.counter)
+                        ret_val["updated_cpu"] = self.updated_cpu
+                        ret_val["updated_gpu"] = self.updated_gpu
+                        ret_val["updated_bw"] = self.updated_bw
+                        ret_val["gpu_type"] = self.gpu_type.name
                     else:   
                         flag = False
                         
@@ -1374,6 +1381,14 @@ class node:
                 if all_finished and not self.already_finished: 
                     
                     self.already_finished = True   
+                    
+                    ret_val["id"] = self.id
+                    ret_val["bids"] = copy.deepcopy(self.bids)
+                    ret_val["counter"] = copy.deepcopy(self.counter)
+                    ret_val["updated_cpu"] = self.updated_cpu
+                    ret_val["updated_gpu"] = self.updated_gpu
+                    ret_val["updated_bw"] = self.updated_bw
+                    ret_val["gpu_type"] = self.gpu_type.name
                         
                     for j_key in self.resource_remind:
                         for id in self.resource_remind[j_key]["idx"]:
@@ -1382,14 +1397,6 @@ class node:
                     with self.last_bid_timestamp_lock:
                         if self.use_net_topology:
                             self.updated_bw = self.network_topology.get_node_direct_link_bw(self.id)
-
-                        ret_val["id"] = self.id
-                        ret_val["bids"] = copy.deepcopy(self.bids)
-                        ret_val["counter"] = self.counter
-                        ret_val["updated_cpu"] = self.updated_cpu
-                        ret_val["updated_gpu"] = self.updated_gpu
-                        ret_val["updated_bw"] = self.updated_bw
-                        ret_val["gpu_type"] = self.gpu_type.name
                         
                     # notify the main process that the bidding process has completed and the result has been saved in the ret_val dictionary    
                     progress_bid.set()
