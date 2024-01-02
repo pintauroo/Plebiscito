@@ -11,9 +11,9 @@ import sys
 from src.network_topology import NetworkTopology
 from src.topology import topo as LogicalTopology
 from src.network_topology import  TopologyType
-from src.utils import generate_gpu_types
+from src.utils import generate_gpu_types, GPUSupport
 from src.node import node
-from src.config import Utility, DebugLevel, SchedulingAlgorithm
+from src.config import Utility, DebugLevel, SchedulingAlgorithm, ApplicationGraphType
 import src.jobs_handler as job
 import src.utils as utils
 import src.plot as plot
@@ -39,7 +39,7 @@ def sigterm_handler(signum, frame):
         sys.exit(0)  # Exit gracefully    
 
 class Simulator_Plebiscito:
-    def __init__(self, filename: str, n_nodes: int, node_bw: int, n_jobs: int, n_client: int, enable_logging: bool, use_net_topology: bool, progress_flag: bool, dataset: pd.DataFrame, alpha: float, utility: Utility, debug_level: DebugLevel, scheduling_algorithm: SchedulingAlgorithm, decrement_factor: float, split: bool) -> None:   
+    def __init__(self, filename: str, n_nodes: int, node_bw: int, n_jobs: int, n_client: int, enable_logging: bool, use_net_topology: bool, progress_flag: bool, dataset: pd.DataFrame, alpha: float, utility: Utility, debug_level: DebugLevel, scheduling_algorithm: SchedulingAlgorithm, decrement_factor: float, split: bool, app_type: ApplicationGraphType) -> None:   
         self.filename = filename + "_" + utility.name + "_" + scheduling_algorithm.name + "_" + str(decrement_factor)
         if split:
             self.filename = self.filename + "_split"
@@ -60,6 +60,7 @@ class Simulator_Plebiscito:
         self.scheduling_algorithm = scheduling_algorithm
         self.decrement_factor = decrement_factor
         self.split = split
+        self.app_type = app_type
         
         self.job_count = {}
         
@@ -250,7 +251,8 @@ class Simulator_Plebiscito:
                             j['bw'],
                             j['gpu_type'],
                             deallocate=True,
-                            split=self.split
+                            split=self.split,
+                            app_type=self.app_type
                         )
                 for q in queues:
                     q.put(data)
@@ -284,8 +286,8 @@ class Simulator_Plebiscito:
                     return False
                     # dispatch.append(row)
             else:
-                for node in self.nodes:                    
-                    if node.get_avail_cpu() >= num_cpu and node.get_avail_gpu() >= num_gpu:
+                for node in self.nodes:           
+                    if GPUSupport.can_host(GPUSupport.get_gpu_type(node.gpu_type), GPUSupport.get_gpu_type(row["gpu_type"])) and node.get_avail_cpu() >= num_cpu and node.get_avail_gpu() >= num_gpu:
                         # Append the row from jobs DataFrame
                         return False
                         # dispatch.append(row)
@@ -332,7 +334,7 @@ class Simulator_Plebiscito:
             
             # Deallocate completed jobs
             self.deallocate_jobs(progress_bid_events, queues, jobs_to_unallocate)
-            self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=True)
+            self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
             
             #self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
             
@@ -364,25 +366,25 @@ class Simulator_Plebiscito:
                 while start_id < len(jobs_to_submit):
                     subset = jobs_to_submit.iloc[start_id:start_id+batch_size]
 
-                    # if self.skip_deconfliction(subset) == False:
-                    job.dispatch_job(subset, queues, self.use_net_topology, self.split)
+                    if self.skip_deconfliction(subset) == False:
+                        job.dispatch_job(subset, queues, self.use_net_topology, self.split)
 
-                    for e in progress_bid_events:
-                        e.wait()
-                        e.clear() 
-                        
-                    exec_time = time.time() - start_time
-                
-                    # Collect node results
-                    a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
-                    assigned_jobs = pd.concat([assigned_jobs, a_jobs])
-                    unassigned_jobs = pd.concat([unassigned_jobs, u_jobs])
-                
-                    # Deallocate unassigned jobs
-                    self.deallocate_jobs(progress_bid_events, queues, u_jobs)
-                    # else:
-                    #     unassigned_jobs = pd.concat([unassigned_jobs, subset])
-                    #     print('ktm')
+                        for e in progress_bid_events:
+                            e.wait()
+                            e.clear() 
+                            
+                        exec_time = time.time() - start_time
+                    
+                        # Collect node results
+                        a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
+                        assigned_jobs = pd.concat([assigned_jobs, a_jobs])
+                        unassigned_jobs = pd.concat([unassigned_jobs, u_jobs])
+                    
+                        # Deallocate unassigned jobs
+                        self.deallocate_jobs(progress_bid_events, queues, u_jobs)
+                    else:
+                        unassigned_jobs = pd.concat([unassigned_jobs, subset])
+                        #print('ktm')
                         
                     start_id += batch_size
             

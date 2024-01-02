@@ -3,7 +3,7 @@ import sys
 import time
 import numpy as np
 import pandas as pd
-from src.config import SchedulingAlgorithm
+from src.config import SchedulingAlgorithm, ApplicationGraphType
 
 def assign_job_start_time(dataset: pd.DataFrame, time_instant):
     dataset.replace(-1, time_instant, inplace=True)
@@ -35,7 +35,7 @@ def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm)
     elif scheduling_algorithm == SchedulingAlgorithm.SDF:
         return jobs.sort_values(by=["duration"])
 
-def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True):        
+def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True, app_type=ApplicationGraphType.LINEAR):        
     if use_net_topology:
         timeout = 1 # don't change it
     else:
@@ -51,7 +51,8 @@ def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=Tr
                     job['bw'],
                     job['gpu_type'],
                     deallocate=False,
-                    split=split
+                    split=split,
+                    app_type=app_type
                 )
         
         for q in queues:
@@ -62,7 +63,34 @@ def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=Tr
 def get_simulation_end_time_instant(dataset):
     return dataset['submit_time'].max() + dataset['duration'].max()
 
-def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, deallocate=False, split=True):
+def generate_application_graph(layer_number, app_type, bandwidth):
+    graph = np.zeros((layer_number, layer_number))
+    
+    for i in range(layer_number):
+        for j in range(i):
+            if app_type == ApplicationGraphType.LINEAR:
+                if j == i-1:
+                    #b = random.uniform(0.5, 1.5)*bandwidth
+                    b = bandwidth
+                    graph[i][j] = b
+                    graph[j][i] = b
+            else:
+                prob = 0
+                if app_type == ApplicationGraphType.GRAPH20:
+                    prob = 0.2
+                elif app_type == ApplicationGraphType.GRAPH40:
+                    prob = 0.4
+                elif app_type == ApplicationGraphType.GRAPH60:
+                    prob = 0.6
+                
+                #b = np.random.choice([0, 1], p=[1-prob, prob])*random.uniform(0.5, 1.5)*bandwidth
+                b = np.random.choice([0, 1], p=[1-prob, prob])*bandwidth
+                graph[i][j] = b
+                graph[j][i] = b
+                
+    return graph        
+
+def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, deallocate=False, split=True, app_type=ApplicationGraphType.LINEAR):
     
     random.seed(job_id)
     np.random.seed(int(job_id))
@@ -75,7 +103,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
     # use numpy to create an array of random numbers with length equal to the number of layers. As a constraint, the sum of the array must be equal to the number of GPUs
     NN_gpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * num_gpu
     NN_cpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * num_cpu
-    NN_data_size = np.random.dirichlet(np.ones(layer_number), size=1)[0] * bandwidth
+    NN_data_size = generate_application_graph(layer_number, app_type, 1000000)
 
     if split:
         max_layer_bid = random.choice([3, 4, 5, 6, 7, 8])
@@ -87,6 +115,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
         min_layer_bid = layer_number
 
     bundle_size = 2
+    #print(f"{job_id} - {NN_data_size}")
     
     data = {
         "job_id": int(),

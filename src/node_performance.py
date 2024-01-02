@@ -2,7 +2,7 @@ import random
 import math
 
 class NodePerformance:
-    def __init__(self, num_cpu_cores, num_gpu_compute_units):
+    def __init__(self, num_cpu_cores, num_gpu_compute_units, seed):
         self.cpu_power_model = None
         self.gpu_power_model = None
         self.cpu_performance_model = None
@@ -11,7 +11,9 @@ class NodePerformance:
         self.cpu_core_logical = round(num_cpu_cores)
         self.cpu_core_physical = round(num_cpu_cores/2)
         self.gpu_core = round(num_gpu_compute_units)
-          
+        
+        random.seed(seed)
+                  
         self.idle_cpu_consumption = random.randint(20, 70)
         self.idle_cpu_performance = random.randint(20, 70)
         self.max_cpu_consumption = random.randint(4*self.cpu_core_physical+self.idle_cpu_consumption, 250) # we assume a max CPU TDP of 250W
@@ -88,7 +90,7 @@ cpu_power = []
 cpu_performance = []
 cpu_efficiency = []
 for i in range(1, num_cpu_cores+1):
-    cpu_power.append(my_device.compute_current_power_consumption_cpu(i))
+    cpu_power.append(-my_device.compute_current_power_consumption_cpu(i))
     cpu_performance.append(my_device.compute_current_performance_cpu(i))
     cpu_efficiency.append(my_device.compute_current_efficiency_cpu(i))
     

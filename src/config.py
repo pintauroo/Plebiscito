@@ -32,6 +32,12 @@ class GPUType(Enum):
     MISC = 4
     #V100M32 = 4 sarebbe 4 e misc 5
     
+class ApplicationGraphType(Enum):
+    LINEAR = 1
+    GRAPH20 = 2
+    GRAPH40 = 3
+    GRAPH60 = 4
+    
 class GPUSupport:
     
     @staticmethod

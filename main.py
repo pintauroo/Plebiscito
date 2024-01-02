@@ -1,9 +1,9 @@
 from src.simulator import Simulator_Plebiscito
-from src.config import Utility, DebugLevel, SchedulingAlgorithm
+from src.config import Utility, DebugLevel, SchedulingAlgorithm, ApplicationGraphType
 from src.dataset_builder import generate_dataset
 
 if __name__ == '__main__':
-    n_jobs = 200
+    n_jobs = 50
     dataset = generate_dataset(entries_num=n_jobs)
     
     simulator = Simulator_Plebiscito(filename="prova",
@@ -20,5 +20,6 @@ if __name__ == '__main__':
                           debug_level=DebugLevel.INFO,
                           scheduling_algorithm=SchedulingAlgorithm.FIFO,
                           decrement_factor=0.2,
-                          split=False)
+                          split=True,
+                          app_type=ApplicationGraphType.LINEAR,)
     simulator.run()

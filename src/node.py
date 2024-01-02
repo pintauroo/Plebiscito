@@ -386,7 +386,7 @@ class node:
                                 
                 gpu_ = self.item['NN_gpu'][best_placement]
                 cpu_ = self.item['NN_cpu'][best_placement]
-                bw_ = self.item["NN_data_size"][best_placement]
+                #bw_ = self.item["NN_data_size"][best_placement]
                 
                 n_layer = 1
                 layers = []
@@ -442,7 +442,7 @@ class node:
                     
                     # if there is a layer that can be bid on, bid on it    
                     if target_layer is not None:     
-                        bid = self.utility_function(self.updated_bw - bw_, self.updated_cpu - cpu_, self.updated_gpu - gpu_)
+                        bid = self.utility_function(self.updated_bw, self.updated_cpu - cpu_, self.updated_gpu - gpu_)
                         bid -= self.id * 0.000000001
                             
                         # if my bid is higher than the current bid, I can bid on the layer
@@ -456,7 +456,7 @@ class node:
                             
                             cpu_ += self.item['NN_cpu'][target_layer]
                             gpu_ += self.item['NN_gpu'][target_layer]
-                            bw_ += self.item['NN_data_size'][target_layer]
+                            #bw_ += self.item['NN_data_size'][target_layer]
                             
                             continue 
                         else: # try also on the other side
@@ -473,7 +473,7 @@ class node:
                                 found = True
                                 
                             if found:
-                                bid = self.utility_function(self.updated_bw - bw_, self.updated_cpu - cpu_, self.updated_gpu - gpu_)
+                                bid = self.utility_function(self.updated_bw, self.updated_cpu - cpu_, self.updated_gpu - gpu_)
                                 bid -= self.id * 0.000000001
                                 
                                 # if my bid is higher than the current bid, I can bid on the layer
@@ -487,7 +487,7 @@ class node:
                                     
                                     cpu_ += self.item['NN_cpu'][target_layer]
                                     gpu_ += self.item['NN_gpu'][target_layer]
-                                    bw_ += self.item['NN_data_size'][target_layer]
+                                    #bw_ += self.item['NN_data_size'][target_layer]
                                     
                                     continue
                             else:
@@ -502,7 +502,7 @@ class node:
                 if success:
                     self.updated_cpu -= cpu_
                     self.updated_gpu -= gpu_
-                    self.updated_bw -= bw_
+                    #self.updated_bw -= bw_
                     
                     self.bids[self.item['job_id']] = tmp_bid
                     
@@ -519,7 +519,37 @@ class node:
         # if enable_forward:
         #     self.forward_to_neighbohors()
                                     
-        return False                
+        return False     
+    
+    def update_bw(self, prev_bid, deallocate=False):
+        bw = 0
+                
+        if prev_bid is not None:
+            for i, b_id in enumerate(prev_bid):
+                if b_id == self.id:
+                    for j in range(len(self.item["NN_data_size"][i])):
+                        if i == j:
+                            continue
+                        
+                        if self.item["NN_data_size"][i][j] != 0 and prev_bid[j] != self.id:
+                            bw += self.item["NN_data_size"][i][j]
+                            
+        if deallocate:
+            self.updated_bw += bw
+            return
+        
+        if self.item['job_id'] in self.bids:                
+            for i, b_id in enumerate(self.bids[self.item['job_id']]['auction_id']):
+                if b_id == self.id:
+                    for j in range(len(self.item["NN_data_size"][i])):
+                        if i == j:
+                            continue
+                        
+                        if self.item["NN_data_size"][i][j] != 0 and self.bids[self.item['job_id']]['auction_id'][j] != self.id:
+                            bw -= self.item["NN_data_size"][i][j]
+                
+            
+        self.updated_bw += bw
                 
     def bid(self, enable_forward=True):
         proceed = True
@@ -1050,7 +1080,7 @@ class node:
 
         cpu = 0
         gpu = 0
-        bw = 0
+        #bw = 0
 
         first_1 = False
         first_2 = False
@@ -1065,13 +1095,13 @@ class node:
                 cpu -= self.item['NN_cpu'][i]
                 gpu -= self.item['NN_gpu'][i]
                 if not first_1:
-                    bw -= self.item['NN_data_size'][i]
+                    #bw -= self.item['NN_data_size'][i]
                     first_1 = True
             elif tmp_local["auction_id"][i] != self.id and prev_bet["auction_id"][i] == self.id:
                 cpu += self.item['NN_cpu'][i]
                 gpu += self.item['NN_gpu'][i]
                 if not first_2:
-                    bw += self.item['NN_data_size'][i]
+                    #bw += self.item['NN_data_size'][i]
                     first_2 = True
                 
         self.updated_cpu += cpu
@@ -1082,8 +1112,8 @@ class node:
                 self.network_topology.release_bandwidth_node_and_client(self.id, bw, self.item['job_id'])
             elif previous_winner_id != float('-inf'):
                 self.network_topology.release_bandwidth_between_nodes(previous_winner_id, self.id, bw, self.item['job_id'])      
-        else:
-            self.updated_bw += bw
+        # else:
+        #     self.updated_bw += bw
 
         self.bids[self.item['job_id']] = copy.deepcopy(tmp_local)
         
@@ -1291,7 +1321,7 @@ class node:
         while True:
             try: 
                 self.item = self.q[self.id].get(timeout=timeout)
-                
+                               
                 with self.last_bid_timestamp_lock:
                     self.empty_queue[self.id].clear() 
                     self.already_finished = False
@@ -1302,10 +1332,14 @@ class node:
                         if self.check_if_hosting_job():
                             self.release_resources()
                         
+                        p_bid = copy.deepcopy(self.bids[self.item['job_id']]["auction_id"])
+                        
                         # if the bidding process didn't complete, reset the bid (it will be submitted later)
                         if float('-inf') in self.bids[self.item['job_id']]['auction_id']:
                             del self.bids[self.item['job_id']]
                             del self.counter[self.item['job_id']]
+                        
+                        self.update_bw(prev_bid=p_bid, deallocate=True)
                             
                         ret_val["id"] = self.id
                         ret_val["bids"] = copy.deepcopy(self.bids)
@@ -1316,6 +1350,9 @@ class node:
                         ret_val["gpu_type"] = self.gpu_type.name
                     else:   
                         flag = False
+                        prev_bid = None
+                        if self.item['job_id'] in self.bids:
+                            prev_bid = copy.deepcopy(self.bids[self.item['job_id']]["auction_id"])
                         
                         if self.item['job_id'] not in self.counter:
                             self.counter[self.item['job_id']] = 0
@@ -1340,7 +1377,6 @@ class node:
                                 
                             self.bid_new(flag)
 
-                        
                         if not flag:
                             if self.enable_logging:
                                 self.print_node_state('IF2 q:' + str(self.q[self.id].qsize()))
@@ -1361,6 +1397,8 @@ class node:
 
                         self.bids[self.item['job_id']]['start_time'] = 0                            
                         self.bids[self.item['job_id']]['count'] += 1
+                        
+                        self.update_bw(prev_bid)
                         
                         self.q[self.id].task_done()
                     
