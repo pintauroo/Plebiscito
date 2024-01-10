@@ -2,7 +2,7 @@ import random
 import math
 
 class NodePerformance:
-    def __init__(self, num_cpu_cores, num_gpu_compute_units, seed):
+    def __init__(self, num_cpu_cores, num_gpu_compute_units, seed=0):
         self.cpu_power_model = None
         self.gpu_power_model = None
         self.cpu_performance_model = None
@@ -16,7 +16,7 @@ class NodePerformance:
                   
         self.idle_cpu_consumption = random.randint(20, 70)
         self.idle_cpu_performance = random.randint(20, 70)
-        self.max_cpu_consumption = random.randint(4*self.cpu_core_physical+self.idle_cpu_consumption, 250) # we assume a max CPU TDP of 250W
+        self.max_cpu_consumption = random.randint(4*self.cpu_core_physical+self.idle_cpu_consumption, 300) # we assume a max CPU TDP of 300W
         self.max_cpu_performance = random.randint(7*self.cpu_core_physical+self.idle_cpu_performance, 14*self.cpu_core_physical+self.idle_cpu_performance) # we assume a max CPU performance of 1200 GFLOPS (see https://www.cpubenchmark.net/cpu_list.php) 
         
         self.idle_gpu_consumption = random.randint(20, 70)
@@ -77,54 +77,56 @@ class NodePerformance:
     def simple_gpu_performance_model(self, usage):
         return 2 * math.log(usage + 1)  # Example performance model for GPU
         
-num_cpu_cores = 56
-num_gpu_compute_units = 35
-# Example usage:
-my_device = NodePerformance(
-    num_cpu_cores=num_cpu_cores,
-    num_gpu_compute_units=num_gpu_compute_units,
-)
 
-# iterate from 1 to 28 cores and obtain the values for power and performance for cpu and save in an array
-cpu_power = []
-cpu_performance = []
-cpu_efficiency = []
-for i in range(1, num_cpu_cores+1):
-    cpu_power.append(-my_device.compute_current_power_consumption_cpu(i))
-    cpu_performance.append(my_device.compute_current_performance_cpu(i))
-    cpu_efficiency.append(my_device.compute_current_efficiency_cpu(i))
-    
-# do the same for gpu
-gpu_power = []
-gpu_performance = []
-gpu_efficiency = []
-for i in range(1, num_gpu_compute_units+1):
-    gpu_power.append(my_device.compute_current_power_consumption_gpu(i))
-    gpu_performance.append(my_device.compute_current_performance_gpu(i))
-    gpu_efficiency.append(my_device.compute_current_efficiency_gpu(i))
-    
-#plot using matplotlib in four subplots
-import matplotlib.pyplot as plt
-fig, axs = plt.subplots(2, 3)
-axs[0, 0].plot(cpu_power)
-axs[0, 0].set(xlabel='CPU Usage', ylabel='Power (W)')
-axs[0, 1].plot(cpu_performance, 'tab:orange')
-axs[0, 1].set(xlabel='CPU Usage', ylabel='Performance (GFLOPS)')
-axs[1, 0].plot(gpu_power, 'tab:green')
-axs[1, 0].set(xlabel='GPU Usage', ylabel='Power (W)')
-axs[1, 1].plot(gpu_performance, 'tab:red')
-axs[1, 1].set(xlabel='GPU Usage', ylabel='Performance (GFLOPS)')
+if __name__ == "__main__":        
+    num_cpu_cores = 56
+    num_gpu_compute_units = 35
+    # Example usage:
+    my_device = NodePerformance(
+        num_cpu_cores=num_cpu_cores,
+        num_gpu_compute_units=num_gpu_compute_units,
+    )
 
-# add plot for cpu and gpu efficiency
-axs[0, 2].plot(cpu_efficiency, 'tab:blue')
-axs[0, 2].set(xlabel='CPU Usage', ylabel='Efficiency (GFLOPS/W)')
-axs[1, 2].plot(gpu_efficiency, 'tab:purple')
-axs[1, 2].set(xlabel='GPU Usage', ylabel='Efficiency (GFLOPS/W)')
+    # iterate from 1 to 28 cores and obtain the values for power and performance for cpu and save in an array
+    cpu_power = []
+    cpu_performance = []
+    cpu_efficiency = []
+    for i in range(1, num_cpu_cores+1):
+        cpu_power.append(-my_device.compute_current_power_consumption_cpu(i))
+        cpu_performance.append(my_device.compute_current_performance_cpu(i))
+        cpu_efficiency.append(my_device.compute_current_efficiency_cpu(i))
+        
+    # do the same for gpu
+    gpu_power = []
+    gpu_performance = []
+    gpu_efficiency = []
+    for i in range(1, num_gpu_compute_units+1):
+        gpu_power.append(my_device.compute_current_power_consumption_gpu(i))
+        gpu_performance.append(my_device.compute_current_performance_gpu(i))
+        gpu_efficiency.append(my_device.compute_current_efficiency_gpu(i))
+        
+    #plot using matplotlib in four subplots
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(2, 3)
+    axs[0, 0].plot(cpu_power)
+    axs[0, 0].set(xlabel='CPU Usage', ylabel='Power (W)')
+    axs[0, 1].plot(cpu_performance, 'tab:orange')
+    axs[0, 1].set(xlabel='CPU Usage', ylabel='Performance (GFLOPS)')
+    axs[1, 0].plot(gpu_power, 'tab:green')
+    axs[1, 0].set(xlabel='GPU Usage', ylabel='Power (W)')
+    axs[1, 1].plot(gpu_performance, 'tab:red')
+    axs[1, 1].set(xlabel='GPU Usage', ylabel='Performance (GFLOPS)')
 
-fig.tight_layout()
-plt.savefig('cpu_gpu_power_performance.png')
+    # add plot for cpu and gpu efficiency
+    axs[0, 2].plot(cpu_efficiency, 'tab:blue')
+    axs[0, 2].set(xlabel='CPU Usage', ylabel='Efficiency (GFLOPS/W)')
+    axs[1, 2].plot(gpu_efficiency, 'tab:purple')
+    axs[1, 2].set(xlabel='GPU Usage', ylabel='Efficiency (GFLOPS/W)')
 
-# Results for our server w 14 physical cores and 28 logical cores
-# Power 57.52	60.88	63.3	65.17	66.52	67.6	68.71	69.77	70.66	72.79	74.7	77.47	80.05	82.99	86.44	90.32	94.26	98.41	102.87	107.25	111.89	116.37	120.35	124.25	128.02
-# Score 4022.4	4964.02	5889.33	6784.53	7656.63	8515.46	9350.99	10167.68	10963.89	11743.95	12477.77	12806.89	13125.6	13430.55	13730.05	14013.02	14302.21	14579.15	14833.48	15101.83	15367.51	15619.71	15822.55	16057.02	16269.12
+    fig.tight_layout()
+    plt.savefig('cpu_gpu_power_performance.png')
+
+    # Results for our server w 14 physical cores and 28 logical cores
+    # Power 57.52	60.88	63.3	65.17	66.52	67.6	68.71	69.77	70.66	72.79	74.7	77.47	80.05	82.99	86.44	90.32	94.26	98.41	102.87	107.25	111.89	116.37	120.35	124.25	128.02
+    # Score 4022.4	4964.02	5889.33	6784.53	7656.63	8515.46	9350.99	10167.68	10963.89	11743.95	12477.77	12806.89	13125.6	13430.55	13730.05	14013.02	14302.21	14579.15	14833.48	15101.83	15367.51	15619.71	15822.55	16057.02	16269.12
 

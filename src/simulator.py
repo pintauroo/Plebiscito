@@ -81,6 +81,9 @@ class Simulator_Plebiscito:
             
         # Set up the environment
         self.setup_environment()
+        
+    def get_nodes(self):
+        return self.nodes
             
     def setup_environment(self):
         """

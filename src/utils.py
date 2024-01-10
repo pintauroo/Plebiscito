@@ -215,14 +215,8 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         field_names.append('node_'+str(i)+'_updated_bw')
         field_names.append('node_'+str(i)+'_used_bw')
         field_names.append('node_'+str(i)+'_gpu_type')
-
-        # stats['nodes'][nodes[i].id] = {
-        #     "utility": float(),
-        #     "assigned_count": int()
-        # }
-
-        # stats['nodes'][nodes[i].id]['utility'] = 0
-        # stats['nodes'][nodes[i].id]['assigned_count'] = 0
+        field_names.append('node_'+str(i)+'_cpu_consumption')
+        field_names.append('node_'+str(i)+'_gpu_consumption')
 
         tot_gpu_nodes += round(nodes[i].initial_gpu,2)
         dictionary['node_'+str(i)+'_initial_gpu'] = round(nodes[i].initial_gpu,2)
@@ -245,6 +239,9 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
 
         tot_used_bw += dictionary['node_'+str(i)+'_used_bw']
         dictionary['node_'+str(i)+'_gpu_type'] = nodes[i].gpu_type
+        
+        dictionary['node_'+str(i)+'_cpu_consumption'] = round(nodes[i].performance.compute_current_power_consumption_cpu(nodes[i].initial_cpu-nodes[i].updated_cpu), 2)
+        dictionary['node_'+str(i)+'_gpu_consumption'] = round(nodes[i].performance.compute_current_power_consumption_gpu(nodes[i].initial_gpu-nodes[i].updated_gpu), 2)
 
         #calculate node assigned count and utility
         # for j, job_id in enumerate(nodes[i].bids):
@@ -276,8 +273,6 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
 
 def write_data(field_names, dictionary, filename):
     filename = str(filename)+'.csv'
-    # filename = 'alpha_GPU_BW.csv'
-    # filename = 'alpha_BW_CPU.csv'
 
     file_exists = os.path.isfile(filename)
 

@@ -6,6 +6,7 @@ from queue import Empty
 import time
 from src.config import Utility, GPUType, GPUSupport
 from src.network_topology import NetworkTopology
+from src.node_performance import NodePerformance
 from datetime import datetime, timedelta
 import copy
 import logging
@@ -37,7 +38,7 @@ class node:
         self.initial_cpu, self.initial_gpu = GPUSupport.get_compute_resources(gpu_type)
         self.updated_gpu = self.initial_gpu
         self.updated_cpu = self.initial_cpu
-        #print(str(self.id) + ' gpu:' +str(self.initial_gpu) + ' cpu:' + str(self.initial_cpu))
+        self.performance = NodePerformance(self.initial_cpu, self.initial_gpu, self.id)
 
         self.available_cpu_per_task = {}
         self.available_gpu_per_task = {}
@@ -1315,6 +1316,7 @@ class node:
         ret_val["updated_gpu"] = self.updated_gpu
         ret_val["updated_bw"] = self.updated_bw
         ret_val["gpu_type"] = self.gpu_type.name
+        # ret_val["cpu_consumption"] = self.performance.compute_current_power_consumption_cpu(self.initial_cpu-self.updated_cpu)
 
         self.already_finished = True
         

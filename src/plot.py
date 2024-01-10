@@ -136,7 +136,31 @@ def plot_job_deadline(filename, dir_name):
     # clear plot
     plt.clf()
     plt.close()
-
+    
+def plot_power_consumption(filename, res_type, n_nodes, dir_name):
+    # plot node resource usage using data from filename
+    df = pd.read_csv(filename + ".csv")
+    
+    # select only the columns matching the pattern node_*_updated_gpu
+    df2 = df.filter(regex=("node.*"+res_type))
+    
+    d = {}
+    for i in range(n_nodes):
+        gpu_type = df['node_'+str(i)+'_gpu_type'].iloc[0]
+        d["node_" + str(i) + "_" + str(gpu_type)] = df2["node_" + str(i) + "_" + res_type + "_consumption"]
+    
+    df_2 = pd.DataFrame(d)
+    
+    # use matplotlib to plot the data and save the plot to a file
+    df_2.plot(legend=None)
+    
+    plt.ylabel(f"{res_type} consumption")
+    plt.xlabel("time")
+    plt.savefig(os.path.join(dir_name, 'node_' + res_type + '_consumption.png'))
+    
+    # clear plot
+    plt.clf()
+    plt.close()
     
 def plot_job_messages_exchanged(job_count, dir_name):
     """
@@ -182,6 +206,9 @@ def plot_all(n_edges, filename, job_count, dir_name):
     plot_node_resource_usage_box(filename, "gpu", n_edges, dir_name)
     plot_node_resource_usage_box(filename, "cpu", n_edges, dir_name)
     plot_node_resource_usage_box(filename, "bw", n_edges, dir_name)
+    
+    plot_power_consumption(filename, "cpu", n_edges, dir_name)
+    plot_power_consumption(filename, "gpu", n_edges, dir_name)
     
     plot_job_execution_delay(filename, dir_name)
     plot_job_deadline(filename, dir_name)
