@@ -5,11 +5,12 @@ Topology building module
 import numpy as np
 
 class topo:
-    def __init__(self, func_name, max_bandwidth, min_bandwidth, num_clients, num_edges):
+    def __init__(self, func_name, max_bandwidth, min_bandwidth, num_clients, num_edges, probability=0):
         self.n = num_edges #adjacency matrix
 
         self.to = getattr(self, func_name)
         self.b = max_bandwidth
+        self.probability = probability
         # self.b = np.random.uniform(min_bandwidth, max_bandwidth, size=(num_clients, num_edges)) #bandwidth matrix
         
         if func_name == "complete_graph":
@@ -22,6 +23,8 @@ class topo:
             self.adjacency_matrix = self.compute_grid_graph()
         elif func_name == "linear_topology":
             self.adjacency_matrix = self.compute_linear_topology()
+        elif func_name == "probability_graph":
+            self.adjacency_matrix = self.compute_probabilistic_graph()
         else:
             raise ValueError("Invalid topology function name")
 
@@ -96,5 +99,17 @@ class topo:
         return adjacency_matrix
 
     def grid_graph(self):
+        return self.adjacency_matrix
+    
+    def compute_probabilistic_graph(self):
+        adjacency_matrix = np.zeros((self.n, self.n))
+        for i in range(self.n):
+            for j in range(0, i):
+                value = np.random.choice([0, 1], p=[1-self.probability, self.probability])
+                adjacency_matrix[i][j] = value
+                adjacency_matrix[j][i] = value
+        return adjacency_matrix
+    
+    def probability_graph(self):
         return self.adjacency_matrix
 
