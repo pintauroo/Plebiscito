@@ -39,7 +39,7 @@ def sigterm_handler(signum, frame):
         sys.exit(0)  # Exit gracefully    
 
 class Simulator_Plebiscito:
-    def __init__(self, filename: str, n_nodes: int, n_jobs: int, dataset: pd.DataFrame, alpha = 1, utility = Utility.LGF, debug_level = DebugLevel.INFO, scheduling_algorithm = SchedulingAlgorithm.FIFO, decrement_factor = 1, split = True, app_type = ApplicationGraphType.LINEAR, enable_logging = False, use_net_topology = False, progress_flag = False, n_client = 0, node_bw = 0) -> None:   
+    def __init__(self, filename: str, n_nodes: int, n_jobs: int, dataset = pd.DataFrame(), alpha = 1, utility = Utility.LGF, debug_level = DebugLevel.INFO, scheduling_algorithm = SchedulingAlgorithm.FIFO, decrement_factor = 1, split = True, app_type = ApplicationGraphType.LINEAR, enable_logging = False, use_net_topology = False, progress_flag = False, n_client = 0, node_bw = 0) -> None:   
         self.filename = filename + "_" + utility.name + "_" + scheduling_algorithm.name + "_" + str(decrement_factor)
         if split:
             self.filename = self.filename + "_split"

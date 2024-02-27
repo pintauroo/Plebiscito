@@ -4,6 +4,7 @@ This module contains utils functions to calculate all necessary stats
 from csv import DictWriter
 import os
 import logging
+import sys
 import time
 import pandas as pd
 import numpy as np
@@ -121,48 +122,37 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         count += 1
         flag = True
         j = job['job_id']
+        node_with_bid = None
+        
         # Check correctness of all bids
-        equal_values = True         
-
-        i = 0
-        try:
-            for i in range(1, num_edges):
-                #print(nodes[i].bids)
-                if nodes[i].bids[j]['auction_id'] != nodes[i-1].bids[j]['auction_id']:
-                    count_broken += 1
-                    print('BROKEN BID id: ' + str(j))
-                    for k in range(0, num_edges):
-                        print(nodes[k].bids[j]['auction_id'])
-                    equal_values = False
-                    break
-        except Exception as e :
-            print("bingo", e, nodes[i].bids.keys())        
-        if equal_values: # matching auction
-
-                if all(x == float('-inf') for x in nodes[i].bids[j]['auction_id']):
-                    #print('Unassigned')
-                    found_failure = True
-                    flag = False # all unassigned
-                elif float('-inf') in nodes[i].bids[j]['auction_id']: #check if there is a value not assigned 
-                    flag = False
-                    found_failure = True
-                    wrong_bids_calc(nodes, job, num_edges, use_net_topology)
+        for k in range(job["N_layer"]):
+            unmatch = False
+            alloc = None
+            for i in range(0, num_edges):
+                if j not in nodes[i].bids:
+                    continue
+                if alloc == None:
+                    alloc = nodes[i].bids[j]['auction_id'][k]
+                    node_with_bid = i
                 else:
-                    #print('MATCH')
-                    if not found_failure:
-                        count_success += 1
-                    valid_bids[j] = nodes[i].bids[j]['auction_id']
-                    logging.info(f"Job {j} assignment {nodes[0].bids[j]['auction_id']}")
-
-        else: # unmatching auctions
-            flag = False
-            found_failure = True
-            wrong_bids_calc(nodes, job, num_edges, use_net_topology)
-
+                    if alloc != nodes[i].bids[j]['auction_id'][k]:
+                        unmatch = True
+                        break
+            if unmatch:
+                print('BROKEN BID id: ' + str(j))
+                # something bad happened
+                sys.exit(1)
+                
+        if node_with_bid != None and float('-inf') not in nodes[node_with_bid].bids[j]['auction_id']:
+            count_success += 1
+            valid_bids[j] = nodes[node_with_bid].bids[j]['auction_id']
+            logging.info(f"Job {j} assignment {nodes[node_with_bid].bids[j]['auction_id']}")
+        else:
+            flag = False 
 
         if flag:
-            job["final_node_allocation"] = nodes[0].bids[j]['auction_id']
-            job["final_gpu_allocation"] = allocation_to_gpu_type(nodes[0].bids[j]['auction_id'], gpu_types=gpu_types)
+            job["final_node_allocation"] = nodes[node_with_bid].bids[j]['auction_id']
+            job["final_gpu_allocation"] = allocation_to_gpu_type(nodes[node_with_bid].bids[j]['auction_id'], gpu_types=gpu_types)
             assigned_jobs.append(job)
             assigned_jobs_id.append(j)
             
