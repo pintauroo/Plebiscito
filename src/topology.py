@@ -112,4 +112,8 @@ class topo:
     
     def probability_graph(self):
         return self.adjacency_matrix
+    
+    def detach_node(self, node):
+        self.adjacency_matrix[node, :] = 0
+        self.adjacency_matrix[:, node] = 0
 

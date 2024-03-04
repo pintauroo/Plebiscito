@@ -1,4 +1,4 @@
-import math
+import copy
 from multiprocessing.managers import SyncManager
 from multiprocessing import Process, Event, Manager, JoinableQueue
 import time
@@ -8,21 +8,22 @@ import logging
 import os
 import sys
 
-from src.network_topology import NetworkTopology
-from src.topology import topo as LogicalTopology
-from src.network_topology import  TopologyType
-from src.utils import generate_gpu_types, GPUSupport
-from src.node import node
-from src.config import Utility, DebugLevel, SchedulingAlgorithm, ApplicationGraphType
-import src.jobs_handler as job
-import src.utils as utils
-import src.plot as plot
-from src.jobs_handler import message_data
+from Plebiscito.src.network_topology import NetworkTopology
+from Plebiscito.src.topology import topo as LogicalTopology
+from Plebiscito.src.network_topology import  TopologyType
+from Plebiscito.src.utils import generate_gpu_types, GPUSupport
+from Plebiscito.src.node import node
+from Plebiscito.src.config import Utility, DebugLevel, SchedulingAlgorithm, ApplicationGraphType
+import Plebiscito.src.jobs_handler as job
+import Plebiscito.src.utils as utils
+import Plebiscito.src.plot as plot
+from Plebiscito.src.jobs_handler import message_data
 
 class MyManager(SyncManager): pass
 
 main_pid = ""
 nodes_thread = []
+TRACE = 5    
 
 def sigterm_handler(signum, frame):
     """Handles the SIGTERM signal by performing cleanup actions and gracefully terminating all processes."""
@@ -39,7 +40,7 @@ def sigterm_handler(signum, frame):
         sys.exit(0)  # Exit gracefully    
 
 class Simulator_Plebiscito:
-    def __init__(self, filename: str, n_nodes: int, n_jobs: int, dataset = pd.DataFrame(), alpha = 1, utility = Utility.LGF, debug_level = DebugLevel.INFO, scheduling_algorithm = SchedulingAlgorithm.FIFO, decrement_factor = 1, split = True, app_type = ApplicationGraphType.LINEAR, enable_logging = False, use_net_topology = False, progress_flag = False, n_client = 0, node_bw = 0) -> None:   
+    def __init__(self, filename: str, n_nodes: int, n_jobs: int, dataset = pd.DataFrame(), alpha = 1, utility = Utility.LGF, debug_level = DebugLevel.INFO, scheduling_algorithm = SchedulingAlgorithm.FIFO, decrement_factor = 1, split = True, app_type = ApplicationGraphType.LINEAR, enable_logging = False, use_net_topology = False, progress_flag = False, n_client = 0, node_bw = 0, failures = {}, logical_topology = "ring_graph", probability = 0) -> None:   
         self.filename = filename + "_" + utility.name + "_" + scheduling_algorithm.name + "_" + str(decrement_factor)
         if split:
             self.filename = self.filename + "_split"
@@ -61,17 +62,21 @@ class Simulator_Plebiscito:
         self.decrement_factor = decrement_factor
         self.split = split
         self.app_type = app_type
+        self.failures = failures
         
         self.job_count = {}
         
         # create a suitable network topology for multiprocessing 
         MyManager.register('NetworkTopology', NetworkTopology)
-        self.manager = MyManager()
-        self.manager.start()
+        MyManager.register('LogicalTopology', LogicalTopology)
+        self.physycal_network_manager = MyManager()
+        self.physycal_network_manager.start()
+        self.logical_network_manager = MyManager()
+        self.logical_network_manager.start()
         
         #Build Topolgy
-        self.t = LogicalTopology(func_name='ring_graph', max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=n_client, num_edges=n_nodes)
-        self.network_t = self.manager.NetworkTopology(n_nodes, node_bw, node_bw, group_number=4, seed=4, topology_type=TopologyType.FAT_TREE)
+        self.t = self.logical_network_manager.LogicalTopology(func_name=logical_topology, max_bandwidth=node_bw, min_bandwidth=node_bw/2,num_clients=n_client, num_edges=n_nodes, probability=probability)
+        self.network_t = self.physycal_network_manager.NetworkTopology(n_nodes, node_bw, node_bw, group_number=4, seed=4, topology_type=TopologyType.FAT_TREE)
         
         self.nodes = []
         self.gpu_types = generate_gpu_types(n_nodes)
@@ -86,7 +91,7 @@ class Simulator_Plebiscito:
         return self.nodes
     
     def get_adjacency_matrix(self):
-        return self.t.adjacency_matrix
+        return copy.deepcopy(self.t.to())
             
     def setup_environment(self):
         """
@@ -169,19 +174,16 @@ class Simulator_Plebiscito:
         # self.job_count = {}
         
         if time_instant != 0:
+            for _, j in jobs.iterrows():
+                self.job_count[j["job_id"]] = 0
+                for v in return_val: 
+                    nodeId = v["id"]
+                
+                    self.nodes[nodeId].bids[j["job_id"]] = v["bids"][j["job_id"]]                        
+                    self.job_count[j["job_id"]] += v["counter"][j["job_id"]]
+
             for v in return_val: 
                 nodeId = v["id"]
-                for _, j in jobs.iterrows():
-                    # if j["job_id"] not in self.nodes[nodeId].bids:
-                    self.nodes[nodeId].bids[j["job_id"]] = v["bids"][j["job_id"]]
-                    if j["job_id"] not in self.job_count:
-                        self.job_count[j["job_id"]] = 0
-                    self.job_count[j["job_id"]] = v["counter"][j["job_id"]]
-                # for key in v["counter"]:
-                #     if key not in self.job_count:
-                #         self.job_count[key] = 0
-                #     self.job_count[key] += v["counter"][key]
-                #     self.counter += v["counter"][key]
                 self.nodes[nodeId].updated_cpu = v["updated_cpu"]
                 self.nodes[nodeId].updated_gpu = v["updated_gpu"]
                 self.nodes[nodeId].updated_bw = v["updated_bw"]
@@ -300,6 +302,9 @@ class Simulator_Plebiscito:
                         # break
         return True
         # return pd.DataFrame(dispatch) if dispatch else None
+        
+    def detach_node(self, nodeid):
+        self.t.detach_node(nodeid)
 
     def run(self):
         # Set up nodes and related variables
@@ -342,9 +347,16 @@ class Simulator_Plebiscito:
             self.deallocate_jobs(progress_bid_events, queues, jobs_to_unallocate)
             self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
             
-            #self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
-            
-            if time_instant%25 == 0:
+            id = -1
+            if bool(self.failures):
+                for i in range(len(self.failures["time"])):
+                    if time_instant == self.failures["time"][i]:
+                        id = self.failures["nodes"][i]
+                        break
+                if id != -1:
+                    self.detach_node(id)
+                    
+            if time_instant%10 == 0:
                 plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot")
             
             # Select jobs for the current time instant
@@ -379,6 +391,7 @@ class Simulator_Plebiscito:
                             e.wait()
                             e.clear() 
                             
+                        logging.log(TRACE, 'All nodes completed the processing...')
                         exec_time = time.time() - start_time
                     
                         # Collect node results

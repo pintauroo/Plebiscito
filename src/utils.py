@@ -8,7 +8,7 @@ import sys
 import time
 import pandas as pd
 import numpy as np
-from src.config import *
+from Plebiscito.src.config import *
 
 
 import math
@@ -123,9 +123,15 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         flag = True
         j = job['job_id']
         node_with_bid = None
+        n_layer = 0
+        
+        for n in nodes:
+            if j in n.bids:
+                n_layer = len(n.bids[j]['auction_id'])
+                break
         
         # Check correctness of all bids
-        for k in range(job["N_layer"]):
+        for k in range(n_layer):
             unmatch = False
             alloc = None
             for i in range(0, num_edges):
@@ -140,6 +146,9 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
                         break
             if unmatch:
                 print('BROKEN BID id: ' + str(j))
+                for n in nodes:
+                    if j in n.bids:
+                        print(f"Node: {n.id}: {n.bids[j]['auction_id']}")
                 # something bad happened
                 sys.exit(1)
                 

@@ -3,7 +3,7 @@ import sys
 import time
 import numpy as np
 import pandas as pd
-from src.config import SchedulingAlgorithm, ApplicationGraphType
+from Plebiscito.src.config import SchedulingAlgorithm, ApplicationGraphType
 
 def assign_job_start_time(dataset: pd.DataFrame, time_instant):
     dataset.replace(-1, time_instant, inplace=True)
@@ -54,9 +54,11 @@ def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=Tr
                     split=split,
                     app_type=app_type
                 )
+        node_to_submit = random.randint(0, len(queues)-1)
         
-        for q in queues:
-            q.put(data)
+        # for q in queues:
+        #     q.put(data)
+        queues[node_to_submit].put(data)
 
         time.sleep(timeout)
 
@@ -95,10 +97,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
     random.seed(job_id)
     np.random.seed(int(job_id))
     
-    if split:
-        layer_number = random.choice([3, 4, 5, 6, 7, 8])
-    else:
-        layer_number = 1
+    layer_number = random.choice([3, 4, 5, 6, 7, 8])
 
     # use numpy to create an array of random numbers with length equal to the number of layers. As a constraint, the sum of the array must be equal to the number of GPUs
     NN_gpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * num_gpu
