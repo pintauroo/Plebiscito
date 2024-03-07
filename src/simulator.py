@@ -329,12 +329,14 @@ class Simulator_Plebiscito:
         self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, 0, save_on_file=True)
         
         time_instant = 1
-        batch_size = 5
+        batch_size = 1
         jobs_to_unallocate = pd.DataFrame()
         unassigned_jobs = pd.DataFrame()
         assigned_jobs = pd.DataFrame()
         prev_job_list = pd.DataFrame()
         prev_running_jobs = pd.DataFrame()
+        job_allocation_time = []
+        job_post_process_time = []
         
         while True:
             start_time = time.time()
@@ -357,7 +359,7 @@ class Simulator_Plebiscito:
                     self.detach_node(id)
                     
             if time_instant%10 == 0:
-                plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot")
+                plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot", job_allocation_time, job_post_process_time)
             
             # Select jobs for the current time instant
             new_jobs = job.select_jobs(self.dataset, time_instant)
@@ -385,17 +387,21 @@ class Simulator_Plebiscito:
                     subset = jobs_to_submit.iloc[start_id:start_id+batch_size]
 
                     if self.skip_deconfliction(subset) == False:
+                        t = time.time()
                         job.dispatch_job(subset, queues, self.use_net_topology, self.split)
 
                         for e in progress_bid_events:
                             e.wait()
                             e.clear() 
                             
+                        job_allocation_time.append(time.time()-t)
                         logging.log(TRACE, 'All nodes completed the processing...')
                         exec_time = time.time() - start_time
                     
+                        t = time.time()
                         # Collect node results
                         a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
+                        job_post_process_time.append(time.time() - t)
                         assigned_jobs = pd.concat([assigned_jobs, a_jobs])
                         unassigned_jobs = pd.concat([unassigned_jobs, u_jobs])
                     

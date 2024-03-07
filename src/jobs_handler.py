@@ -97,7 +97,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
     random.seed(job_id)
     np.random.seed(int(job_id))
     
-    layer_number = random.choice([3, 4, 5, 6, 7, 8])
+    layer_number = random.choice([3, 4, 5, 6])
 
     # use numpy to create an array of random numbers with length equal to the number of layers. As a constraint, the sum of the array must be equal to the number of GPUs
     NN_gpu = np.random.dirichlet(np.ones(layer_number), size=1)[0] * num_gpu
@@ -105,7 +105,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
     NN_data_size = generate_application_graph(layer_number, app_type, 1000000)
 
     if split:
-        max_layer_bid = random.choice([3, 4, 5, 6, 7, 8])
+        max_layer_bid = random.choice([3, 4, 5, 6])
         if max_layer_bid > layer_number:
             max_layer_bid = layer_number
         min_layer_bid = 1

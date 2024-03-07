@@ -185,9 +185,25 @@ def plot_job_messages_exchanged(job_count, dir_name):
     # clear plot
     plt.clf()
     plt.close()
+    
+def plot_job_processing_times(processing_times, post_processing_time, dir_name):
+    _ = plt.figure()
+ 
+    # Creating plot
+    plt.plot(processing_times, label="Job allocation")
+    plt.plot(post_processing_time, label="Job post processing")
+    plt.legend()
+    plt.ylabel("Processing time (s)")
+    
+    plt.savefig(os.path.join(dir_name, 'job_processing_times.png'))
+    
+    # clear plot
+    plt.clf()
+    plt.close()
+    
 
     
-def plot_all(n_edges, filename, job_count, dir_name):
+def plot_all(n_edges, filename, job_count, dir_name, processing_times=[], post_process_time=[]):
     """
     Plots all the relevant graphs for the given parameters.
 
@@ -214,6 +230,7 @@ def plot_all(n_edges, filename, job_count, dir_name):
     plot_job_deadline(filename, dir_name)
     
     plot_job_messages_exchanged(job_count, dir_name)
+    plot_job_processing_times(processing_times, post_process_time, dir_name)
     
 if __name__ == "__main__":
     

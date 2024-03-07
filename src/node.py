@@ -257,7 +257,7 @@ class node:
                 msg["auction_id"] = copy.deepcopy(self.item['auction_id'])
                 msg["bid"] = copy.deepcopy(self.item['bid'])
                 msg["timestamp"] = copy.deepcopy(self.item['timestamp'])
-            msg['edge_id'] = self.item['edge_id']
+            #msg['edge_id'] = self.item['edge_id']
                 
         # if self.item['job_id'] not in self.last_sent_msg:
         #     self.last_sent_msg[self.item['job_id']] = msg
@@ -274,7 +274,7 @@ class node:
             if self.logical_topology.to()[i][self.id] and self.id != i:
                 self.q[i].put(msg)
         
-        self.last_sent_msg[self.item['job_id']] = msg
+        #self.last_sent_msg[self.item['job_id']] = msg
 
 
 
@@ -338,6 +338,11 @@ class node:
         return gpu
 
     def bid_new(self):  
+        job_GPU_type = GPUSupport.get_gpu_type(self.item['gpu_type'])                     
+        # check if node GPU is capable of hosting the job
+        if not GPUSupport.can_host(self.gpu_type, job_GPU_type):
+            return False
+            
         # compute the requirements in CPU for the job
         cpu = sum(self.item['NN_cpu'])
         
@@ -1329,65 +1334,25 @@ class node:
                         ret_val["gpu_type"] = self.gpu_type.name
                     else:   
                         prev_bid = None
+                        first_msg = False
+                        
                         if self.item['job_id'] in self.bids:
                             prev_bid = copy.deepcopy(self.bids[self.item['job_id']]["auction_id"])
                         
                         if self.item['job_id'] not in self.counter:
                             self.init_null()
-                            self.forward_to_neighbohors(first_msg=True)
+                            first_msg = True
                             self.counter[self.item['job_id']] = 0
                         self.counter[self.item['job_id']] += 1                               
                             
                         if self.enable_logging:
                             self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
-                        
-                        job_GPU_type = GPUSupport.get_gpu_type(self.item['gpu_type'])
-                        
-                        # check if node GPU is capable of hosting the job
-                        # check if the node has enough resources to host the job, we assume that a node can bet only in if it has enough resources to host the entire job
-                        if not GPUSupport.can_host(self.gpu_type, job_GPU_type):
-                            if "auction_id" in self.item:
-                                self.bids[self.item['job_id']]["auction_id"] = copy.deepcopy(self.item["auction_id"])
-                                self.bids[self.item['job_id']]["bid"] = copy.deepcopy(self.item["bid"])
-                                self.bids[self.item['job_id']]["timestamp"] = copy.deepcopy(self.item["timestamp"])
-                            self.forward_to_neighbohors(resend_bid=True)
-                            return False  
-                        else:
-                            need_rebroadcast = self.update_bid()
-                            if need_rebroadcast:
-                                self.forward_to_neighbohors()
-                        
-                        # new request from client
-                        # if self.item['edge_id'] is None:
-                        #     flag = True
-
-                        # if self.item['job_id'] not in self.bids:
-                        #     if self.enable_logging:
-                        #         self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
-
-                        #     self.init_null()
-                        #     if self.use_net_topology:    
-                        #         with self.__layer_bid_lock:
-                        #             self.__layer_bid[self.item["job_id"]] = 0
-
-                        #             self.__layer_bid_events[self.item["job_id"]] = 1
-                            
-                        #         threading.Thread(target=self.progress_bid_rounds, args=(copy.deepcopy(self.item),)).start()
-                                
-                        #     self.bid_new(flag)
-
-                        # if not flag:
-                        #     if self.enable_logging:
-                        #         self.print_node_state('IF2 q:' + str(self.q[self.id].qsize()))
-                        #     # if not self.bids[self.item['job_id']]['complete'] and \
-                        #     #    not self.bids[self.item['job_id']]['clock'] :
-                        #     if self.id not in self.item['auction_id']:
-                        #         self.print_node_state('IF3 q:' + str(self.q[self.id].qsize()))
-                        #         self.bid_new(False)
-
-                        #     self.update_bid()
-                            # else:
-                            #     print('kitemmuorten!')
+                    
+                        need_rebroadcast = self.update_bid()
+                        if need_rebroadcast:
+                            self.forward_to_neighbohors()
+                        elif first_msg:
+                            self.forward_to_neighbohors(first_msg=True)
                         
                         if self.progress_flag:
                             if 'rebid' in self.item:
