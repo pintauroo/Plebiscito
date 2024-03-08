@@ -170,8 +170,6 @@ class Simulator_Plebiscito:
         Returns:
         - float representing the utility value calculated based on the updated data structures
         """
-        # self.counter = 0
-        # self.job_count = {}
         
         if time_instant != 0:
             for _, j in jobs.iterrows():
@@ -358,7 +356,7 @@ class Simulator_Plebiscito:
                 if id != -1:
                     self.detach_node(id)
                     
-            if time_instant%10 == 0:
+            if time_instant%50 == 0:
                 plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot", job_allocation_time, job_post_process_time)
             
             # Select jobs for the current time instant

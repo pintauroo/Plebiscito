@@ -36,10 +36,10 @@ def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm)
         return jobs.sort_values(by=["duration"])
 
 def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True, app_type=ApplicationGraphType.LINEAR):        
-    if use_net_topology:
-        timeout = 1 # don't change it
-    else:
-        timeout = 0.05
+    # if use_net_topology:
+    #     timeout = 1 # don't change it
+    # else:
+    #     timeout = 0.05
 
     for _, job in dataset.iterrows():
         data = message_data(
@@ -54,13 +54,15 @@ def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=Tr
                     split=split,
                     app_type=app_type
                 )
+        
+        random.seed(job['job_id'])
         node_to_submit = random.randint(0, len(queues)-1)
         
         # for q in queues:
         #     q.put(data)
         queues[node_to_submit].put(data)
 
-        time.sleep(timeout)
+        #time.sleep(timeout)
 
 def get_simulation_end_time_instant(dataset):
     return dataset['submit_time'].max() + dataset['duration'].max()
