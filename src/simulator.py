@@ -356,7 +356,7 @@ class Simulator_Plebiscito:
                 if id != -1:
                     self.detach_node(id)
                     
-            if time_instant%50 == 0:
+            if time_instant%5000 == 0:
                 plot.plot_all(self.n_nodes, self.filename, self.job_count, self.filename, job_allocation_time, job_post_process_time)
             
             # Select jobs for the current time instant
@@ -430,7 +430,7 @@ class Simulator_Plebiscito:
             #     batch_size += 1
 
             # Check if all jobs have been processed
-            if len(processed_jobs) == len(self.dataset):# and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
+            if len(processed_jobs) == len(self.dataset) and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
                 break
         
         # Collect final node results

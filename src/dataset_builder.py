@@ -78,8 +78,8 @@ def _add_job(job_list, job_dict, describe_dict=None):
 
     # Add entries to be used in scheduling
     #job_dict['duration'] = 100 #int(float(job_dict['duration']))
-    if job_dict['duration'] == 0:
-        job_dict['duration'] = 1  # fix duration == 0 problem.
+    if job_dict['duration'] > 2000:
+        job_dict['duration'] = 2000  # fix duration == 0 problem.
     job_dict['size'] = int((job_dict['num_gpu'] + job_dict['num_cpu']) * job_dict['duration']) # (gpu + cpu) x duration
     job_dict['on_time'] = 0
     job_dict['wasted'] = 0
