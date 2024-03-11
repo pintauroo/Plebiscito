@@ -342,14 +342,6 @@ class node:
         # check if node GPU is capable of hosting the job
         if not GPUSupport.can_host(self.gpu_type, job_GPU_type):
             return False
-            
-        # compute the requirements in CPU for the job
-        cpu = sum(self.item['NN_cpu'])
-        
-        # check if node GPU is capable of hosting the job
-        # check if the node has enough resources to host the job, we assume that a node can bet only in if it has enough resources to host the entire job
-        if self.updated_cpu < cpu*(2/3):
-            return False
               
         tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])
         bidtime = datetime.now()
@@ -362,8 +354,8 @@ class node:
             for i in range(len(self.layer_bid_already[self.item['job_id']])):
                 # include only those layers that have not been bid on yet and that can be executed on the node (i.e., the node has enough resources)
                 if not self.layer_bid_already[self.item['job_id']][i] \
-                    and self.item['NN_gpu'][i] <= self.updated_gpu:# \
-                        #self.item['NN_cpu'][i] <= self.updated_cpu:# and self.item['NN_data_size'][i] <= self.updated_bw:
+                    and self.item['NN_gpu'][i] <= self.updated_gpu \
+                        and self.item['NN_cpu'][i] <= self.updated_cpu:# and self.item['NN_data_size'][i] <= self.updated_bw:
                     possible_layer.append(i)
         else:
             # if I already own at least one layer, I'm not allowed to bet anymore
@@ -411,8 +403,6 @@ class node:
                 success = False 
                                 
                 while True:
-                    if self.enable_logging:
-                        logging.log(TRACE, 'ktm')
                     # if I already bid on the maximum number of layers, return with success
                     if n_layer == self.item["N_layer_max"]:
                         success = True
@@ -425,13 +415,13 @@ class node:
                     right_score = None
                     
                     if left_bound >= 0 and self.layer_bid_already[self.item['job_id']][left_bound] == False \
-                        and self.item['NN_gpu'][left_bound] <= self.updated_gpu - gpu_ :#\
-                            #and self.item['NN_cpu'][left_bound] <= self.updated_cpu - cpu_ :
+                        and self.item['NN_gpu'][left_bound] <= self.updated_gpu - gpu_ \
+                            and self.item['NN_cpu'][left_bound] <= self.updated_cpu - cpu_:
                         left_score = self.compute_layer_score(self.item["NN_cpu"][left_bound], self.item["NN_gpu"][left_bound], self.item["NN_data_size"][left_bound])
                         
                     if right_bound < len(self.item["NN_cpu"]) and self.layer_bid_already[self.item['job_id']][right_bound] == False \
-                        and self.item['NN_gpu'][right_bound] <= self.updated_gpu - gpu_:# \
-                            #and self.item['NN_cpu'][right_bound] <= self.updated_cpu - cpu_ \
+                        and self.item['NN_gpu'][right_bound] <= self.updated_gpu - gpu_ \
+                            and self.item['NN_cpu'][right_bound] <= self.updated_cpu - cpu_:
                                 
                         right_score = self.compute_layer_score(self.item["NN_cpu"][right_bound], self.item["NN_gpu"][right_bound], self.item["NN_data_size"][right_bound])
                     
@@ -831,7 +821,7 @@ class node:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #7')
                         index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
                         rebroadcast = True
-                    elif y_kj<y_ij and t_kj<=t_ij:
+                    elif y_kj<y_ij and t_kj<t_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #8')
                         index += 1
@@ -846,15 +836,15 @@ class node:
                             # logging.log(TRACE, 'NODEID:'+str(self.id) +  '#9-new')
                         # index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])                  
                         # rebroadcast = True
-                    elif y_kj<y_ij and t_kj>t_ij:
+                    elif y_kj<y_ij and t_kj>=t_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #10reset')
-                        #index += 1
-                        #rebroadcast = True
-                        reset_ids.append(index)
                         index += 1
-                        reset_flag = True
-                        rebroadcast = True  
+                        rebroadcast = True
+                        # reset_ids.append(index)
+                        # index += 1
+                        # reset_flag = True
+                        # rebroadcast = True  
                     elif y_kj>y_ij and t_kj<t_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #11rest')
@@ -879,13 +869,12 @@ class node:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #13Flavio')
                         index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
-                        rebroadcast = True 
-                        
+                        rebroadcast = True  
                     else:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #13elseFlavio')
                         index+=1
-                        rebroadcast = True
+                        #rebroadcast = True
 
                 elif z_ij==k:
                     if self.enable_logging:
@@ -900,6 +889,7 @@ class node:
                     if self.enable_logging:
                         logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #16')
                     rebroadcast = True
+                    tmp_local['timestamp'][index] = bid_time
                     index+=1
                 
                 elif z_ij!=i and z_ij!=k:
@@ -954,7 +944,7 @@ class node:
             elif z_kj!=i and z_kj!=k:   
                                     
                 if z_ij==i:
-                    if (y_kj>y_ij):
+                    if y_kj>y_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#17')
                         rebroadcast = True
@@ -995,12 +985,12 @@ class node:
                     #         logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3stefano')
                     #     rebroadcast = True
                     #     index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
-                    elif t_kj>=t_ij:
+                    elif t_kj>t_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#20')
                         index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
                         rebroadcast = True
-                    elif t_kj<t_ij:
+                    else:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#21reset')
                         # index, reset_flag = self.reset(index, tmp_local)
@@ -1026,12 +1016,12 @@ class node:
                     rebroadcast = True
 
                 elif z_ij!=i and z_ij!=k and z_ij!=z_kj:
-                    if y_kj>=y_ij and t_kj>=t_ij:
+                    if y_kj>y_ij and t_kj>=t_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#25')
                         index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])                   
                         rebroadcast = True
-                    elif y_kj<y_ij and t_kj<=t_ij:
+                    elif y_kj<y_ij and t_kj<t_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#26')
                         rebroadcast = True
@@ -1054,7 +1044,7 @@ class node:
                         # reset_ids.append(index)
                         # index += 1
                         # reset_flag = True
-                        rebroadcast = True
+                        #rebroadcast = True
                     elif y_kj>y_ij and t_kj<t_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#29')
@@ -1065,7 +1055,7 @@ class node:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#29else')
                         index+=1
-                        rebroadcast = True
+                        #rebroadcast = True
                 
                 else:
                     if self.enable_logging:

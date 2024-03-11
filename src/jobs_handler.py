@@ -107,7 +107,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
     NN_data_size = generate_application_graph(layer_number, app_type, 1000000)
 
     if split:
-        max_layer_bid = random.choice([3, 4, 5, 6])
+        max_layer_bid = layer_number
         if max_layer_bid > layer_number:
             max_layer_bid = layer_number
         min_layer_bid = 1

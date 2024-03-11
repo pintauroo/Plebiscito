@@ -78,8 +78,8 @@ def _add_job(job_list, job_dict, describe_dict=None):
 
     # Add entries to be used in scheduling
     #job_dict['duration'] = 100 #int(float(job_dict['duration']))
-    if job_dict['duration'] > 2000:
-        job_dict['duration'] = 2000  # fix duration == 0 problem.
+    if job_dict['duration'] > 1000:
+        job_dict['duration'] = 1000  # fix duration == 0 problem.
     job_dict['size'] = int((job_dict['num_gpu'] + job_dict['num_cpu']) * job_dict['duration']) # (gpu + cpu) x duration
     job_dict['on_time'] = 0
     job_dict['wasted'] = 0
@@ -140,7 +140,7 @@ def init_go(num_jobs=100):
         arrivals = 1
         job_list = add_job(dataset, None, limit=num_jobs)
         if (num_jobs is not None) and num_jobs <= len(job_list):
-            random.shuffle(job_list)
+            #random.shuffle(job_list)
 
             job_list = job_list[:num_jobs]
         job_list = set_job_list_arrival_time(job_list, arrivals)

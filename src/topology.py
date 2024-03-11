@@ -13,6 +13,8 @@ class topo:
         self.probability = probability
         # self.b = np.random.uniform(min_bandwidth, max_bandwidth, size=(num_clients, num_edges)) #bandwidth matrix
         
+        np.random.seed(0)
+        
         if func_name == "complete_graph":
             self.adjacency_matrix = self.compute_complete_graph()
         elif func_name == "ring_graph":

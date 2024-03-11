@@ -276,21 +276,26 @@ class Simulator_Plebiscito:
         dispatch_= True
         
         if self.split:
-            node_gpu = 0
-            node_cpu = 0
+            node_gpu = {}
+            node_cpu = {}
             
             for node in self.nodes:
-                node_gpu += node.get_avail_gpu()  # Consider caching these values if they don't change
-                node_cpu += node.get_avail_cpu()
+                gpu_type = GPUSupport.get_gpu_type(node.gpu_type)
+                if gpu_type not in node_gpu:
+                    node_gpu[gpu_type] = 0
+                    node_cpu[gpu_type] = 0
+                node_gpu[gpu_type] += node.get_avail_gpu()  # Consider caching these values if they don't change
+                node_cpu[gpu_type] += node.get_avail_cpu()
         
         for _, row in jobs.iterrows():
             num_gpu = row['num_gpu']
             num_cpu = row['num_cpu']
             
             if self.split:
-                if node_cpu >= num_cpu and num_gpu >= num_gpu:
-                    return False
-                    # dispatch.append(row)
+                gpu_type = GPUSupport.get_gpu_type(row["gpu_type"])
+                for k in node_gpu:
+                    if GPUSupport.can_host(k, gpu_type) and node_cpu[gpu_type] >= num_cpu and node_gpu[gpu_type] >= num_gpu:
+                        return False
             else:
                 for node in self.nodes:           
                     if GPUSupport.can_host(GPUSupport.get_gpu_type(node.gpu_type), GPUSupport.get_gpu_type(row["gpu_type"])) and node.get_avail_cpu() >= num_cpu and node.get_avail_gpu() >= num_gpu:
@@ -356,7 +361,7 @@ class Simulator_Plebiscito:
                 if id != -1:
                     self.detach_node(id)
                     
-            if time_instant%5000 == 0:
+            if time_instant%100 == 0:
                 plot.plot_all(self.n_nodes, self.filename, self.job_count, self.filename, job_allocation_time, job_post_process_time)
             
             # Select jobs for the current time instant
