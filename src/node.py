@@ -453,7 +453,7 @@ class node:
                     
                     # if there is a layer that can be bid on, bid on it    
                     if target_layer is not None:     
-                        bid = self.utility_function(self.updated_bw, self.updated_cpu - cpu_, self.updated_gpu - gpu_)
+                        bid = self.utility_function(self.updated_bw, self.updated_cpu, self.updated_gpu)
                         bid -= self.id * 0.000000001
                             
                         # if my bid is higher than the current bid, I can bid on the layer
@@ -482,7 +482,7 @@ class node:
                                 found = True
                                 
                             if found:
-                                bid = self.utility_function(self.updated_bw, self.updated_cpu - cpu_, self.updated_gpu - gpu_)
+                                bid = self.utility_function(self.updated_bw, self.updated_cpu, self.updated_gpu)
                                 bid -= self.id * 0.000000001
                                 
                                 # if my bid is higher than the current bid, I can bid on the layer
@@ -1304,12 +1304,16 @@ class node:
         
         while True:
             try: 
-                self.item = self.q[self.id].get(timeout=timeout)
-                               
-                with self.last_bid_timestamp_lock:
-                    self.empty_queue[self.id].clear() 
-                    self.already_finished = False
-                    
+                self.item = None
+                items = self.extract_all_job_msg(timeout)  
+                first_msg = False
+                need_rebroadcast = False                    
+                                   
+                self.empty_queue[self.id].clear() 
+                self.already_finished = False
+                
+                for it in items:
+                    self.item = it
                     # if the message is a "unallocate" message, the node must release the resources
                     # if the node is hosting the job
                     if "unallocate" in self.item:
@@ -1348,25 +1352,18 @@ class node:
                         if self.enable_logging:
                             self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
                     
-                        need_rebroadcast = self.update_bid()
-                        if need_rebroadcast:
-                            self.forward_to_neighbohors()
-                        elif first_msg:
-                            self.forward_to_neighbohors(first_msg=True)
-                        
-                        if self.progress_flag:
-                            if 'rebid' in self.item:
-                                self.bids[self.item['job_id']]['arrival_time'] = datetime.now()
-
-                            self.progress_time()
+                        need_rebroadcast = need_rebroadcast or self.update_bid()
 
                         self.bids[self.item['job_id']]['start_time'] = 0                            
                         self.bids[self.item['job_id']]['count'] += 1
                         
                         self.update_bw(prev_bid)
                         
-                        self.q[self.id].task_done()
-                    
+                if need_rebroadcast:
+                    self.forward_to_neighbohors()
+                elif first_msg:
+                    self.forward_to_neighbohors(first_msg=True)
+                                        
             except Empty:
                 # the exception is raised if the timeout in the queue.get() expires.
                 # the break statement must be executed only if the event has been set 
@@ -1407,7 +1404,33 @@ class node:
                 if end_processing.is_set():    
                     if int(self.updated_cpu) > int(self.initial_cpu):
                         print(f"Node {self.id} -- Mannaggia updated={self.updated_cpu} initial={self.initial_cpu}", flush=True)
-                    break               
+                    break 
+
+    def extract_all_job_msg(self, timeout):
+        first = True
+        job_id = None
+        items = []
+        _items = []
+        while True:
+            try:
+                it = self.q[self.id].get(timeout=timeout)
+                if first:
+                    first = False
+                    job_id = it["job_id"]
+                if job_id == it["job_id"]:
+                    items.append(it)
+                else:
+                    _items.append(it)
+            except Empty:
+                if len(items) == 0:
+                    raise Empty
+                        
+                for i in _items:
+                    self.q[self.id].put(i)  
+                            
+                break  
+             
+        return items           
 
       
       
