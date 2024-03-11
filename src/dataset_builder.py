@@ -107,16 +107,16 @@ def _add_job(job_list, job_dict, describe_dict=None):
     
     if job_dict['num_gpu'] != 0:
         if job_dict['gpu_type'] == 'MISC':
-            if job_dict['num_gpu'] <= 8 and job_dict['num_cpu'] <= 45:
+            if job_dict['num_gpu'] < 8 and job_dict['num_cpu'] < 45:
                 job_list.append(job_dict)
         if job_dict['gpu_type'] == 'P100':
-            if job_dict['num_gpu'] <= 2 and job_dict['num_cpu'] <= 40:
+            if job_dict['num_gpu'] < 2 and job_dict['num_cpu'] < 40:
                 job_list.append(job_dict)
         if job_dict['gpu_type'] == 'T4':
-            if job_dict['num_gpu'] <= 2 and job_dict['num_cpu'] <= 45:
+            if job_dict['num_gpu'] < 2 and job_dict['num_cpu'] < 45:
                 job_list.append(job_dict)
         if job_dict['gpu_type'] == 'V100':
-            if job_dict['num_gpu'] <= 8 and job_dict['num_cpu'] <= 45:
+            if job_dict['num_gpu'] < 8 and job_dict['num_cpu'] < 45:
                 job_list.append(job_dict)
     
 # function from Alibaba's trace
