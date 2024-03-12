@@ -150,9 +150,9 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
                     if j in n.bids:
                         print(f"Node: {n.id}: {n.bids[j]['auction_id']}")
                 # something bad happened
-                sys.exit(1)
+                #sys.exit(1)
                 
-        if node_with_bid != None and float('-inf') not in nodes[node_with_bid].bids[j]['auction_id']:
+        if node_with_bid != None and float('-inf') not in nodes[node_with_bid].bids[j]['auction_id'] and not unmatch:
             count_success += 1
             valid_bids[j] = nodes[node_with_bid].bids[j]['auction_id']
             logging.info(f"Job {j} assignment {nodes[node_with_bid].bids[j]['auction_id']}")
