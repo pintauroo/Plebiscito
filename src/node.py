@@ -1300,7 +1300,6 @@ class node:
                 need_rebroadcast = False                    
                                    
                 self.empty_queue[self.id].clear() 
-                self.already_finished = False
                 
                 for it in items:
                     self.item = it
@@ -1404,6 +1403,7 @@ class node:
         while True:
             try:
                 it = self.q[self.id].get(timeout=timeout)
+                self.already_finished = False
                 if first:
                     first = False
                     job_id = it["job_id"]
