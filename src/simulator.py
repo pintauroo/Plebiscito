@@ -1,4 +1,5 @@
 import copy
+import datetime
 from multiprocessing.managers import SyncManager
 from multiprocessing import Process, Event, Manager, JoinableQueue
 import time
@@ -206,6 +207,7 @@ class Simulator_Plebiscito:
     def print_simulation_values(self, time_instant, processed_jobs, queued_jobs: pd.DataFrame, running_jobs, batch_size):
         print()
         print("Infrastructure info")
+        print("Last refresh: " + str(datetime.datetime.now()))
         print(f"Number of nodes: {self.n_nodes}")
         
         for t in set(self.gpu_types):
@@ -239,6 +241,7 @@ class Simulator_Plebiscito:
             print("<no jobs in queue>")
         else:
             print(queued_jobs["gpu_type"].value_counts().to_dict())
+        print()
 
             
     def print_simulation_progress(self, time_instant, job_processed, queued_jobs, running_jobs, batch_size):
@@ -271,10 +274,6 @@ class Simulator_Plebiscito:
         if jobs.empty:
             return True
         
-        dispatch = []
-
-        dispatch_= True
-        
         if self.split:
             node_gpu = {}
             node_cpu = {}
@@ -284,6 +283,7 @@ class Simulator_Plebiscito:
                 if gpu_type not in node_gpu:
                     node_gpu[gpu_type] = 0
                     node_cpu[gpu_type] = 0
+                    
                 node_gpu[gpu_type] += node.get_avail_gpu()  # Consider caching these values if they don't change
                 node_cpu[gpu_type] += node.get_avail_cpu()
         
@@ -294,14 +294,19 @@ class Simulator_Plebiscito:
             if self.split:
                 gpu_type = GPUSupport.get_gpu_type(row["gpu_type"])
                 for k in node_gpu:
-                    if GPUSupport.can_host(k, gpu_type) and node_cpu[gpu_type] >= num_cpu and node_gpu[gpu_type] >= num_gpu:
-                        return False
+                    if GPUSupport.can_host(k, gpu_type):
+                        if node_cpu[gpu_type] >= 1.5*num_cpu and node_gpu[gpu_type] >= 1.5*num_gpu:
+                            print(f"Job {row['job_id']} [{row['gpu_type']}] can be dispatched. Req: {row['num_cpu']} ({node_cpu[gpu_type]}) CPU. Req: {row['num_gpu']} ({node_gpu[gpu_type]}) GPU.")
+                            return False
+                        #else:
+                        #    print(f"Job {row['job_id']} can't be dispatched. Req: {row['num_cpu']} ({node_cpu[gpu_type]}) CPU. Req: {row['num_gpu']} ({node_gpu[gpu_type]}) GPU.")
             else:
                 for node in self.nodes:           
                     if GPUSupport.can_host(GPUSupport.get_gpu_type(node.gpu_type), GPUSupport.get_gpu_type(row["gpu_type"])) and node.get_avail_cpu() >= num_cpu and node.get_avail_gpu() >= num_gpu:
                         # Append the row from jobs DataFrame
                         return False
                         # dispatch.append(row)
+        
                         # break
         return True
         # return pd.DataFrame(dispatch) if dispatch else None
@@ -410,6 +415,7 @@ class Simulator_Plebiscito:
                     
                         # Deallocate unassigned jobs
                         self.deallocate_jobs(progress_bid_events, queues, u_jobs)
+                        self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
                     else:
                         unassigned_jobs = pd.concat([unassigned_jobs, subset])
                         #print('ktm')
