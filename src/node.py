@@ -70,7 +70,7 @@ class node:
         # initialize random values for the power consumption
         
         self.last_bid_timestamp = {}
-        self.last_bid_timestamp_lock = threading.Lock()
+        #self.last_bid_timestamp_lock = threading.Lock()
         
         self.__layer_bid_lock = threading.Lock()
         self.__layer_bid = {}
@@ -92,6 +92,7 @@ class node:
 
     def get_avail_gpu(self):
         return self.updated_gpu
+    
     def get_avail_cpu(self):
         return self.updated_cpu
         
@@ -1279,7 +1280,7 @@ class node:
         if self.use_net_topology:
             timeout = 15
         else:
-            timeout = 0.1
+            timeout = 0.05
         
         ret_val["id"] = self.id
         ret_val["bids"] = copy.deepcopy(self.bids)
@@ -1326,11 +1327,11 @@ class node:
                         ret_val["updated_bw"] = self.updated_bw
                         ret_val["gpu_type"] = self.gpu_type.name
                     else:   
-                        prev_bid = None
+                        # prev_bid = None
                         first_msg = False
                         
-                        if self.item['job_id'] in self.bids:
-                            prev_bid = copy.deepcopy(self.bids[self.item['job_id']]["auction_id"])
+                        # if self.item['job_id'] in self.bids:
+                        #     prev_bid = copy.deepcopy(self.bids[self.item['job_id']]["auction_id"])
                         
                         if self.item['job_id'] not in self.counter:
                             self.init_null()
@@ -1346,7 +1347,7 @@ class node:
                         self.bids[self.item['job_id']]['start_time'] = 0                            
                         self.bids[self.item['job_id']]['count'] += 1
                         
-                        self.update_bw(prev_bid)
+                        #self.update_bw(prev_bid)
                         
                 if need_rebroadcast:
                     self.forward_to_neighbohors()
@@ -1379,13 +1380,13 @@ class node:
                     ret_val["updated_bw"] = self.updated_bw
                     ret_val["gpu_type"] = self.gpu_type.name
                         
-                    for j_key in self.resource_remind:
-                        for id in self.resource_remind[j_key]["idx"]:
-                            self.release_reserved_resources(j_key, id)
+                    # for j_key in self.resource_remind:
+                    #     for id in self.resource_remind[j_key]["idx"]:
+                    #         self.release_reserved_resources(j_key, id)
                         
-                    with self.last_bid_timestamp_lock:
-                        if self.use_net_topology:
-                            self.updated_bw = self.network_topology.get_node_direct_link_bw(self.id)
+                    # with self.last_bid_timestamp_lock:
+                    #     if self.use_net_topology:
+                    #         self.updated_bw = self.network_topology.get_node_direct_link_bw(self.id)
                         
                     # notify the main process that the bidding process has completed and the result has been saved in the ret_val dictionary    
                     progress_bid.set()
@@ -1411,13 +1412,13 @@ class node:
                     items.append(it)
                 else:
                     _items.append(it)
+                raise Empty
             except Empty:
                 if len(items) == 0:
                     raise Empty
                         
                 for i in _items:
-                    self.q[self.id].put(i)  
-                            
+                    self.q[self.id].put(i)               
                 break  
              
         return items           
