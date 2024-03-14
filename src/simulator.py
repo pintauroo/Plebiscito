@@ -342,7 +342,9 @@ class Simulator_Plebiscito:
         unassigned_jobs = pd.DataFrame()
         assigned_jobs = pd.DataFrame()
         prev_job_list = pd.DataFrame()
+        curr_job_list = pd.DataFrame()
         prev_running_jobs = pd.DataFrame()
+        curr_running_jobs = pd.DataFrame()
         job_allocation_time = []
         job_post_process_time = []
         
@@ -350,12 +352,17 @@ class Simulator_Plebiscito:
             start_time = time.time()
             
             # Extract completed jobs
-            prev_running_jobs = running_jobs.copy(deep=True)
+            if len(running_jobs) > 0:
+                prev_running_jobs = list(running_jobs["job_id"])
+                
             jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
             
             # Deallocate completed jobs
             self.deallocate_jobs(progress_bid_events, queues, jobs_to_unallocate)
             self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
+            
+            if len(running_jobs) > 0:
+                curr_running_jobs = list(running_jobs["job_id"])
             
             id = -1
             if bool(self.failures):
@@ -373,14 +380,21 @@ class Simulator_Plebiscito:
             new_jobs = job.select_jobs(self.dataset, time_instant)
             
             # Add new jobs to the job queue
-            prev_job_list = jobs.copy(deep=True)
+            if len(jobs) > 0:
+                prev_job_list = list(jobs["job_id"])
+                
             jobs = pd.concat([jobs, new_jobs], sort=False)
             
             # Schedule jobs
             jobs = job.schedule_jobs(jobs, self.scheduling_algorithm)
             
+            if len(jobs) > 0:
+                curr_job_list = list(jobs["job_id"])
+            
             n_jobs = len(jobs)
-            if prev_job_list.equals(jobs) and prev_running_jobs.equals(running_jobs):
+            # if prev_job_list.equals(jobs) and prev_running_jobs.equals(running_jobs):
+            #     n_jobs = 0
+            if sorted(prev_job_list) == sorted(curr_job_list) and sorted(prev_running_jobs) == sorted(curr_running_jobs):
                 n_jobs = 0
             
             jobs_to_submit = job.create_job_batch(jobs, n_jobs)
