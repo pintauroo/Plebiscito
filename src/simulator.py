@@ -42,12 +42,17 @@ def sigterm_handler(signum, frame):
         sys.exit(0)  # Exit gracefully    
 
 class Simulator_Plebiscito:
-    def __init__(self, filename: str, n_nodes: int, n_jobs: int, dataset = pd.DataFrame(), alpha = 1, utility = Utility.LGF, debug_level = DebugLevel.INFO, scheduling_algorithm = SchedulingAlgorithm.FIFO, decrement_factor = 1, split = True, app_type = ApplicationGraphType.LINEAR, enable_logging = False, use_net_topology = False, progress_flag = False, n_client = 0, node_bw = 0, failures = {}, logical_topology = "ring_graph", probability = 0) -> None:   
+    def __init__(self, filename: str, n_nodes: int, n_jobs: int, dataset = pd.DataFrame(), alpha = 1, utility = Utility.LGF, debug_level = DebugLevel.INFO, scheduling_algorithm = SchedulingAlgorithm.FIFO, decrement_factor = 1, split = True, app_type = ApplicationGraphType.LINEAR, enable_logging = False, use_net_topology = False, progress_flag = False, n_client = 0, node_bw = 0, failures = {}, logical_topology = "ring_graph", probability = 0, enable_post_allocation = False) -> None:   
         self.filename = filename + "_" + utility.name + "_" + scheduling_algorithm.name + "_" + str(decrement_factor)
         if split:
             self.filename = self.filename + "_split"
         else:
             self.filename = self.filename + "_nosplit"
+            
+        if enable_post_allocation:
+            self.filename = self.filename + "_rebid"
+        else:
+            self.filename = self.filename + "_norebid"
             
         self.n_nodes = n_nodes
         self.node_bw = node_bw
@@ -65,6 +70,7 @@ class Simulator_Plebiscito:
         self.split = split
         self.app_type = app_type
         self.failures = failures
+        self.enable_post_allocation = enable_post_allocation
         
         self.job_count = {}
         
@@ -346,6 +352,7 @@ class Simulator_Plebiscito:
         curr_job_list = pd.DataFrame()
         prev_running_jobs = pd.DataFrame()
         curr_running_jobs = pd.DataFrame()
+        jobs_report = pd.DataFrame()
         job_allocation_time = []
         job_post_process_time = []
         
@@ -354,9 +361,12 @@ class Simulator_Plebiscito:
             
             # Extract completed jobs
             if len(running_jobs) > 0:
+                running_jobs["current_duration"] = running_jobs["current_duration"] + running_jobs["speedup"]
                 prev_running_jobs = list(running_jobs["job_id"])
                 
             jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
+            
+            jobs_report = pd.concat([jobs_report, jobs_to_unallocate])
             
             # Deallocate completed jobs
             self.deallocate_jobs(progress_bid_events, queues, jobs_to_unallocate)
@@ -374,9 +384,9 @@ class Simulator_Plebiscito:
                 if id != -1:
                     self.detach_node(id)
                     
-            if time_instant%1000 == 0:
+            if time_instant%10 == 0:
                 plot.plot_all(self.n_nodes, self.filename, self.job_count, self.filename, job_allocation_time, job_post_process_time)
-            
+                    
             # Select jobs for the current time instant
             new_jobs = job.select_jobs(self.dataset, time_instant)
             
@@ -411,11 +421,7 @@ class Simulator_Plebiscito:
 
                     if self.skip_deconfliction(subset) == False:
                         t = time.time()
-                        job.dispatch_job(subset, queues, self.use_net_topology, self.split)
-
-                        for e in progress_bid_events:
-                            e.wait()
-                            e.clear() 
+                        self.dispatch_jobs(progress_bid_events, queues, subset) 
                             
                         job_allocation_time.append(time.time()-t)
                         logging.log(TRACE, 'All nodes completed the processing...')
@@ -425,8 +431,8 @@ class Simulator_Plebiscito:
                         # Collect node results
                         a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
                         job_post_process_time.append(time.time() - t)
-                        assigned_jobs = pd.concat([assigned_jobs, a_jobs])
-                        unassigned_jobs = pd.concat([unassigned_jobs, u_jobs])
+                        assigned_jobs = pd.concat([assigned_jobs, pd.DataFrame(a_jobs)])
+                        unassigned_jobs = pd.concat([unassigned_jobs, pd.DataFrame(u_jobs)])
                     
                         # Deallocate unassigned jobs
                         self.deallocate_jobs(progress_bid_events, queues, u_jobs)
@@ -436,7 +442,7 @@ class Simulator_Plebiscito:
                         #print('ktm')
                         
                     start_id += batch_size
-            
+                    
             # Assign start time to assigned jobs
             assigned_jobs = job.assign_job_start_time(assigned_jobs, time_instant)
             
@@ -444,6 +450,30 @@ class Simulator_Plebiscito:
             jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
             running_jobs = pd.concat([running_jobs, assigned_jobs], sort=False)
             processed_jobs = pd.concat([processed_jobs,assigned_jobs], sort=False)
+            
+            unassigned_jobs = pd.DataFrame()
+            assigned_jobs = pd.DataFrame()
+            
+            if self.enable_post_allocation:
+                # execute post-allocation only on predefined time instants
+                if time_instant%20 == 0:
+                    jobs_to_reallocate, running_jobs = job.extract_rebid_job(running_jobs, 1)
+                    
+                    if len(jobs_to_reallocate) > 0: 
+                        start_id = 0
+                        while start_id < len(jobs_to_reallocate):
+                            subset = jobs_to_reallocate.iloc[start_id:start_id+batch_size]
+                            self.deallocate_jobs(progress_bid_events, queues, subset)
+                            print("Job deallocated")
+                            self.dispatch_jobs(progress_bid_events, queues, subset) 
+                            print("Job dispatched")
+                            a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
+                            assigned_jobs = pd.concat([assigned_jobs, pd.DataFrame(a_jobs)])
+                            unassigned_jobs = pd.concat([unassigned_jobs, pd.DataFrame(u_jobs)])
+                            start_id += batch_size
+                            
+            jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
+            running_jobs = pd.concat([running_jobs, assigned_jobs], sort=False)
                     
             self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=True)
             
@@ -456,7 +486,7 @@ class Simulator_Plebiscito:
             #     batch_size += 1
 
             # Check if all jobs have been processed
-            if len(processed_jobs) == len(self.dataset): # and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
+            if len(processed_jobs) == len(self.dataset) and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
                 break
         
         # Collect final node results
@@ -468,12 +498,19 @@ class Simulator_Plebiscito:
         self.terminate_node_processing(terminate_processing_events)
 
         # Save processed jobs to CSV
-        processed_jobs.to_csv(self.filename + "_jobs_report.csv")
+        jobs_report.to_csv(self.filename + "_jobs_report.csv")
 
         # Plot results
         if self.use_net_topology:
             self.network_t.dump_to_file(self.filename, self.alpha)
 
         plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot")
+
+    def dispatch_jobs(self, progress_bid_events, queues, subset):
+        job.dispatch_job(subset, queues, self.use_net_topology, self.split)
+
+        for e in progress_bid_events:
+            e.wait()
+            e.clear()
 
     

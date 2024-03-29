@@ -13,7 +13,20 @@ def extract_completed_jobs(dataset: pd.DataFrame, time_instant):
     if len(dataset) == 0:
         return dataset, dataset
     
-    condition = dataset.exec_time + dataset.duration < time_instant
+    condition = dataset.current_duration >= dataset.duration
+    ret = dataset[condition].copy()
+    ret["complete_time"] = time_instant
+    
+    if len(ret) > 0:
+        dataset = dataset[~condition]
+    
+    return ret, dataset
+
+def extract_rebid_job(dataset: pd.DataFrame, speedup_threshold):
+    if len(dataset) == 0:
+        return dataset, dataset
+    
+    condition = dataset.speedup < speedup_threshold
     ret = dataset[condition]
     
     if len(ret) > 0:

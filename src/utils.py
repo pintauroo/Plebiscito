@@ -11,6 +11,7 @@ import numpy as np
 from Plebiscito.src.config import *
 
 
+
 import math
 
 def generate_gpu_types(n_nodes):
@@ -109,14 +110,12 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
     unassigned_sum_bw = 0
 
     count = 0 
-    count_broken = 0 
     assigned_jobs = []
     unassigned_jobs = []
     assigned_jobs_id = []
     unassigned_job_id = []
     valid_bids = {}
     count_success = 0
-    found_failure = False
     
     for _, job in jobs.iterrows():
         count += 1
@@ -124,6 +123,8 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         j = job['job_id']
         node_with_bid = None
         n_layer = 0
+        GPUs = []
+        unmatch = False
         
         for n in nodes:
             if j in n.bids:
@@ -144,13 +145,16 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
                     if alloc != nodes[i].bids[j]['auction_id'][k]:
                         unmatch = True
                         break
+                    
             if unmatch:
                 print('BROKEN BID id: ' + str(j))
                 for n in nodes:
                     if j in n.bids:
                         print(f"Node: {n.id}: {n.bids[j]['auction_id']}")
                 # something bad happened
-                #sys.exit(1)
+                break
+            
+            GPUs.append(nodes[alloc].gpu_type)
                 
         if node_with_bid != None and float('-inf') not in nodes[node_with_bid].bids[j]['auction_id'] and not unmatch:
             count_success += 1
@@ -162,6 +166,15 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         if flag:
             job["final_node_allocation"] = nodes[node_with_bid].bids[j]['auction_id']
             job["final_gpu_allocation"] = allocation_to_gpu_type(nodes[node_with_bid].bids[j]['auction_id'], gpu_types=gpu_types)
+            
+            lower_speedup = 10000
+            for g in set(GPUs):
+                s = GPUSupport.compute_speedup(GPUSupport.get_gpu_type(g), GPUSupport.get_gpu_type(job["gpu_type"]))
+                if lower_speedup > s:
+                    lower_speedup = s
+            
+            job["speedup"] = lower_speedup
+            
             assigned_jobs.append(job)
             assigned_jobs_id.append(j)
             
@@ -267,7 +280,7 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
     if save_on_file:        
         write_data(field_names, dictionary, filename)
     
-    return pd.DataFrame(assigned_jobs), pd.DataFrame(unassigned_jobs)
+    return assigned_jobs, unassigned_jobs
 
 
 def write_data(field_names, dictionary, filename):

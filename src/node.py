@@ -24,7 +24,7 @@ class InternalError(Exception):
 
 class node:
 
-    def __init__(self, id, network_topology: NetworkTopology, gpu_type: GPUType, utility: Utility, alpha: float, enable_logging: bool, logical_topology: LogicalTopology, tot_nodes: int, progress_flag: bool, use_net_topology=False, decrement_factor=0.1):
+    def __init__(self, id, network_topology: NetworkTopology, gpu_type: GPUType, utility: Utility, alpha: float, enable_logging: bool, logical_topology: LogicalTopology, tot_nodes: int, progress_flag: bool, use_net_topology=False, decrement_factor=0.00001):
         self.id = id    # unique edge node id
         self.gpu_type = gpu_type
         self.utility = utility
@@ -1310,14 +1310,14 @@ class node:
                         if self.check_if_hosting_job():
                             self.release_resources()
                         
-                        p_bid = copy.deepcopy(self.bids[self.item['job_id']]["auction_id"])
+                        #p_bid = copy.deepcopy(self.bids[self.item['job_id']]["auction_id"])
                         
                         # if the bidding process didn't complete, reset the bid (it will be submitted later)
-                        if float('-inf') in self.bids[self.item['job_id']]['auction_id']:
-                            del self.bids[self.item['job_id']]
-                            del self.counter[self.item['job_id']]
+                        #if float('-inf') in self.bids[self.item['job_id']]['auction_id']:
+                        del self.bids[self.item['job_id']]
+                        del self.counter[self.item['job_id']]
                         
-                        self.update_bw(prev_bid=p_bid, deallocate=True)
+                        #self.update_bw(prev_bid=p_bid, deallocate=True)
                             
                         ret_val["id"] = self.id
                         ret_val["bids"] = copy.deepcopy(self.bids)
