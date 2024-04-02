@@ -378,12 +378,12 @@ class node:
             
             # compute the bid for the current layer, and remove it from the list of possible layers (no matter if the bid is valid or not)
             bid = self.utility_function(self.updated_bw, self.updated_cpu, self.updated_gpu)
-            bid -= self.id * 0.000000001
+            #bid -= self.id * 0.000000001
             self.layer_bid_already[self.item['job_id']][best_placement] = True    
             possible_layer.remove(best_placement)       
 
             # if my bid is higher than the current bid, I can bid on the layer
-            if bid > tmp_bid['bid'][best_placement]:
+            if bid >= tmp_bid['bid'][best_placement]:
                                 
                 gpu_ = self.item['NN_gpu'][best_placement]
                 cpu_ = self.item['NN_cpu'][best_placement]
@@ -445,10 +445,10 @@ class node:
                     # if there is a layer that can be bid on, bid on it    
                     if target_layer is not None:     
                         bid = self.utility_function(self.updated_bw, self.updated_cpu, self.updated_gpu)
-                        bid -= self.id * 0.000000001
+                        #bid -= self.id * 0.000000001
                             
                         # if my bid is higher than the current bid, I can bid on the layer
-                        if bid > tmp_bid['bid'][target_layer]:
+                        if bid >= tmp_bid['bid'][target_layer]:
                             tmp_bid['bid'][target_layer] = bid
                             tmp_bid['auction_id'][target_layer]=(self.id)
                             tmp_bid['timestamp'][target_layer] = bidtime
@@ -817,7 +817,7 @@ class node:
                     rebroadcast = True
 
                 elif z_ij!=i and z_ij!=k:
-                    if y_kj>y_ij and t_kj>=t_ij:
+                    if y_kj>=y_ij and t_kj>=t_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #7')
                         index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
@@ -947,7 +947,7 @@ class node:
                 if z_ij==i:
                     if y_kj>y_ij:
                         if self.enable_logging:
-                            logging.log(TRACE, 'NODEID:'+str(self.id) +  '#17')
+                            logging.log(TRACE, 'NODEID:'+str(self.id) +  '#16')
                         rebroadcast = True
                         if index == 0:
                             release_to_client = True
@@ -1017,7 +1017,7 @@ class node:
                     rebroadcast = True
 
                 elif z_ij!=i and z_ij!=k and z_ij!=z_kj:
-                    if y_kj>y_ij and t_kj>=t_ij:
+                    if y_kj>=y_ij and t_kj>=t_ij:
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#25')
                         index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])                   
