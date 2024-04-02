@@ -506,7 +506,7 @@ class node:
                     self.updated_gpu -= gpu_
                     #self.updated_bw -= bw_
                     
-                    self.bids[self.item['job_id']] = tmp_bid
+                    self.bids[self.item['job_id']] = copy.deepcopy(tmp_bid)
                     
                     for l in layers:
                         self.layer_bid_already[self.item['job_id']][l] = True
@@ -890,7 +890,7 @@ class node:
                     if self.enable_logging:
                         logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #16')
                     rebroadcast = True
-                    tmp_local['timestamp'][index] = bid_time
+                    #tmp_local['timestamp'][index] = bid_time
                     index+=1
                 
                 elif z_ij!=i and z_ij!=k:
@@ -1071,7 +1071,7 @@ class node:
             msg_to_resend = copy.deepcopy(tmp_local)
             #self.forward_to_neighbohors(tmp_local)
             for i in reset_ids:
-                _ = self.reset(i, tmp_local, bid_time - timedelta(hours=1))
+                _ = self.reset(i, tmp_local, bid_time - timedelta(days=1))
                 msg_to_resend['auction_id'][i] = self.item['auction_id'][i]
                 msg_to_resend['bid'][i] = self.item['bid'][i]
                 msg_to_resend['timestamp'][i] = self.item['timestamp'][i]
