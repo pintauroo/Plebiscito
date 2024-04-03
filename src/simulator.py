@@ -394,8 +394,8 @@ class Simulator_Plebiscito:
                 if id != -1:
                     self.detach_node(id)
                     
-            if time_instant%1000 == 0:
-                plot.plot_all(self.n_nodes, self.filename, self.job_count, self.filename, job_allocation_time, job_post_process_time)
+            #if time_instant%1000 == 0:
+            #    plot.plot_all(self.n_nodes, self.filename, self.job_count, self.filename, job_allocation_time, job_post_process_time)
                     
             # Select jobs for the current time instant
             new_jobs = job.select_jobs(self.dataset, time_instant)
