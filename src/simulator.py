@@ -285,21 +285,31 @@ class Simulator_Plebiscito:
         if self.split:
             node_gpu = {}
             node_cpu = {}
+            largest_gpu = {}
+            largest_cpu = {}
             
             for node in self.nodes:
                 gpu_type = GPUSupport.get_gpu_type(node.gpu_type)
                 if gpu_type not in node_gpu:
                     node_gpu[gpu_type] = 0
                     node_cpu[gpu_type] = 0
+                    largest_cpu[gpu_type] = 0
+                    largest_gpu[gpu_type] = 0
                     
                 node_gpu[gpu_type] += node.get_avail_gpu()  # Consider caching these values if they don't change
                 node_cpu[gpu_type] += node.get_avail_cpu()
+
+                if node.get_avail_cpu() > largest_cpu[gpu_type]:
+                    largest_cpu[gpu_type] = node.get_avail_cpu()
+                if node.get_avail_gpu() > largest_gpu[gpu_type]:
+                    largest_gpu[gpu_type] = node.get_avail_gpu()
         
         for _, row in jobs.iterrows():
             num_gpu = row['num_gpu']
             num_cpu = row['num_cpu']
             
             if self.split:
+                # TODO: improve using the largest_cpu and the largest_gpu info
                 gpu_type = GPUSupport.get_gpu_type(row["gpu_type"])
                 for k in node_gpu:
                     if GPUSupport.can_host(k, gpu_type):
@@ -384,7 +394,7 @@ class Simulator_Plebiscito:
                 if id != -1:
                     self.detach_node(id)
                     
-            if time_instant%10 == 0:
+            if time_instant%1000 == 0:
                 plot.plot_all(self.n_nodes, self.filename, self.job_count, self.filename, job_allocation_time, job_post_process_time)
                     
             # Select jobs for the current time instant
@@ -435,7 +445,7 @@ class Simulator_Plebiscito:
                         unassigned_jobs = pd.concat([unassigned_jobs, pd.DataFrame(u_jobs)])
                     
                         # Deallocate unassigned jobs
-                        self.deallocate_jobs(progress_bid_events, queues, u_jobs)
+                        self.deallocate_jobs(progress_bid_events, queues, pd.DataFrame(u_jobs))
                         self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
                     else:
                         unassigned_jobs = pd.concat([unassigned_jobs, subset])

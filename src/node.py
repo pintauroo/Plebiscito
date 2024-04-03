@@ -383,7 +383,7 @@ class node:
             possible_layer.remove(best_placement)       
 
             # if my bid is higher than the current bid, I can bid on the layer
-            if bid >= tmp_bid['bid'][best_placement]:
+            if bid > tmp_bid['bid'][best_placement] or (bid == tmp_bid['bid'][best_placement] and self.id < tmp_bid['auction_id'][best_placement]):
                                 
                 gpu_ = self.item['NN_gpu'][best_placement]
                 cpu_ = self.item['NN_cpu'][best_placement]
@@ -448,7 +448,7 @@ class node:
                         #bid -= self.id * 0.000000001
                             
                         # if my bid is higher than the current bid, I can bid on the layer
-                        if bid >= tmp_bid['bid'][target_layer]:
+                        if bid > tmp_bid['bid'][target_layer] or (bid == tmp_bid['bid'][target_layer] and self.id < tmp_bid['auction_id'][target_layer]):
                             tmp_bid['bid'][target_layer] = bid
                             tmp_bid['auction_id'][target_layer]=(self.id)
                             tmp_bid['timestamp'][target_layer] = bidtime

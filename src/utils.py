@@ -154,7 +154,8 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
                 # something bad happened
                 break
             
-            GPUs.append(nodes[alloc].gpu_type)
+            if alloc != float('-inf'):
+                GPUs.append(nodes[alloc].gpu_type)
                 
         if node_with_bid != None and float('-inf') not in nodes[node_with_bid].bids[j]['auction_id'] and not unmatch:
             count_success += 1
