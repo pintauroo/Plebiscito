@@ -222,6 +222,8 @@ class node:
 
         elif self.utility == Utility.POWER:
             pass # we need to define here the utility function
+        elif self.utility == Utility.SPEEDUP:
+            return GPUSupport.compute_speedup(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type'])) * avail_gpu
 
 
     def forward_to_neighbohors(self, custom_dict=None, resend_bid=False, first_msg=False):            
@@ -236,7 +238,8 @@ class node:
             "N_layer_min": self.item["N_layer_min"],
             "N_layer_max": self.item["N_layer_max"],
             "N_layer_bundle": self.item["N_layer_bundle"],
-            "gpu_type": self.item["gpu_type"]
+            "gpu_type": self.item["gpu_type"],
+            "speedup": self.item["speedup"]
         }
         
         if first_msg:
@@ -327,7 +330,7 @@ class node:
             # print('beccatoktm!')
 
         return index + 1
-    
+
     def reset(self, index, dict, bid_time):
         dict['auction_id'][index] = float('-inf')
         dict['bid'][index]= float('-inf')
@@ -342,6 +345,9 @@ class node:
         job_GPU_type = GPUSupport.get_gpu_type(self.item['gpu_type'])                     
         # check if node GPU is capable of hosting the job
         if not GPUSupport.can_host(self.gpu_type, job_GPU_type):
+            return False
+        
+        if GPUSupport.compute_speedup(self.gpu_type, job_GPU_type) < self.item['speedup']:
             return False
               
         tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])

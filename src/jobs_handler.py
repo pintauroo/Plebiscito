@@ -22,11 +22,11 @@ def extract_completed_jobs(dataset: pd.DataFrame, time_instant):
     
     return ret, dataset
 
-def extract_rebid_job(dataset: pd.DataFrame, speedup_threshold):
+def extract_rebid_job(dataset: pd.DataFrame, speedup_threshold, duration_therehold):
     if len(dataset) == 0:
         return dataset, dataset
     
-    condition = dataset.speedup < speedup_threshold
+    condition = (dataset['speedup'] < speedup_threshold) & (dataset['duration'] - dataset['current_duration'] > duration_therehold)
     ret = dataset[condition]
     
     if len(ret) > 0:
@@ -48,13 +48,17 @@ def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm)
     elif scheduling_algorithm == SchedulingAlgorithm.SDF:
         return jobs.sort_values(by=["duration"])
 
-def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True, app_type=ApplicationGraphType.LINEAR):        
+def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True, app_type=ApplicationGraphType.LINEAR, check_speedup=False):        
     # if use_net_topology:
     #     timeout = 1 # don't change it
     # else:
     #     timeout = 0.05
 
     for _, job in dataset.iterrows():
+        speedup = 0
+        if check_speedup:
+            speedup = job['speedup']
+
         data = message_data(
                     job['job_id'],
                     job['user'],
@@ -65,7 +69,8 @@ def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=Tr
                     job['gpu_type'],
                     deallocate=False,
                     split=split,
-                    app_type=app_type
+                    app_type=app_type,
+                    speedup=speedup
                 )
         
         random.seed(job['job_id'])
@@ -107,7 +112,7 @@ def generate_application_graph(layer_number, app_type, bandwidth):
                 
     return graph        
 
-def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, deallocate=False, split=True, app_type=ApplicationGraphType.LINEAR):
+def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, deallocate=False, split=True, app_type=ApplicationGraphType.LINEAR, speedup=0):
     
     random.seed(job_id)
     np.random.seed(int(job_id))
@@ -157,6 +162,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
     data['num_cpu']=num_cpu
     data['duration']=duration
     data['job_id']=job_id
+    data['speedup'] = speedup
     
     if deallocate:
         data["unallocate"] = True

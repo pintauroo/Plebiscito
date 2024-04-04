@@ -10,8 +10,8 @@ class Utility(Enum):
     POWER = 6
     SGF = 7
     UTIL = 8
-    
-    
+    SPEEDUP = 9
+       
 class DebugLevel(Enum):
     TRACE = 5
     DEBUG = logging.DEBUG

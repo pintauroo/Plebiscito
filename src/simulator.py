@@ -466,8 +466,8 @@ class Simulator_Plebiscito:
             
             if self.enable_post_allocation:
                 # execute post-allocation only on predefined time instants
-                if time_instant%20 == 0:
-                    jobs_to_reallocate, running_jobs = job.extract_rebid_job(running_jobs, 1)
+                if time_instant%50 == 0:
+                    jobs_to_reallocate, running_jobs = job.extract_rebid_job(running_jobs, speedup_threshold=1, duration_therehold=1000)
                     
                     if len(jobs_to_reallocate) > 0: 
                         start_id = 0
@@ -475,7 +475,7 @@ class Simulator_Plebiscito:
                             subset = jobs_to_reallocate.iloc[start_id:start_id+batch_size]
                             self.deallocate_jobs(progress_bid_events, queues, subset)
                             print("Job deallocated")
-                            self.dispatch_jobs(progress_bid_events, queues, subset) 
+                            self.dispatch_jobs(progress_bid_events, queues, subset, check_speedup=True) 
                             print("Job dispatched")
                             a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
                             assigned_jobs = pd.concat([assigned_jobs, pd.DataFrame(a_jobs)])
@@ -516,8 +516,8 @@ class Simulator_Plebiscito:
 
         plot.plot_all(self.n_nodes, self.filename, self.job_count, "plot")
 
-    def dispatch_jobs(self, progress_bid_events, queues, subset):
-        job.dispatch_job(subset, queues, self.use_net_topology, self.split)
+    def dispatch_jobs(self, progress_bid_events, queues, subset, check_speedup=False):
+        job.dispatch_job(subset, queues, self.use_net_topology, self.split, check_speedup=check_speedup)
 
         for e in progress_bid_events:
             e.wait()
