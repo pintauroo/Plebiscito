@@ -260,13 +260,13 @@ class node:
                 msg["timestamp"] = copy.deepcopy(self.item['timestamp'])
             #msg['edge_id'] = self.item['edge_id']
                 
-        # if self.item['job_id'] not in self.last_sent_msg:
-        #     self.last_sent_msg[self.item['job_id']] = msg
-        # elif (self.last_sent_msg[self.item['job_id']]["auction_id"] == msg["auction_id"] and \
-        #     self.last_sent_msg[self.item['job_id']]["timestamp"] == msg["timestamp"] and \
-        #     self.last_sent_msg[self.item['job_id']]["bid"] == msg["bid"]):
-        #     # msg already sent before
-        #     return
+        if self.item['job_id'] not in self.last_sent_msg:
+            self.last_sent_msg[self.item['job_id']] = msg
+        elif (self.last_sent_msg[self.item['job_id']]["auction_id"] == msg["auction_id"] and \
+            self.last_sent_msg[self.item['job_id']]["timestamp"] == msg["timestamp"] and \
+            self.last_sent_msg[self.item['job_id']]["bid"] == msg["bid"]):
+            # msg already sent before
+            return
         
         if self.enable_logging:
             self.print_node_state('FORWARD', True)
