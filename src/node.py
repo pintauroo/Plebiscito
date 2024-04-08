@@ -46,6 +46,7 @@ class node:
 
         self.last_sent_msg = {}
         self.resource_remind = {}
+        self.job_hosted = []
 
         # it is not possible to have NN with more than 50 layers
         self.cum_cpu_reserved = 0
@@ -173,6 +174,9 @@ class node:
 
 
     def utility_function(self, avail_bw, avail_cpu, avail_gpu):
+        if self.item['job_id'] in self.job_hosted and GPUSupport.compute_speedup(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type']) ) <= self.item['speedup']:
+            return 0.0000001
+        
         def f(x, alpha, beta):
             if beta == 0 and x == 0:
                 return 1
@@ -348,6 +352,9 @@ class node:
             return False
         
         if GPUSupport.compute_speedup(self.gpu_type, job_GPU_type) < self.item['speedup']:
+            return False
+        
+        if GPUSupport.compute_speedup(self.gpu_type, job_GPU_type) == self.item['speedup'] and self.item['job_id'] not in self.job_hosted:
             return False
               
         tmp_bid = copy.deepcopy(self.bids[self.item['job_id']])
@@ -1315,6 +1322,7 @@ class node:
                     if "unallocate" in self.item:
                         if self.check_if_hosting_job():
                             self.release_resources()
+                            self.job_hosted.append(self.item['job_id'])
                         
                         #p_bid = copy.deepcopy(self.bids[self.item['job_id']]["auction_id"])
                         
