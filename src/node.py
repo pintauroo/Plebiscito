@@ -228,6 +228,8 @@ class node:
             pass # we need to define here the utility function
         elif self.utility == Utility.SPEEDUP:
             return GPUSupport.compute_speedup(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type'])) * avail_gpu
+        elif self.utility == Utility.SPEEDUPV2:
+            return GPUSupport.compute_speedup(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type'])) * (avail_gpu/self.initial_gpu)
 
 
     def forward_to_neighbohors(self, custom_dict=None, resend_bid=False, first_msg=False):            

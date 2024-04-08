@@ -11,6 +11,7 @@ class Utility(Enum):
     SGF = 7
     UTIL = 8
     SPEEDUP = 9
+    SPEEDUPV2 = 10
        
 class DebugLevel(Enum):
     TRACE = 5

@@ -466,7 +466,7 @@ class Simulator_Plebiscito:
             
             if self.enable_post_allocation:
                 # execute post-allocation only on predefined time instants
-                if time_instant%50 == 0:
+                if time_instant%100 == 0:
                     jobs_to_reallocate, running_jobs = job.extract_rebid_job(running_jobs, speedup_threshold=1, duration_therehold=1000)
                     
                     if len(jobs_to_reallocate) > 0: 
