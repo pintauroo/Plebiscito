@@ -385,6 +385,8 @@ class Simulator_Plebiscito:
             success = self.deallocate_jobs(progress_bid_events, queues, jobs_to_unallocate)
             if success:
                 running_jobs, unassigned_jobs, assigned_jobs = self.rebid(progress_bid_events, return_val, queues, running_jobs, time_instant, batch_size, unassigned_jobs, assigned_jobs, exec_time)
+                jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
+                running_jobs = pd.concat([running_jobs, assigned_jobs], sort=False)
             
             self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
             
@@ -506,7 +508,7 @@ class Simulator_Plebiscito:
         low_speedup_threshold = 1
         high_speedup_threshold = 1.2
                     
-        jobs_to_reallocate, running_jobs = job.extract_rebid_job(running_jobs, low_thre=low_speedup_threshold, high_thre=high_speedup_threshold, duration_therehold=1000)
+        jobs_to_reallocate, running_jobs = job.extract_rebid_job(running_jobs, low_thre=low_speedup_threshold, high_thre=high_speedup_threshold, duration_therehold=500)
                     
         if len(jobs_to_reallocate) > 0: 
             start_id = 0
