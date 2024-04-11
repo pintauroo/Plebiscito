@@ -174,8 +174,8 @@ class node:
 
 
     def utility_function(self, avail_bw, avail_cpu, avail_gpu):
-        if self.item['job_id'] in self.job_hosted and GPUSupport.compute_speedup(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type']) ) <= self.item['speedup']:
-            return 0.0000001
+        if self.item['job_id'] in self.job_hosted and GPUSupport.compute_speedup(self.gpu_type, GPUSupport.get_gpu_type(self.item['gpu_type']) ) == self.item['speedup']:
+            return -999999999
         
         def f(x, alpha, beta):
             if beta == 0 and x == 0:
@@ -245,7 +245,8 @@ class node:
             "N_layer_max": self.item["N_layer_max"],
             "N_layer_bundle": self.item["N_layer_bundle"],
             "gpu_type": self.item["gpu_type"],
-            "speedup": self.item["speedup"]
+            "speedup": self.item["speedup"],
+            "increase": self.item["increase"]
         }
         
         if first_msg:
@@ -353,7 +354,10 @@ class node:
         if not GPUSupport.can_host(self.gpu_type, job_GPU_type):
             return False
         
-        if GPUSupport.compute_speedup(self.gpu_type, job_GPU_type) < self.item['speedup']:
+        if GPUSupport.compute_speedup(self.gpu_type, job_GPU_type) < self.item['speedup'] and self.item["increase"]:
+            return False
+
+        if GPUSupport.compute_speedup(self.gpu_type, job_GPU_type) > self.item['speedup'] and not self.item["increase"]:
             return False
         
         if GPUSupport.compute_speedup(self.gpu_type, job_GPU_type) == self.item['speedup'] and self.item['job_id'] not in self.job_hosted:

@@ -78,7 +78,7 @@ class GPUSupport:
             A value greater than 1 means that `gpu_type1` is faster than `gpu_type2` (lower the duration).
             A value less than 1 means that `gpu_type1` is slower than `gpu_type2` (increase the duration).
         """
-        speedup_factor = 0
+        speedup_factor = 0.15
         return 1 - (gpu_type1.value - gpu_type2.value) * speedup_factor
     
     @staticmethod

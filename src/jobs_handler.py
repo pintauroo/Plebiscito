@@ -22,12 +22,18 @@ def extract_completed_jobs(dataset: pd.DataFrame, time_instant):
     
     return ret, dataset
 
-def extract_rebid_job(dataset: pd.DataFrame, speedup_threshold, duration_therehold):
+def extract_rebid_job(dataset: pd.DataFrame, low_thre, high_thre, duration_therehold):
     if len(dataset) == 0:
         return dataset, dataset
     
-    condition = (dataset['speedup'] < speedup_threshold) & (dataset['duration'] - dataset['current_duration'] > duration_therehold)
+    condition = (dataset['speedup'] > high_thre) & (dataset['duration'] - dataset['current_duration'] > duration_therehold)
     ret = dataset[condition]
+    
+    if len(ret) > 0:
+        dataset = dataset[~condition]
+    
+    condition = (dataset['speedup'] < low_thre) & (dataset['duration'] - dataset['current_duration'] > duration_therehold)
+    ret = pd.concat([ret, dataset[condition]])
     
     if len(ret) > 0:
         dataset = dataset[~condition]
@@ -48,16 +54,19 @@ def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm)
     elif scheduling_algorithm == SchedulingAlgorithm.SDF:
         return jobs.sort_values(by=["duration"])
 
-def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True, app_type=ApplicationGraphType.LINEAR, check_speedup=False):        
+def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True, app_type=ApplicationGraphType.LINEAR, check_speedup=False, low_th=1, high_th=1.2):        
     # if use_net_topology:
     #     timeout = 1 # don't change it
     # else:
     #     timeout = 0.05
-
+ 
     for _, job in dataset.iterrows():
+        increase = True
         speedup = 0
         if check_speedup:
             speedup = job['speedup']
+            if speedup > high_th:
+                increase = False
 
         data = message_data(
                     job['job_id'],
@@ -70,7 +79,8 @@ def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=Tr
                     deallocate=False,
                     split=split,
                     app_type=app_type,
-                    speedup=speedup
+                    speedup=speedup,
+                    increase=increase
                 )
         
         random.seed(job['job_id'])
@@ -112,7 +122,7 @@ def generate_application_graph(layer_number, app_type, bandwidth):
                 
     return graph        
 
-def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, deallocate=False, split=True, app_type=ApplicationGraphType.LINEAR, speedup=0):
+def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, deallocate=False, split=True, app_type=ApplicationGraphType.LINEAR, speedup=0, increase=True):
     
     random.seed(job_id)
     np.random.seed(int(job_id))
@@ -153,6 +163,7 @@ def message_data(job_id, user, num_gpu, num_cpu, duration, bandwidth, gpu_type, 
         "NN_cpu": NN_cpu,
         "NN_data_size": NN_data_size,
         "gpu_type": gpu_type,
+        "increase": increase
         }
 
     data['edge_id']=None
