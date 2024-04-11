@@ -1278,7 +1278,7 @@ class node:
                     break
 
     def check_if_hosting_job(self):
-        if self.id in self.bids[self.item['job_id']]['auction_id']:
+        if self.item['job_id'] in self.bids and self.id in self.bids[self.item['job_id']]['auction_id']:
             return True
         return False
     
