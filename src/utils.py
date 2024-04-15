@@ -93,8 +93,10 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
     stats['nodes'] = {}
     stats['tot_utility'] = 0
     
-    field_names = ['n_nodes', 'n_req', 'exec_time', 'alpha']
-    dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'exec_time': simulation_time, 'alpha': alpha}
+    #field_names = ['n_nodes', 'n_req', 'exec_time', 'alpha']
+    #dictionary = {'n_nodes': num_edges, 'n_req' : n_req, 'exec_time': simulation_time, 'alpha': alpha}
+    dictionary = {}
+    field_names = []
 
     # ---------------------------------------------------------
     # calculate assigned jobs, update resources if job not assigned
@@ -198,11 +200,11 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         net_topology.check_network_consistency(valid_bids)
             
     #print(f"Count assigned {count_assigned} count unassigned {count_unassigned}")    
-    field_names.append('count_assigned')
-    field_names.append('count_unassigned')
+    #field_names.append('count_assigned')
+    #field_names.append('count_unassigned')
     field_names.append('time_instant')
-    dictionary['count_assigned'] = round(count_assigned,2)
-    dictionary['count_unassigned'] = round(count_unassigned,2)
+    #dictionary['count_assigned'] = round(count_assigned,2)
+    #dictionary['count_unassigned'] = round(count_unassigned,2)
     dictionary['time_instant'] = time_instant
 
     tot_used_bw = 0
@@ -219,42 +221,42 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         # field_names.append('node_'+str(i)+'_jobs')
         # field_names.append('node_'+str(i)+'_utility')
         field_names.append('node_'+str(i)+'_initial_gpu')
-        field_names.append('node_'+str(i)+'_updated_gpu')
+        #field_names.append('node_'+str(i)+'_updated_gpu')
         field_names.append('node_'+str(i)+'_used_gpu')
         field_names.append('node_'+str(i)+'_initial_cpu')
-        field_names.append('node_'+str(i)+'_updated_cpu')
+        #field_names.append('node_'+str(i)+'_updated_cpu')
         field_names.append('node_'+str(i)+'_used_cpu')
         field_names.append('node_'+str(i)+'_initial_bw')
-        field_names.append('node_'+str(i)+'_updated_bw')
+        f#ield_names.append('node_'+str(i)+'_updated_bw')
         field_names.append('node_'+str(i)+'_used_bw')
         field_names.append('node_'+str(i)+'_gpu_type')
-        field_names.append('node_'+str(i)+'_cpu_consumption')
-        field_names.append('node_'+str(i)+'_gpu_consumption')
+        #field_names.append('node_'+str(i)+'_cpu_consumption')
+        #field_names.append('node_'+str(i)+'_gpu_consumption')
 
         tot_gpu_nodes += round(nodes[i].initial_gpu,2)
         dictionary['node_'+str(i)+'_initial_gpu'] = round(nodes[i].initial_gpu,2)
-        dictionary['node_'+str(i)+'_updated_gpu'] = round(nodes[i].updated_gpu,2)
+        #dictionary['node_'+str(i)+'_updated_gpu'] = round(nodes[i].updated_gpu,2)
         dictionary['node_'+str(i)+'_used_gpu'] = 0 if math.isclose(nodes[i].initial_gpu - nodes[i].updated_gpu, 0.0, abs_tol=1e-1) else round(nodes[i].initial_gpu - nodes[i].updated_gpu, 2)
 
         tot_used_gpu += dictionary['node_'+str(i)+'_used_gpu']
 
         tot_cpu_nodes += round(nodes[i].initial_cpu,2)
         dictionary['node_'+str(i)+'_initial_cpu'] = round(nodes[i].initial_cpu,2)
-        dictionary['node_'+str(i)+'_updated_cpu'] = round(nodes[i].updated_cpu,2)
+        #dictionary['node_'+str(i)+'_updated_cpu'] = round(nodes[i].updated_cpu,2)
         dictionary['node_'+str(i)+'_used_cpu'] = 0 if math.isclose(nodes[i].initial_cpu - nodes[i].updated_cpu, 0.0, abs_tol=1e-1) else round(nodes[i].initial_cpu - nodes[i].updated_cpu,2)
 
         tot_used_cpu += dictionary['node_'+str(i)+'_used_cpu']
 
         tot_bw_nodes += round(nodes[i].initial_bw,2)
         dictionary['node_'+str(i)+'_initial_bw'] = round(nodes[i].initial_bw,2)
-        dictionary['node_'+str(i)+'_updated_bw'] = round(nodes[i].updated_bw,2)
+        #dictionary['node_'+str(i)+'_updated_bw'] = round(nodes[i].updated_bw,2)
         dictionary['node_'+str(i)+'_used_bw'] = 0 if math.isclose(nodes[i].initial_bw - nodes[i].updated_bw, 0.0, abs_tol=1e-1) else round(nodes[i].initial_bw - nodes[i].updated_bw,2)
 
         tot_used_bw += dictionary['node_'+str(i)+'_used_bw']
         dictionary['node_'+str(i)+'_gpu_type'] = nodes[i].gpu_type
         
-        dictionary['node_'+str(i)+'_cpu_consumption'] = round(nodes[i].performance.compute_current_power_consumption_cpu(nodes[i].initial_cpu-nodes[i].updated_cpu), 2)
-        dictionary['node_'+str(i)+'_gpu_consumption'] = round(nodes[i].performance.compute_current_power_consumption_gpu(nodes[i].initial_gpu-nodes[i].updated_gpu), 2)
+        #dictionary['node_'+str(i)+'_cpu_consumption'] = round(nodes[i].performance.compute_current_power_consumption_cpu(nodes[i].initial_cpu-nodes[i].updated_cpu), 2)
+        #dictionary['node_'+str(i)+'_gpu_consumption'] = round(nodes[i].performance.compute_current_power_consumption_gpu(nodes[i].initial_gpu-nodes[i].updated_gpu), 2)
 
         #calculate node assigned count and utility
         # for j, job_id in enumerate(nodes[i].bids):
