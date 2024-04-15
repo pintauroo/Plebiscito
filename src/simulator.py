@@ -472,7 +472,7 @@ class Simulator_Plebiscito:
                     low_speedup_threshold = 1
                     high_speedup_threshold = 1.2
                                 
-                    jobs_to_reallocate, running_jobs = job.extract_rebid_job(running_jobs, low_thre=low_speedup_threshold, high_thre=high_speedup_threshold, duration_therehold=500)
+                    jobs_to_reallocate, running_jobs = job.extract_rebid_job(running_jobs, low_thre=low_speedup_threshold, high_thre=high_speedup_threshold, duration_therehold=1000)
                                 
                     if len(jobs_to_reallocate) > 0: 
                         start_id = 0
