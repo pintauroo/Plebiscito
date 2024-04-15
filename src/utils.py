@@ -227,7 +227,7 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         #field_names.append('node_'+str(i)+'_updated_cpu')
         field_names.append('node_'+str(i)+'_used_cpu')
         field_names.append('node_'+str(i)+'_initial_bw')
-        f#ield_names.append('node_'+str(i)+'_updated_bw')
+        #field_names.append('node_'+str(i)+'_updated_bw')
         field_names.append('node_'+str(i)+'_used_bw')
         field_names.append('node_'+str(i)+'_gpu_type')
         #field_names.append('node_'+str(i)+'_cpu_consumption')
