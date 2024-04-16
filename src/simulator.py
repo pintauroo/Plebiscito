@@ -470,7 +470,7 @@ class Simulator_Plebiscito:
             if self.enable_post_allocation:
                 if time_instant%50 == 0:
                     low_speedup_threshold = 1
-                    high_speedup_threshold = 1.2
+                    high_speedup_threshold = 1.3
                                 
                     jobs_to_reallocate, running_jobs = job.extract_rebid_job(running_jobs, low_thre=low_speedup_threshold, high_thre=high_speedup_threshold, duration_therehold=250)
                                 
@@ -479,12 +479,13 @@ class Simulator_Plebiscito:
                         while start_id < len(jobs_to_reallocate):
                             subset = jobs_to_reallocate.iloc[start_id:start_id+batch_size]
                             self.deallocate_jobs(progress_bid_events, queues, subset)
-                            print("Job deallocated")
+                            print(f"Job deallocated {float(subset['speedup'])}")
                             self.dispatch_jobs(progress_bid_events, queues, subset, check_speedup=True, low_th=low_speedup_threshold, high_th=high_speedup_threshold) 
-                            print("Job dispatched")
+                            
                             a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
                             assigned_jobs = pd.concat([assigned_jobs, pd.DataFrame(a_jobs)])
                             unassigned_jobs = pd.concat([unassigned_jobs, pd.DataFrame(u_jobs)])
+                            print(f"Job dispatched {float(pd.DataFrame(a_jobs)['speedup'])}")
                             start_id += batch_size
                             
             jobs = pd.concat([jobs, unassigned_jobs], sort=False)  
