@@ -1135,7 +1135,10 @@ class node:
                 self.item = None
                 items = self.extract_all_job_msg(timeout)  
                 first_msg = False
-                need_rebroadcast = False                    
+                need_rebroadcast = False   
+                
+                self.updated_cpu = round(self.updated_cpu, 3) 
+                self.updated_gpu = round(self.updated_gpu, 3)                  
                                    
                 self.empty_queue[self.id].clear() 
                 
@@ -1179,8 +1182,10 @@ class node:
                             
                         if self.enable_logging:
                             self.print_node_state('IF1 q:' + str(self.q[self.id].qsize()))
+
+                        success = self.update_bid()
                     
-                        need_rebroadcast = need_rebroadcast or self.update_bid()
+                        need_rebroadcast = need_rebroadcast or success
 
                         self.bids[self.item['job_id']]['start_time'] = 0                            
                         self.bids[self.item['job_id']]['count'] += 1
