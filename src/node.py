@@ -708,7 +708,7 @@ class node:
                             previous_winner_id = prev_bet['auction_id'][index-1]
                         index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
 
-                    elif (y_kj==y_ij and z_kj<z_ij):
+                    elif (y_kj==y_ij and z_kj>z_ij):
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3')
                         rebroadcast = True
@@ -763,7 +763,7 @@ class node:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #9')
                         rebroadcast = True
                         index+=1
-                    # elif y_kj==y_ij and z_kj<z_ij:
+                    # elif y_kj==y_ij and z_kj>z_ij:
                         # if self.enable_logging:
                             # logging.log(TRACE, 'NODEID:'+str(self.id) +  '#9-new')
                         # index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])                  
@@ -885,7 +885,7 @@ class node:
                         elif previous_winner_id == float('-inf'):
                             previous_winner_id = prev_bet['auction_id'][index-1]
                         index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
-                    elif (y_kj==y_ij and z_kj<z_ij):
+                    elif (y_kj==y_ij and z_kj>z_ij):
                         if self.enable_logging:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#17')
                         rebroadcast = True
@@ -912,7 +912,7 @@ class node:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #20Flavio')
                         index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])
                         rebroadcast = True 
-                    # elif (y_kj==y_ij and z_kj<z_ij):
+                    # elif (y_kj==y_ij and z_kj>z_ij):
                     #     if self.enable_logging:
                     #         logging.log(TRACE, 'NODEID:'+str(self.id) +  ' #3stefano')
                     #     rebroadcast = True
@@ -958,7 +958,7 @@ class node:
                             logging.log(TRACE, 'NODEID:'+str(self.id) +  '#26')
                         rebroadcast = True
                         index+=1
-                    # elif y_kj==y_ij:# and z_kj<z_ij:
+                    # elif y_kj==y_ij:# and z_kj>z_ij:
                     #     if self.enable_logging:
                     #         logging.log(TRACE, 'NODEID:'+str(self.id) +  '#27')
                     #     index = self.update_local_val(tmp_local, index, z_kj, y_kj, t_kj, self.bids[self.item['job_id']])                   

@@ -372,8 +372,9 @@ class Simulator_Plebiscito:
         jobs_report = pd.DataFrame()
         job_allocation_time = []
         job_post_process_time = []
+        done = False
         
-        while True:
+        while not done:
             start_time = time.time()
             
             # Extract completed jobs
@@ -382,6 +383,7 @@ class Simulator_Plebiscito:
                 prev_running_jobs = list(running_jobs["job_id"])
                 
             jobs_to_unallocate, running_jobs = job.extract_completed_jobs(running_jobs, time_instant)
+            # print(jobs_to_unallocate)
             
             jobs_report = pd.concat([jobs_report, jobs_to_unallocate])
             
@@ -422,8 +424,8 @@ class Simulator_Plebiscito:
             n_jobs = len(jobs)
             # if prev_job_list.equals(jobs) and prev_running_jobs.equals(running_jobs):
             #     n_jobs = 0
-            if sorted(prev_job_list) == sorted(curr_job_list) and sorted(prev_running_jobs) == sorted(curr_running_jobs):
-                n_jobs = 0
+            # if sorted(prev_job_list) == sorted(curr_job_list) and sorted(prev_running_jobs) == sorted(curr_running_jobs):
+            #     n_jobs = 0
             
             jobs_to_submit = job.create_job_batch(jobs, n_jobs)
             
@@ -436,26 +438,26 @@ class Simulator_Plebiscito:
                 while start_id < len(jobs_to_submit):
                     subset = jobs_to_submit.iloc[start_id:start_id+batch_size]
 
-                    if self.skip_deconfliction(subset) == False:
-                        t = time.time()
-                        self.dispatch_jobs(progress_bid_events, queues, subset) 
-                            
-                        job_allocation_time.append(time.time()-t)
-                        logging.log(TRACE, 'All nodes completed the processing...')
-                        exec_time = time.time() - start_time
-                    
-                        t = time.time()
-                        # Collect node results
-                        a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
-                        job_post_process_time.append(time.time() - t)
-                        assigned_jobs = pd.concat([assigned_jobs, pd.DataFrame(a_jobs)])
-                        unassigned_jobs = pd.concat([unassigned_jobs, pd.DataFrame(u_jobs)])
-                    
-                        # Deallocate unassigned jobs
-                        self.deallocate_jobs(progress_bid_events, queues, pd.DataFrame(u_jobs))
-                        self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
-                    else:
-                        unassigned_jobs = pd.concat([unassigned_jobs, subset])
+                    # if self.skip_deconfliction(subset) == False:
+                    t = time.time()
+                    self.dispatch_jobs(progress_bid_events, queues, subset) 
+                        
+                    job_allocation_time.append(time.time()-t)
+                    logging.log(TRACE, 'All nodes completed the processing...')
+                    exec_time = time.time() - start_time
+                
+                    t = time.time()
+                    # Collect node results
+                    a_jobs, u_jobs = self.collect_node_results(return_val, subset, exec_time, time_instant, save_on_file=False)
+                    job_post_process_time.append(time.time() - t)
+                    assigned_jobs = pd.concat([assigned_jobs, pd.DataFrame(a_jobs)])
+                    unassigned_jobs = pd.concat([unassigned_jobs, pd.DataFrame(u_jobs)])
+                
+                    # Deallocate unassigned jobs
+                    self.deallocate_jobs(progress_bid_events, queues, pd.DataFrame(u_jobs))
+                    self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=False)
+                    # else:
+                    #     unassigned_jobs = pd.concat([unassigned_jobs, subset])
                         #print('ktm')
                         
                     start_id += batch_size
@@ -497,17 +499,25 @@ class Simulator_Plebiscito:
             
             self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant, save_on_file=True)
             
-            #self.print_simulation_progress(time_instant, len(processed_jobs), jobs, len(running_jobs), batch_size)
+            self.print_simulation_progress(time_instant, len(processed_jobs), jobs, len(running_jobs), batch_size)
             time_instant += 1
 
             # Check if all jobs have been processed
-            if len(processed_jobs) == len(self.dataset) and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
-                break
+            # if len(processed_jobs) == len(self.dataset) and len(running_jobs) == 0 and len(jobs) == 0: # add to include also the final deallocation
+            if len(processed_jobs) == len(self.dataset) and len(jobs) == 0: # add to include also the final deallocation
+                print('!!!last allocated', time_instant)
+                job.extract_allocated_jobs(processed_jobs, self.filename + "_allocations.csv")
+
+                done=True
+                # break
+            # else:
+            #     print('still left', time_instant, len(processed_jobs), len(self.dataset), len(running_jobs), len(jobs))
+            #     print(jobs)
         
         # Collect final node results
         self.collect_node_results(return_val, pd.DataFrame(), time.time()-start_time, time_instant+1, save_on_file=True)
         
-        #self.print_simulation_progress(time_instant, len(processed_jobs), jobs, len(running_jobs), batch_size)
+        self.print_simulation_progress(time_instant, len(processed_jobs), jobs, len(running_jobs), batch_size)
         
         # Terminate node processing
         self.terminate_node_processing(terminate_processing_events)

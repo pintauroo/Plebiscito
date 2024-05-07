@@ -22,6 +22,20 @@ def extract_completed_jobs(dataset: pd.DataFrame, time_instant):
     
     return ret, dataset
 
+ 
+def extract_allocated_jobs(dataset: pd.DataFrame, filename):
+
+    if len(dataset) > 0:
+        dataset.to_csv(filename)
+        # Filter the DataFrame to get only rows where 'allocated_at' is >= 'submit_time'
+        # filtered_dataset = dataset[dataset['allocated_at'] >= dataset['submit_time']]
+        
+        # # Print the 'job_id' for these filtered rows
+        # for index, row in filtered_dataset.iterrows():
+        #     print(row['job_id'])
+        
+    
+
 def extract_rebid_job(dataset: pd.DataFrame, low_thre, high_thre, duration_therehold):
     if len(dataset) == 0:
         return dataset, dataset
