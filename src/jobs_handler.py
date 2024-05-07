@@ -35,16 +35,15 @@ def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm)
     elif scheduling_algorithm == SchedulingAlgorithm.SDF:
         return jobs.sort_values(by=["duration"])
 
-def dispatch_job(dataset: pd.DataFrame, queues, logical_topology, failure_nodes, use_net_topology=False, split=True):        
+def dispatch_job(dataset: pd.DataFrame, queues, logical_topology, failure_nodes, use_net_topology=False, split=True, nodes_failure=[], progress_bid_events=[]):        
     if use_net_topology:
         timeout = 1 # don't change it
     else:
-        timeout = 0.2
+        timeout = 3
 
     count = 0
     failure_time = random.randint(1, len(dataset) - 2)
-    # for f in failure_nodes:
-    #     logical_topology.disconnect_node(f)
+
     failure = False    
     for _, job in dataset.iterrows():
         data = message_data(
@@ -58,14 +57,22 @@ def dispatch_job(dataset: pd.DataFrame, queues, logical_topology, failure_nodes,
                     deallocate=False,
                     split=split
                 )
-        
-        for i, q in enumerate(queues):
-            if i in failure_nodes and failure:
-                continue
-            q.put(data)
-            
-        time.sleep(timeout)
+        # random.seed(job['job_id'])
 
+        # while True:
+        #     node_to_submit = random.randint(0, len(queues)-1)
+        #     if node_to_submit not in failure_nodes:
+        #         break
+        
+        for q in queues:
+            q.put(data)
+        # queues[node_to_submit].put(data)
+
+        for id, e in enumerate(progress_bid_events):
+            if (count <= failure_time) or (count > failure_time and id not in failure_nodes):
+                e.wait()
+                e.clear() 
+            
         if count == failure_time:
             for f in failure_nodes:
                 logical_topology.disconnect_node(f)

@@ -9,8 +9,12 @@ class Utility(Enum):
     ALPHA_GPU_BW = 5
     POWER = 6
     SGF = 7
-    
-    
+    UTIL = 8
+    SPEEDUP = 9
+    SPEEDUPV2 = 10
+    FGD = 11
+    RANDOM = 12
+       
 class DebugLevel(Enum):
     TRACE = 5
     DEBUG = logging.DEBUG
@@ -30,6 +34,12 @@ class GPUType(Enum):
     V100 = 3
     MISC = 4
     #V100M32 = 4 sarebbe 4 e misc 5
+    
+class ApplicationGraphType(Enum):
+    LINEAR = 1
+    GRAPH20 = 2
+    GRAPH40 = 3
+    GRAPH60 = 4
     
 class GPUSupport:
     
@@ -55,6 +65,23 @@ class GPUSupport:
         else:
             return GPUType.MISC
     
+    @staticmethod
+    def compute_speedup(gpu_type1, gpu_type2):
+        """
+        Computes the speedup of a GPU of type `gpu_type1` over a GPU of type `gpu_type2`.
+
+        Args:
+            gpu_type1 (GPUType): The type of the host GPU.
+            gpu_type2 (GPUType): The type of the job GPU.
+
+        Returns:
+            float: The speedup of a GPU of type `gpu_type1` over a GPU of type `gpu_type2`.
+            A value of 1 means that the GPUs have the same performance.
+            A value greater than 1 means that `gpu_type1` is faster than `gpu_type2` (lower the duration).
+            A value less than 1 means that `gpu_type1` is slower than `gpu_type2` (increase the duration).
+        """
+        speedup_factor = 0
+        return 1 - (gpu_type1.value - gpu_type2.value) * speedup_factor
     
     @staticmethod
     def can_host(gpu_type1, gpu_type2):
@@ -68,8 +95,17 @@ class GPUSupport:
         Returns:
             bool: True if `gpu_type1` can host `gpu_type2`, False otherwise.
         """
-        return gpu_type1.value <= gpu_type2.value
+        #return gpu_type1.value <= gpu_type2.value
+        return True
+        return gpu_type1.value == gpu_type2.value
+        # if gpu_type2.value == GPUType.V100.value:
+        #     if gpu_type1.value == GPUType.V100.value:
+        #         return True
+        #     else:
+        #         return False
+        # return True
     
+        
     @staticmethod
     def get_compute_resources(gpu_type):
         """
@@ -108,5 +144,6 @@ class GPUSupport:
         Returns:
             float: The corrective factor for the GPU of type `gpu_type1` to host a GPU of type `gpu_type2`.
         """
+        #return 1
         difference = gpu_type2.value - gpu_type1.value
-        return 1 - (difference * decrement)
+        return 1 - abs(difference * decrement)

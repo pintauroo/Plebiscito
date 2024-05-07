@@ -122,64 +122,61 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
         count += 1
         flag = True
         j = job['job_id']
+        node_with_bid = None
+        n_layer = 0
+        GPUs = []
+        unmatch = False
+        
+        for n in nodes:
+            if j in n.bids:
+                n_layer = len(n.bids[j]['auction_id'])
+                break
+        
         # Check correctness of all bids
-        equal_values = True         
-
-        i = 0
-        acceptable_node_id = -1
-        try:
-            for i in range(1, num_edges):
+        for k in range(n_layer):
+            alloc = None
+            for i in range(num_edges):
                 if i in failure_nodes:
                     continue
-                #print(nodes[i].bids)
-                prev_id = i-1
-                while prev_id in failure_nodes:
-                    prev_id -= 1
-                    if prev_id < 0:
-                        prev_id = 0
+
+                if alloc == None:
+                    alloc = nodes[i].bids[j]['auction_id'][k]
+                    node_with_bid = i
+                else:
+                    if alloc != nodes[i].bids[j]['auction_id'][k]:
+                        unmatch = True
                         break
                     
-                acceptable_node_id = i
-                if nodes[i].bids[j]['auction_id'] != nodes[prev_id].bids[j]['auction_id']:
-                    count_broken += 1
-                    #print('BROKEN BID id: ' + str(j))
-                    # for k in range(0, num_edges):
-                    #     print(nodes[k].bids[j]['auction_id'])
-                    equal_values = False
-                    break
-        except Exception as e :
-            print("bingo", e, nodes[i].bids.keys())        
-        if equal_values: # matching auction
-
-                if all(x == float('-inf') for x in nodes[acceptable_node_id].bids[j]['auction_id']):
-                    #print('Unassigned')
-                    found_failure = True
-                    flag = False # all unassigned
-                elif float('-inf') in nodes[acceptable_node_id].bids[j]['auction_id']: #check if there is a value not assigned 
-                    flag = False
-                    found_failure = True
-                    #wrong_bids_calc(nodes, job, num_edges, use_net_topology)
-                else:
-                    #print('MATCH')
-                    if not found_failure:
-                        count_success += 1
-                    valid_bids[j] = nodes[acceptable_node_id].bids[j]['auction_id']
-                    #logging.info(f"Job {j} assignment {nodes[0].bids[j]['auction_id']}")
-
-        else: # unmatching auctions
-            flag = False
-            found_failure = True
-            #wrong_bids_calc(nodes, job, num_edges, use_net_topology)
-
+            if unmatch:
+                # print('BROKEN BID id: ' + str(j))
+                # for n in nodes:
+                #     if j in n.bids:
+                #         print(f"Node: {n.id}: {n.bids[j]['auction_id']}")
+                # something bad happened
+                break
+            
+            # if alloc != float('-inf'):
+            #     GPUs.append(nodes[alloc].gpu_type)
+                
+        if node_with_bid != None and float('-inf') not in nodes[node_with_bid].bids[j]['auction_id'] and not unmatch:
+            count_success += 1
+            valid_bids[j] = nodes[node_with_bid].bids[j]['auction_id']
+            logging.info(f"Job {j} assignment {nodes[node_with_bid].bids[j]['auction_id']}")
+        else:
+            flag = False 
 
         if flag:
-            k = 0
-            for k in range(num_edges):
-                if k not in failure_nodes:
-                    break
-                
-            job["final_node_allocation"] = nodes[k].bids[j]['auction_id']
-            job["final_gpu_allocation"] = allocation_to_gpu_type(nodes[k].bids[j]['auction_id'], gpu_types=gpu_types)
+            job["final_node_allocation"] = nodes[node_with_bid].bids[j]['auction_id']
+            job["final_gpu_allocation"] = allocation_to_gpu_type(nodes[node_with_bid].bids[j]['auction_id'], gpu_types=gpu_types)
+            
+            lower_speedup = 10000
+            for g in set(GPUs):
+                s = GPUSupport.compute_speedup(GPUSupport.get_gpu_type(g), GPUSupport.get_gpu_type(job["gpu_type"]))
+                if lower_speedup > s:
+                    lower_speedup = s
+            
+            job["speedup"] = lower_speedup
+            
             assigned_jobs.append(job)
             assigned_jobs_id.append(j)
             
@@ -196,10 +193,6 @@ def calculate_utility(nodes, num_edges, msg_count, simulation_time, n_req, jobs,
             unassigned_sum_cpu += float(job['num_cpu'])
             unassigned_sum_gpu += float(job['num_gpu'])
             unassigned_sum_bw += float(job['bw']) 
-    # print("Assigned")    
-    # print(assigned_jobs)
-    # print("Unassigned")
-    # print(unassigned_jobs)
      
     if use_net_topology:
         print()

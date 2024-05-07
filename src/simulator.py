@@ -167,35 +167,23 @@ class Simulator_Plebiscito:
         Returns:
         - float representing the utility value calculated based on the updated data structures
         """
-        # self.counter = 0
-        # self.job_count = {}
-        
         if time_instant != 0:
+            for _, j in jobs.iterrows():
+                self.job_count[j["job_id"]] = 0
+                for v in return_val: 
+                    nodeId = v["id"]
+                    if j["job_id"] not in v["bids"]:
+                        continue
+                    
+                    self.nodes[nodeId].bids[j["job_id"]] = v["bids"][j["job_id"]]                        
+                    self.job_count[j["job_id"]] += v["counter"][j["job_id"]]
+
             for v in return_val: 
                 nodeId = v["id"]
-                if nodeId in failure_nodes:
-                    continue
-                for _, j in jobs.iterrows():
-                    # if j["job_id"] not in self.nodes[nodeId].bids:
-                    self.nodes[nodeId].bids[j["job_id"]] = v["bids"][j["job_id"]]
-                    if j["job_id"] not in self.job_count:
-                        self.job_count[j["job_id"]] = 0
-                    self.job_count[j["job_id"]] = v["counter"][j["job_id"]]
-                # for key in v["counter"]:
-                #     if key not in self.job_count:
-                #         self.job_count[key] = 0
-                #     self.job_count[key] += v["counter"][key]
-                #     self.counter += v["counter"][key]
                 self.nodes[nodeId].updated_cpu = v["updated_cpu"]
                 self.nodes[nodeId].updated_gpu = v["updated_gpu"]
                 self.nodes[nodeId].updated_bw = v["updated_bw"]
                 self.nodes[nodeId].gpu_type = v["gpu_type"]
-                
-        # for i in range(self.n_nodes):
-        #     if i in failure_nodes:
-        #         continue
-        #     for key in self.nodes[i].bids:
-        #         print(f"Node {i} bids for job {key}: {self.nodes[i].bids[key]['auction_id']}")
         
         return utils.calculate_utility(self.nodes, self.n_nodes, self.counter, exec_time, self.n_jobs, jobs, self.alpha, time_instant, self.use_net_topology, self.filename, self.network_t, self.gpu_types, save_on_file, failure_nodes)
     
@@ -284,12 +272,8 @@ class Simulator_Plebiscito:
         
         time_instant = 1
         
-        job.dispatch_job(self.dataset, queues, self.t, self.failure_nodes, self.use_net_topology, self.split)
-        
-        for e in progress_bid_events:
-            e.wait()
-            e.clear() 
-                        
+        job.dispatch_job(self.dataset, queues, self.t, self.failure_nodes, self.use_net_topology, self.split, self.failure_nodes, progress_bid_events)
+
         exec_time = time.time() - start_time
         
         # Collect node results
