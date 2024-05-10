@@ -223,8 +223,8 @@ def plot_all(n_edges, filename, job_count, dir_name, processing_times=[], post_p
     plot_node_resource_usage_box(filename, "cpu", n_edges, dir_name)
     plot_node_resource_usage_box(filename, "bw", n_edges, dir_name)
     
-    plot_power_consumption(filename, "cpu", n_edges, dir_name)
-    plot_power_consumption(filename, "gpu", n_edges, dir_name)
+    # plot_power_consumption(filename, "cpu", n_edges, dir_name)
+    # plot_power_consumption(filename, "gpu", n_edges, dir_name)
     
     plot_job_execution_delay(filename, dir_name)
     plot_job_deadline(filename, dir_name)

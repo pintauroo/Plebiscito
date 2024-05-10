@@ -54,7 +54,7 @@ def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm)
     elif scheduling_algorithm == SchedulingAlgorithm.SDF:
         return jobs.sort_values(by=["duration"])
 
-def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True, app_type=ApplicationGraphType.LINEAR, check_speedup=False, low_th=1, high_th=1.2):        
+def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True, failures = {}, time_instant = 0, app_type=ApplicationGraphType.LINEAR, check_speedup=False, low_th=1, high_th=1.2):        
     # if use_net_topology:
     #     timeout = 1 # don't change it
     # else:
@@ -82,9 +82,21 @@ def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=Tr
                     speedup=speedup,
                     increase=increase
                 )
-        
         random.seed(job['job_id'])
-        node_to_submit = random.randint(0, len(queues)-1)
+        node_to_submit = -1
+
+        if bool(failures):
+            while True:
+                node_to_submit = random.randint(0, len(queues)-1)
+                success = True
+                for i in range(len(failures["time"])):
+                    if time_instant >= failures["time"][i] and failures["nodes"][i] == node_to_submit:
+                        success = False
+                        break
+                if success:
+                    break
+        else:
+            node_to_submit = random.randint(0, len(queues)-1)
         
         # for q in queues:
         #     q.put(data)

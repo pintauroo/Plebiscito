@@ -173,12 +173,16 @@ class node:
 
     def util_rate(self):
         cpus_util = 1 - self.updated_cpu / self.initial_cpu
-        if self.updated_gpu > 0:
+        if self.initial_gpu > 0:
             gpus_util = 1 - self.updated_gpu / self.initial_gpu
-            util_rate = round((gpus_util + cpus_util) / 2)
+            util_rate = round(100 * (gpus_util + cpus_util) / 2)
         else:
-            util_rate = 0 # round(cpus_util)
-        return util_rate
+            util_rate = round(100 * cpus_util)
+
+        if util_rate == 0:
+            return 100000000
+        
+        return 1/util_rate
 
 
     def utility_function(self, avail_bw, avail_cpu, avail_gpu):
@@ -412,16 +416,16 @@ class node:
             node_gpus[j] += self.item["NN_gpu"][0]
             
         if best_frag == float('inf'):
-            self.layer_bid_already[self.item['job_id']][0] = True
+            #self.layer_bid_already[self.item['job_id']][0] = True
             return False
         
         self.allocated_on[self.item["job_id"]].append(best_id)
         fragmentation += best_frag * 1/len(self.item["NN_gpu"])
         fragmentation = -fragmentation
-                
+                        
         success = False
         for i in range(len(self.bids[self.item['job_id']]['bid'])):
-            if fragmentation > self.bids[self.item['job_id']]['bid'][i] or self.bids[self.item['job_id']]['bid'][i] == float('-inf'):
+            if fragmentation >= self.bids[self.item['job_id']]['bid'][i] or self.bids[self.item['job_id']]['bid'][i] == float('-inf'):
                 self.bids[self.item['job_id']]['bid'][i] = fragmentation
                 self.bids[self.item['job_id']]['auction_id'][i] = self.id
                 self.bids[self.item['job_id']]['timestamp'][i] = datetime.now()
@@ -1133,7 +1137,7 @@ class node:
         while True:
             try: 
                 self.item = None
-                items = self.extract_all_job_msg(timeout)  
+                items = self.extract_all_job_msg(timeout, progress_bid)  
                 first_msg = False
                 need_rebroadcast = False   
                 
@@ -1155,8 +1159,9 @@ class node:
                         
                         # if the bidding process didn't complete, reset the bid (it will be submitted later)
                         #if float('-inf') in self.bids[self.item['job_id']]['auction_id']:
-                        del self.bids[self.item['job_id']]
-                        del self.counter[self.item['job_id']]
+                        if self.item['job_id'] in self.bids:
+                            del self.bids[self.item['job_id']]
+                            del self.counter[self.item['job_id']]
                         
                         #self.update_bw(prev_bid=p_bid, deallocate=True)
                             
@@ -1239,7 +1244,7 @@ class node:
                         print(f"Node {self.id} -- Mannaggia updated={self.updated_cpu} initial={self.initial_cpu}", flush=True)
                     break 
 
-    def extract_all_job_msg(self, timeout):
+    def extract_all_job_msg(self, timeout, progress_bid):
         first = True
         job_id = None
         items = []
@@ -1247,6 +1252,7 @@ class node:
         while True:
             try:
                 it = self.q[self.id].get(timeout=timeout)
+                progress_bid.clear()
                 self.already_finished = False
                 if first:
                     first = False
