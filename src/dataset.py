@@ -81,6 +81,8 @@ class JobList:
         job_dict['jct'] = -1
         job_dict['resource'] = [job_dict['num_gpu'], job_dict['num_cpu']] # list of resources
         job_dict['node'] = None
+        job_dict['execution_time'] = 0
+
 
         # Add duration estimation
         if describe_dict is not None:

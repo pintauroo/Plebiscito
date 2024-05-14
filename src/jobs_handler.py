@@ -37,22 +37,23 @@ def extract_allocated_jobs(dataset: pd.DataFrame, filename):
     
 
 def extract_rebid_job(dataset: pd.DataFrame, low_thre, high_thre, duration_therehold):
-    if len(dataset) == 0:
-        return dataset, dataset
+    return dataset, pd.DataFrame()
+    # if len(dataset) == 0:
+    #     return dataset, dataset
     
-    condition = (dataset['speedup'] > high_thre) & (dataset['duration'] - dataset['current_duration'] > duration_therehold)
-    ret = dataset[condition]
+    # condition = (dataset['speedup'] > high_thre) & (dataset['duration'] - dataset['current_duration'] > duration_therehold)
+    # ret = dataset[condition]
     
-    if len(ret) > 0:
-        dataset = dataset[~condition]
+    # if len(ret) > 0:
+    #     dataset = dataset[~condition]
     
-    condition = (dataset['speedup'] < low_thre) & (dataset['duration'] - dataset['current_duration'] > duration_therehold)
-    ret = pd.concat([ret, dataset[condition]])
+    # condition = (dataset['speedup'] < low_thre) & (dataset['duration'] - dataset['current_duration'] > duration_therehold)
+    # ret = pd.concat([ret, dataset[condition]])
     
-    if len(ret) > 0:
-        dataset = dataset[~condition]
+    # if len(ret) > 0:
+    #     dataset = dataset[~condition]
     
-    return ret, dataset
+    # return ret, dataset
 
 def select_jobs(dataset, time_instant):
     return dataset[dataset['submit_time'] == time_instant]
@@ -67,6 +68,21 @@ def schedule_jobs(jobs: pd.DataFrame, scheduling_algorithm: SchedulingAlgorithm)
         return jobs.sort_values(by=["submit_time"])
     elif scheduling_algorithm == SchedulingAlgorithm.SDF:
         return jobs.sort_values(by=["duration"])
+    elif scheduling_algorithm == SchedulingAlgorithm.Tiresias:
+        print("Tiresias scheduling algorithm !!!!!!!!")
+        # if 'waiting_for' not in jobs.columns:
+        #     jobs['waiting_for'] = 0
+
+        # # Iterate over each row to check for NaN values individually (if needed for specific logic)
+        # for index, job in jobs.iterrows():
+        #     # Check if the value is NaN and fill with 0 if so
+        #     if pd.isna(job['waiting_for']):
+        #         jobs.at[index, 'waiting_for'] = 0
+                
+        #     if 'executed_for' not in job:
+        #         jobs.loc[index, 'executed_for'] = 0
+
+        return jobs.sort_values(by=["executed_for", "waiting_for", "submit_time"])
 
 def dispatch_job(dataset: pd.DataFrame, queues, use_net_topology=False, split=True, app_type=ApplicationGraphType.LINEAR, check_speedup=False, low_th=1, high_th=1.2):        
     # if use_net_topology:

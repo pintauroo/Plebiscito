@@ -91,7 +91,7 @@ def _add_job(job_list, job_dict, describe_dict=None):
     job_dict["final_node_allocation"] = []
     job_dict["final_gpu_allocation"] = []
     job_dict["deadline"] = job_dict['submit_time'] + job_dict['duration'] * (1 + 0.1 * random.random()) # 10% deadline slack
-
+    job_dict['execution_time'] = 0
     # Add duration estimation
     if describe_dict is not None:
         jd_user = describe_dict.get(job_dict['user'])

@@ -22,6 +22,7 @@ class DebugLevel(Enum):
 class SchedulingAlgorithm(Enum):
     FIFO = 1
     SDF = 2 # shortest duration first
+    Tiresias = 3 # least attained service LAS
 
 # create an enum to represent the possible types of GPUS
 # the idea is to represent the types of GPU in ascending order of performance

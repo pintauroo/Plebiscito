@@ -21,8 +21,9 @@ def generate_gpu_types(n_nodes):
     
     gpu_types = []
     for _ in range(n_nodes):
-        t_id = np.random.choice(np.arange(0, 4), p=occurrencies)
-        gpu_types.append(GPUSupport.get_gpu_type(GPU_types[t_id]))
+        # t_id = np.random.choice(np.arange(0, 4), p=occurrencies)
+        # gpu_types.append(GPUSupport.get_gpu_type(GPU_types[t_id])) GPUType.MISC
+        gpu_types.append(GPUType.MISC) 
         
     return gpu_types
     
